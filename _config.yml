@@ -64,7 +64,7 @@ author:
   goodreads        : # Username
   google_plus      : # Username
   keybase          : # Username
-  instagram        : "@peterdenman777"
+  instagram        : "peterdenman777"
   lastfm           : # Username
   linkedin         : # Username
   mastodon         : # URL
@@ -222,16 +222,16 @@ kramdown:
 # These settings control the types of collections used by the template
 collections:
   teaching:
-    output: true
+    output: false
     permalink: /:collection/:path/
   publications:
-    output: true
+    output: false
     permalink: /:collection/:path/
   portfolio:
-    output: true
+    output: false
     permalink: /:collection/:path/
   talks:
-    output: true
+    output: false
     permalink: /:collection/:path/
 
 
