@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teach Program & FSRS Dashboard</title>
+    <!-- Include PDF.js Library for Browser Parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        header {
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e1e4e8;
+            padding-bottom: 10px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        h2 { margin-top: 0; color: #1a202c; }
+        .dropzone {
+            border: 2px dashed #cbd5e0;
+            padding: 30px;
+            text-align: center;
+            border-radius: 6px;
+            background: #f7fafc;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .dropzone:hover { border-color: #4299e1; background: #ebf8ff; }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .btn-1 { background: #feb2b2; color: #9b2c2c; } /* Again */
+        .btn-2 { background: #fbd38d; color: #9c4221; } /* Hard */
+        .btn-3 { background: #9ae6b4; color: #22543d; } /* Good */
+        .btn-4 { background: #63b3ed; color: #2a4365; } /* Easy */
+        button:hover { opacity: 0.85; transform: translateY(-1px); }
+        ul { list-style: none; padding: 0; }
+        li {
+            padding: 12px;
+            background: #f7fafc;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #cbd5e0;
+        }
+        li.high-difficulty { border-left-color: #e53e3e; }
+        .slide-viewer {
+            max-height: 400px;
+            overflow-y: auto;
+            background: #2d3748;
+            color: #fff;
+            padding: 15px;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            margin-top: 15px;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Teach Program Engine</h1>
+        <p>1/4 Method Spaced Repetition Workspace</p>
+    </header>
+
+    <div class="grid">
+        <!-- Left Side: Ingestion and Workspace -->
+        <div>
+            <div class="card">
+                <h2>1. Upload Lecture Slides</h2>
+                <div class="dropzone" id="dropzone">
+                    <p>Drag & Drop your lecture PDF here or click to browse</p>
+                    <input type="file" id="fileInput" accept="application/pdf" style="display:none">
+                </div>
+                <div id="status" style="margin-top: 10px; font-weight: bold; color: #4a5568;"></div>
+            </div>
+
+            <div class="card hidden" id="workspaceCard">
+                <h2>2. Active Output Review</h2>
+                <p><strong>Topic:</strong> <span id="currentTopicName">None</span></p>
+                <div class="slide-viewer" id="slideViewer">Slides processing layout...</div>
+                
+                <p style="margin-top:20px;"><strong>Rate your execution framework (1-4):</strong></p>
+                <div class="btn-group">
+                    <button class="btn-1" onclick="submitGrade(1)">Again (1)</button>
+                    <button class="btn-2" onclick="submitGrade(2)">Hard (2)</button>
+                    <button class="btn-3" onclick="submitGrade(3)">Good (3)</button>
+                    <button class="btn-4" onclick="submitGrade(4)">Easy (4)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side: The FSRS Spacing Queue -->
+        <div>
+            <div class="card">
+                <h2>Daily Focus Queue</h2>
+                <p style="font-size: 0.9em; color: #718096;">Sorted by algorithmic difficulty profile.</p>
+                <ul id="scheduleList">
+                    <!-- Dynamic List Generation -->
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 1. THE FSRS MEMORY MATHEMATICS ENGINE ---
+    class FSRSEngine {
+        constructor() {
+            this.w = [
+                0.4025, 1.4612, 3.3458, 15.6889, 5.8273, 0.7259, 1.0652, 0.0631, 
+                2.1818, 0.1654, 1.0523, 0.8123, 0.9024, 0.4497, 1.5472, 0.4018, 
+                0.3951, 0.1118, 0.8974
+            ];
+            this.w20 = 0.003;
+            this.targetRetention = 0.90; 
+            this.factor = Math.pow(0.9, -1 / this.w20) - 1;
+        }
+
+        initializeTopic(grade) {
+            const initialDifficulty = this.w[4] - (grade - 3);
+            const initialStability = this.w[0] * 0.25 * Math.pow(2, grade - 1);
+            return {
+                stability: initialStability,
+                difficulty: Math.max(1, Math.min(10, initialDifficulty))
+            };
+        }
+
+        calculateRetrievability(stability, elapsedDays) {
+            if (elapsedDays === 0) return 1.0;
+            return Math.pow(1 + this.factor * (elapsedDays / stability), -this.w20);
+        }
+
+        updateTopic(currentStability, currentDifficulty, elapsedDays, grade) {
+            const R = this.calculateRetrievability(currentStability, elapsedDays);
+            let nextDifficulty = currentDifficulty - 0.1 * (grade - 3);
+            nextDifficulty = Math.max(1, Math.min(10, nextDifficulty));
+
+            let nextStability;
+            if (grade === 1) {
+                nextStability = this.w[9] * Math.pow(nextDifficulty, -this.w[10]) * 
+                                Math.pow(currentStability, this.w[11]) * 
+                                Math.exp(this.w[12] * (1 - R));
+            } else {
+                const hardModifier = grade === 2 ? this.w[15] : 1.0;
+                const easyModifier = grade === 4 ? this.w[16] : 1.0;
+                nextStability = currentStability * (
+                    Math.exp(this.w[6] * (11 - nextDifficulty)) * 
+                    Math.pow(currentStability, -this.w[7]) * 
+                    (Math.exp(this.w[8] * (1 - R)) - 1) + 1
+                ) * hardModifier * easyModifier;
+            }
+            return { stability: nextStability, difficulty: nextDifficulty };
+        }
+
+        calculateNextInterval(stability) {
+            const interval = (stability / this.factor) * (Math.pow(this.targetRetention, -1 / this.w20) - 1);
+            return Math.max(1, Math.round(interval));
+        }
+    }
+
+    const fsrs = new FSRSEngine();
+    let currentLoadedTopicName = "";
+
+    // --- 2. FILE PROCESSING ENGINE ---
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const statusDiv = document.getElementById('status');
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.style.borderColor = '#4299e1'; });
+    dropzone.addEventListener('dragleave', () => dropzone.style.borderColor = '#cbd5e0'; });
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) handleFile(e.target.files[0]);
+    });
+
+    function handleFile(file) {
+        if (file.type !== "application/pdf") {
+            statusDiv.innerText = "Error: Please upload a PDF file.";
+            return;
+        }
+        currentLoadedTopicName = file.name.replace(".pdf", "");
+        statusDiv.innerText = `Parsing layout: ${file.name}...`;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const typedarray = new Uint8Array(e.target.result);
+            pdfjsLib.getDocument(typedarray).promise.then(pdf => {
+                let maxPages = Math.min(pdf.numPages, 5); // Pull preview sample text
+                let countPromises = [];
+                for (let i = 1; i <= maxPages; i++) {
+                    countPromises.push(pdf.getPage(i).then(page => page.getTextContent()));
+                }
+                Promise.all(countPromises).then(contents => {
+                    let fullText = contents.map(c => c.items.map(item => item.str).join(" ")).join("\n\n--- Slide Border ---\n\n");
+                    document.getElementById('slideViewer').innerText = fullText || "[No readable text layers found on initial slides]";
+                    document.getElementById('currentTopicName').innerText = currentLoadedTopicName;
+                    document.getElementById('workspaceCard').classList.remove('hidden');
+                    statusDiv.innerText = "Ingestion Complete.";
+                });
+            });
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    // --- 3. CORE LOGIC / DATABASE LOOP ---
+    function submitGrade(grade) {
+        if (!currentLoadedTopicName) return;
+        
+        let db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
+        const now = new Date();
+
+        if (!db[currentLoadedTopicName]) {
+            const initial = fsrs.initializeTopic(grade);
+            const interval = fsrs.calculateNextInterval(initial.stability);
+            db[currentLoadedTopicName] = {
+                name: currentLoadedTopicName,
+                stability: initial.stability,
+                difficulty: initial.difficulty,
+                lastReviewed: now.toISOString(),
+                nextDue: new Date(now.getTime() + interval * 24 * 60 * 60 * 1000).toISOString()
+            };
+        } else {
+            const topic = db[currentLoadedTopicName];
+            const elapsedDays = Math.max(0, (now - new Date(topic.lastReviewed)) / (1000 * 60 * 60 * 24));
+            const updated = fsrs.updateTopic(topic.stability, topic.difficulty, elapsedDays, grade);
+            const interval = fsrs.calculateNextInterval(updated.stability);
+
+            topic.stability = updated.stability;
+            topic.difficulty = updated.difficulty;
+            topic.lastReviewed = now.toISOString();
+            topic.nextDue = new Date(now.getTime() + interval * 24 * 60 * 60 * 1000).toISOString();
+        }
+
+        localStorage.setItem('teach_program_db', JSON.stringify(db));
+        document.getElementById('workspaceCard').classList.add('hidden');
+        statusDiv.innerText = `Topic score updated. Next review interval set.`;
+        displaySchedule();
+    }
+
+    function displaySchedule() {
+        const db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
+        const now = new Date();
+        const listContainer = document.getElementById('scheduleList');
+        listContainer.innerHTML = "";
+
+        // Collect all targets
+        const topics = Object.values(db).sort((a,b) => b.difficulty - a.difficulty);
+
+        if (topics.length === 0) {
+            listContainer.innerHTML = "<li style='color: #718096;'>No tracking items found. Ingest your first deck to initialize database framework.</li>";
+            return;
+        }
+
+        topics.forEach(topic => {
+            const isDue = new Date(topic.nextDue) <= now;
+            const dueDateFormatted = new Date(topic.nextDue).toLocaleDateString();
+            const li = document.createElement('li');
+            
+            if (topic.difficulty > 7) li.className = "high-difficulty";
+            
+            li.innerHTML = `
+                <div>
+                    <strong>${topic.name}</strong><br>
+                    <span style="font-size:0.8em; color:#718096;">Diff: ${topic.difficulty.toFixed(1)} | Next Review: ${dueDateFormatted}</span>
+                </div>
+                <span style="font-weight:bold; color: ${isDue ? '#e53e3e' : '#38a169'}">
+                    ${isDue ? "DUE NOW" : "STABLE"}
+                </span>
+            `;
+            listContainer.appendChild(li);
+        });
+    }
+
+    // Initialize display layout on page launch
+    displaySchedule();
+</script>
+</body>
+</html>
