@@ -485,7 +485,7 @@ Keep your analysis brief so they can quickly process their errors before jumping
         const status = document.getElementById('statusMessage');
 
         aiInstance.models.generateContent({
-            model: 'gemini-2.5-flash', 
+            model: 'gemini-3.5-flash', 
             contents: contentArray,
         }).then(response => {
             document.getElementById('aiAnalysisText').innerText = response.text;
