@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Med School Slide-by-Slide TEACH Sandbox (Gemini AI + FSRS)</title>
+    <title>Med School Slide-by-Slide TEACH Sandbox (FSRS + GitHub Sync)</title>
     <!-- Include PDF.js Library for Browser Parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <style>
@@ -21,10 +21,17 @@
         header {
             margin-bottom: 25px;
             border-bottom: 2px solid #e1e4e8;
-            padding-bottom: 10px;
+            padding-bottom: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 20px;
+        }
+        .config-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 320px;
         }
         .grid {
             display: grid;
@@ -117,16 +124,19 @@
 <div class="container">
     <header>
         <div>
-            <h1 style="margin:0; font-size: 2em;">Slide-by-Slide TEACH Workspace</h1>
-            <p style="margin:5px 0 0 0; color:#718096;">Gemini Pro AI Evaluation Engine + FSRS Space Tracking</p>
+            <h1 style="margin:0; font-size: 1.8em;">Slide-by-Slide TEACH Workspace</h1>
+            <p style="margin:5px 0 0 0; color:#718096;">Automated Git Cloud Synchronization Framework</p>
+            <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync State: Offline</div>
         </div>
-        <div style="width: 300px;">
-            <input type="password" id="apiKeyInput" placeholder="Enter Gemini API Key" onchange="saveApiKey()">
+        <div class="config-panel">
+            <input type="password" id="apiKeyInput" placeholder="Enter Gemini API Key" onchange="saveConfig()">
+            <input type="password" id="githubPatInput" placeholder="Enter GitHub Token (github_pat_...)" onchange="saveConfig()">
+            <input type="text" id="githubRepoInput" placeholder="username/repository_name" onchange="saveConfig()" style="padding: 6px 10px; font-size: 0.9em;">
         </div>
     </header>
 
     <div class="grid">
-        <!-- LEFT PANEL: SLIDE BY SLIDE STUDY MATRIX -->
+        <!-- LEFT PANEL: INTERACTIVE SANDBOX -->
         <div>
             <div class="card">
                 <h2>1. Deploy Lecture Source</h2>
@@ -190,13 +200,13 @@
             <div id="statusMessage" class="status-msg"></div>
         </div>
 
-        <!-- RIGHT PANEL: ALGORITHMIC MONITOR -->
+        <!-- RIGHT PANEL: ALGORITHMIC QUEUE -->
         <div>
             <div class="card">
                 <h2>Daily Focus Queue</h2>
-                <p style="font-size: 0.85em; color: #718096; margin-top:-5px;">Click a tracking name to lock it as the layout targets.</p>
+                <p style="font-size: 0.85em; color: #718096; margin-top:-5px;">Click a tracking name to load it as the current active target.</p>
                 <ul id="scheduleList">
-                    <!-- Iterative FSRS Nodes -->
+                    <!-- Dynamic Rows Rendered by JS -->
                 </ul>
             </div>
         </div>
@@ -207,21 +217,113 @@
     import { GoogleGenAI } from "https://esm.run/@google/genai";
 
     // Global variable trackers
-    window.parsedSlidesArray = []; // Array containing text items per individual page/slide
+    window.parsedSlidesArray = []; 
     window.currentSlideIndex = 0;
     window.activeLectureName = "";
     window.mediaRecorder = null;
     window.audioChunks = [];
     window.audioBlob = null;
     window.isRecording = false;
+    window.currentFileSha = ""; // Track GitHub file version identifier
 
-    // Load saved API token key
+    // Initialize layout credentials configurations
     document.getElementById('apiKeyInput').value = localStorage.getItem('gemini_api_key') || "";
+    document.getElementById('githubPatInput').value = localStorage.getItem('github_pat') || "";
+    document.getElementById('githubRepoInput').value = localStorage.getItem('github_repo') || "";
 
-    window.saveApiKey = function() {
-        const key = document.getElementById('apiKeyInput').value.trim();
-        localStorage.setItem('gemini_api_key', key);
+    window.saveConfig = function() {
+        localStorage.setItem('gemini_api_key', document.getElementById('apiKeyInput').value.trim());
+        localStorage.setItem('github_pat', document.getElementById('githubPatInput').value.trim());
+        localStorage.setItem('github_repo', document.getElementById('githubRepoInput').value.trim());
+        pullFromGitHubCloud();
     }
+
+    // --- AUTOMATED BI-DIRECTIONAL GITHUB SYNC PIPELINE ---
+    async function pullFromGitHubCloud() {
+        const token = localStorage.getItem('github_pat');
+        const repo = localStorage.getItem('github_repo');
+        const syncLabel = document.getElementById('syncStatus');
+        
+        if (!token || !repo) {
+            syncLabel.innerHTML = "Sync State: Offline (Missing GitHub Configuration Settings)";
+            syncLabel.style.color = "#e53e3e";
+            return;
+        }
+
+        syncLabel.innerHTML = "Sync State: Connecting to GitHub cloud...";
+        syncLabel.style.color = "#3182ce";
+
+        const url = `https://api.github.com/repos/${repo}/contents/database.json`;
+        
+        try {
+            const res = await fetch(url, {
+                headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+            });
+            
+            if (res.status === 200) {
+                const data = await res.json();
+                window.currentFileSha = data.sha;
+                const decodedState = decodeURIComponent(escape(atob(data.content)));
+                localStorage.setItem('teach_program_db', decodedState);
+                
+                syncLabel.innerHTML = "Sync State: Connected & Up to Date";
+                syncLabel.style.color = "#38a169";
+                window.displaySchedule();
+            } else if (res.status === 404) {
+                syncLabel.innerHTML = "Sync State: Error (database.json file not found in repository root)";
+                syncLabel.style.color = "#e53e3e";
+            } else {
+                syncLabel.innerHTML = `Sync State: Link Error (${res.status})`;
+                syncLabel.style.color = "#e53e3e";
+            }
+        } catch(err) {
+            syncLabel.innerHTML = "Sync State: Cloud Fetch Network Disconnected";
+            syncLabel.style.color = "#e53e3e";
+        }
+    }
+    window.pullFromGitHubCloud = pullFromGitHubCloud;
+
+    async function pushToGitHubCloud(updatedDatabaseObj) {
+        const token = localStorage.getItem('github_pat');
+        const repo = localStorage.getItem('github_repo');
+        const syncLabel = document.getElementById('syncStatus');
+        if (!token || !repo) return;
+
+        syncLabel.innerHTML = "Sync State: Committing changes to GitHub cloud...";
+        syncLabel.style.color = "#3182ce";
+
+        const url = `https://api.github.com/repos/${repo}/contents/database.json`;
+        const contentStr = JSON.stringify(updatedDatabaseObj, null, 2);
+        const encodedContent = btoa(unescape(encodeURIComponent(contentStr)));
+
+        const bodyData = {
+            message: "FSRS Daily Focus Engine Matrix State Update [Client Sync]",
+            content: encodedContent,
+            sha: window.currentFileSha
+        };
+
+        try {
+            const res = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(bodyData)
+            });
+
+            if (res.status === 200 || res.status === 201) {
+                const resData = await res.json();
+                window.currentFileSha = resData.content.sha; // Track new version snapshot hash
+                syncLabel.innerHTML = "Sync State: Saved & Connected";
+                syncLabel.style.color = "#38a169";
+            } else {
+                syncLabel.innerHTML = `Sync State: Commit Push Denied (${res.status})`;
+                syncLabel.style.color = "#e53e3e";
+            }
+        } catch(err) {
+            syncLabel.innerHTML = "Sync State: Write Stream Disconnected";
+            syncLabel.style.color = "#e53e3e";
+        }
+    }
+    window.pushToGitHubCloud = pushToGitHubCloud;
 
     // --- PDF.js Setup configuration ---
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
@@ -277,7 +379,6 @@
         document.getElementById('audioPlayback').classList.add('hidden');
         window.audioBlob = null;
         
-        // Disable/enable navigation controls matching boundary conditions
         document.getElementById('prevSlideBtn').disabled = (window.currentSlideIndex === 0);
         document.getElementById('nextSlideBtn').disabled = (window.currentSlideIndex === window.parsedSlidesArray.length - 1);
     }
@@ -289,7 +390,7 @@
         document.getElementById('statusMessage').innerHTML = "";
     }
 
-    // --- AUDIO RECORDING HOOKS ---
+    // --- AUDIO RECORDING CAPTURE ENGINE ---
     window.toggleAudioRecording = function() {
         const recordBtn = document.getElementById('recordBtn');
         
@@ -323,7 +424,7 @@
         }
     }
 
-    // --- GEMINI CORE CALL ENGINE ---
+    // --- GEMINI PRO COMPATIBILITY CORE ---
     window.runGeminiGrading = function() {
         const apiKey = localStorage.getItem('gemini_api_key');
         const textExplanation = document.getElementById('userTextInput').value.trim();
@@ -331,17 +432,17 @@
         const gradeBtn = document.getElementById('gradeBtn');
 
         if (!apiKey) {
-            alert("Error: Please provide your Gemini API key inside the header layout entry block first.");
+            alert("Error: Please provide your Gemini API key inside the config header block.");
             return;
         }
         if (!textExplanation && !window.audioBlob) {
-            alert("Error: Provide an explanation for this slide before requesting an audit.");
+            alert("Error: Provide an explanation before requesting an audit.");
             return;
         }
 
-        status.innerHTML = "<span style='color:#3182ce;'>Streaming slide parameters to Gemini AI...</span>";
+        status.innerHTML = "<span style='color:#3182ce;'>Streaming parameters to Gemini AI...</span>";
         document.getElementById('aiOutputBlock').classList.remove('hidden');
-        document.getElementById('aiAnalysisText').innerText = "Comparing your active explanation against this slide's text layers...";
+        document.getElementById('aiAnalysisText').innerText = "Analyzing your active output presentation against the source notes...";
         gradeBtn.disabled = true;
 
         const ai = new GoogleGenAI({ apiKey: apiKey });
@@ -383,9 +484,8 @@ Keep your analysis brief so they can quickly process their errors before jumping
         const gradeBtn = document.getElementById('gradeBtn');
         const status = document.getElementById('statusMessage');
 
-        // Target the precise, verified production model identifier
         aiInstance.models.generateContent({
-            model: 'gemini-3.5-flash', // Or use 'gemini-3.5-flash' based on your tier access
+            model: 'gemini-2.5-flash', 
             contents: contentArray,
         }).then(response => {
             document.getElementById('aiAnalysisText').innerText = response.text;
@@ -397,6 +497,9 @@ Keep your analysis brief so they can quickly process their errors before jumping
             gradeBtn.disabled = false;
         });
     }
+
+    // Trigger an initial automatic state sync on startup check
+    pullFromGitHubCloud();
 </script>
 
 <script>
@@ -492,17 +595,20 @@ Keep your analysis brief so they can quickly process their errors before jumping
         };
 
         localStorage.setItem('teach_program_db', JSON.stringify(db));
-        document.getElementById('statusMessage').innerHTML = `<span style='color:#38a169;'>FSRS Log Complete. Lecture scheduled out for ${interval} day(s).</span>`;
+        document.getElementById('statusMessage').innerHTML = `<span style='color:#38a169;'>FSRS Log Complete. Lecture scheduled for ${interval} day(s).</span>`;
         
         document.getElementById('sandboxCard').classList.add('hidden');
         document.getElementById('topicInput').value = "";
         window.activeLectureName = "";
-        displaySchedule();
+        
+        // AUTOMATED CLOUD SYNC EXECUTED HERE
+        window.pushToGitHubCloud(db);
+        window.displaySchedule();
     }
 
     window.loadTargetProfile = function(topicKey) {
         document.getElementById('topicInput').value = topicKey;
-        document.getElementById('statusMessage').innerHTML = `<span style='color:#3182ce;'>Loaded context tracking label. Upload the matching PDF to deploy the slides framework.</span>`;
+        document.getElementById('statusMessage').innerHTML = `<span style='color:#3182ce;'>Topic loaded. Please upload the active slide PDF deck to proceed.</span>`;
     }
 
     window.removeTopic = function(topicName) {
@@ -510,7 +616,9 @@ Keep your analysis brief so they can quickly process their errors before jumping
             let db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
             delete db[topicName];
             localStorage.setItem('teach_program_db', JSON.stringify(db));
-            displaySchedule();
+            
+            window.pushToGitHubCloud(db);
+            window.displaySchedule();
         }
     }
 
@@ -547,8 +655,6 @@ Keep your analysis brief so they can quickly process their errors before jumping
             listContainer.appendChild(li);
         });
     }
-
-    displaySchedule();
 </script>
 </body>
 </html>
