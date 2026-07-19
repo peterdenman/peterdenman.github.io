@@ -3,32 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teach Program & FSRS Dashboard</title>
+    <title>Med School Slide-by-Slide TEACH Sandbox (Gemini AI + FSRS)</title>
     <!-- Include PDF.js Library for Browser Parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: #f4f6f9;
             color: #333;
             margin: 0;
             padding: 20px;
         }
         .container {
-            max-width: 900px;
+            max-width: 1200px;
             margin: 0 auto;
         }
         header {
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             border-bottom: 2px solid #e1e4e8;
             padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1.2fr 0.8fr;
             gap: 20px;
         }
-        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+        @media (max-width: 992px) { .grid { grid-template-columns: 1fr; } }
         .card {
             background: white;
             padding: 20px;
@@ -36,17 +39,22 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             margin-bottom: 20px;
         }
-        h2 { margin-top: 0; color: #1a202c; }
-        .dropzone {
-            border: 2px dashed #cbd5e0;
-            padding: 30px;
-            text-align: center;
-            border-radius: 6px;
-            background: #f7fafc;
-            cursor: pointer;
-            transition: 0.2s;
+        h2 { margin-top: 0; color: #1a202c; border-bottom: 1px solid #edf2f7; padding-bottom: 8px; }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 15px;
         }
-        .dropzone:hover { border-color: #4299e1; background: #ebf8ff; }
+        input[type="text"], input[type="password"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+        textarea { font-family: inherit; resize: vertical; }
         .btn-group {
             display: flex;
             gap: 10px;
@@ -54,21 +62,27 @@
         }
         button {
             flex: 1;
-            padding: 10px;
+            padding: 12px;
             border: none;
             border-radius: 4px;
             font-weight: bold;
             cursor: pointer;
             transition: 0.1s;
         }
-        .btn-1 { background: #feb2b2; color: #9b2c2c; } /* Again */
-        .btn-2 { background: #fbd38d; color: #9c4221; } /* Hard */
-        .btn-3 { background: #9ae6b4; color: #22543d; } /* Good */
-        .btn-4 { background: #63b3ed; color: #2a4365; } /* Easy */
+        button:disabled { background: #cbd5e0; color: #718096; cursor: not-allowed; transform: none; opacity: 1; }
+        .btn-primary { background: #3182ce; color: white; }
+        .btn-success { background: #38a169; color: white; }
+        .btn-audio { background: #dd6b20; color: white; }
+        .btn-nav { background: #4a5568; color: white; max-width: 100px; }
+        .btn-recording { background: #e53e3e; color: white; animation: pulse 1.5s infinite; }
+        .btn-1 { background: #feb2b2; color: #9b2c2c; } 
+        .btn-2 { background: #fbd38d; color: #9c4221; } 
+        .btn-3 { background: #9ae6b4; color: #22543d; } 
+        .btn-4 { background: #63b3ed; color: #2a4365; } 
         button:hover { opacity: 0.85; transform: translateY(-1px); }
         ul { list-style: none; padding: 0; }
         li {
-            padding: 12px;
+            padding: 15px;
             background: #f7fafc;
             margin-bottom: 8px;
             border-radius: 4px;
@@ -77,71 +91,316 @@
             align-items: center;
             border-left: 4px solid #cbd5e0;
         }
-        li.high-difficulty { border-left-color: #e53e3e; }
-        .slide-viewer {
-            max-height: 400px;
-            overflow-y: auto;
-            background: #2d3748;
-            color: #fff;
+        .ai-analysis {
+            background: #ebf8ff;
+            border-left: 4px solid #3182ce;
             padding: 15px;
             border-radius: 6px;
-            white-space: pre-wrap;
-            font-family: monospace;
             margin-top: 15px;
+            white-space: pre-wrap;
+            font-size: 0.95em;
+            line-height: 1.6;
         }
+        .status-msg { margin-top: 10px; font-weight: bold; color: #4a5568; }
+        .action-links { font-size: 0.85em; display: flex; gap: 10px; margin-top: 5px;}
+        .action-links span { cursor: pointer; color: #3182ce; text-decoration: underline; }
         .hidden { display: none; }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <header>
-        <h1>Teach Program Engine</h1>
-        <p>1/4 Method Spaced Repetition Workspace</p>
+        <div>
+            <h1 style="margin:0; font-size: 2em;">Slide-by-Slide TEACH Workspace</h1>
+            <p style="margin:5px 0 0 0; color:#718096;">Gemini Pro AI Evaluation Engine + FSRS Space Tracking</p>
+        </div>
+        <div style="width: 300px;">
+            <input type="password" id="apiKeyInput" placeholder="Enter Gemini API Key" onchange="saveApiKey()">
+        </div>
     </header>
 
     <div class="grid">
-        <!-- Left Side: Ingestion and Workspace -->
+        <!-- LEFT PANEL: SLIDE BY SLIDE STUDY MATRIX -->
         <div>
             <div class="card">
-                <h2>1. Upload Lecture Slides</h2>
-                <div class="dropzone" id="dropzone">
-                    <p>Drag & Drop your lecture PDF here or click to browse</p>
-                    <input type="file" id="fileInput" accept="application/pdf" style="display:none">
+                <h2>1. Deploy Lecture Source</h2>
+                <div class="input-group">
+                    <label style="font-weight:bold; font-size:0.9em;">Topic / Lecture Identifier:</label>
+                    <input type="text" id="topicInput" placeholder="e.g., Anatomy of Brachial Plexus">
                 </div>
-                <div id="status" style="margin-top: 10px; font-weight: bold; color: #4a5568;"></div>
+                <div class="input-group">
+                    <label style="font-weight:bold; font-size:0.9em;">Upload Lecture Slide PDF Deck:</label>
+                    <input type="file" id="pdfFileInput" accept="application/pdf">
+                </div>
+                <button class="btn-primary" style="width:100%; margin-top: 5px;" onclick="processLectureSource()">Initialize Ingestion</button>
             </div>
 
-            <div class="card hidden" id="workspaceCard">
-                <h2>2. Active Output Review</h2>
-                <p><strong>Topic:</strong> <span id="currentTopicName">None</span></p>
-                <div class="slide-viewer" id="slideViewer">Slides processing layout...</div>
+            <div class="card hidden" id="sandboxCard">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; margin-bottom: 15px;">
+                    <h2 style="margin:0; border:none; padding:0;">2. TEACH Sandbox</h2>
+                    <span style="font-weight:bold; color:#4a5568; background:#edf2f7; padding:4px 10px; border-radius:12px; font-size:0.9em;">
+                        Slide <span id="currentSlideNum">1</span> of <span id="totalSlidesNum">1</span>
+                    </span>
+                </div>
+                <p><strong>Active Processing Target:</strong> <span id="sandboxTopicTitle" style="font-weight:bold; color:#2b6cb0;">None</span></p>
                 
-                <p style="margin-top:20px;"><strong>Rate your execution framework (1-4):</strong></p>
-                <div class="btn-group">
-                    <button class="btn-1" onclick="submitGrade(1)">Again (1)</button>
-                    <button class="btn-2" onclick="submitGrade(2)">Hard (2)</button>
-                    <button class="btn-3" onclick="submitGrade(3)">Good (3)</button>
-                    <button class="btn-4" onclick="submitGrade(4)">Easy (4)</button>
+                <div class="input-group">
+                    <label style="font-weight:bold; font-size:0.9em; color:#4a5568;">Type out your blind presentation explanation for THIS SLIDE:</label>
+                    <textarea id="userTextInput" rows="5" placeholder="Explain this specific slide's anatomical structures, pathways, or rules here..."></textarea>
+                </div>
+
+                <div class="input-group" style="margin-top: 10px;">
+                    <label style="font-weight:bold; font-size:0.9em;">Or, record your voice teaching this slide blind:</label>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-audio" id="recordBtn" onclick="toggleAudioRecording()">Start Voice Recording</button>
+                        <audio id="audioPlayback" controls class="hidden" style="flex: 1; height: 40px;"></audio>
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
+                    <button class="btn-nav" id="prevSlideBtn" onclick="navigateSlide(-1)" disabled>Prev Slide</button>
+                    <button class="btn-success" style="margin: 0 15px;" id="gradeBtn" onclick="runGeminiGrading()">
+                        Audit This Slide
+                    </button>
+                    <button class="btn-nav" id="nextSlideBtn" onclick="navigateSlide(1)">Next Slide</button>
+                </div>
+
+                <!-- AI Output Presentation Layer -->
+                <div id="aiOutputBlock" class="hidden" style="margin-top: 25px; border-top: 1px dashed #cbd5e0; padding-top: 20px;">
+                    <h3>Gemini Slide Audit Diagnostics</h3>
+                    <div class="ai-analysis" id="aiAnalysisText">Processing analytical algorithms...</div>
+                    
+                    <div id="fsrsTriggerBlock" style="margin-top: 30px; background: #fffaf0; border: 1px solid #feebc8; padding: 15px; border-radius: 6px;">
+                        <p style="margin-top:0; font-weight:bold; color:#dd6b20;">Finished teaching the full deck? Log your final adjusted FSRS rating for the whole lecture:</p>
+                        <div class="btn-group">
+                            <button class="btn-1" onclick="processFSRSFeedback(1)">Again (1)</button>
+                            <button class="btn-2" onclick="processFSRSFeedback(2)">Hard (2)</button>
+                            <button class="btn-3" onclick="processFSRSFeedback(3)">Good (3)</button>
+                            <button class="btn-4" onclick="processFSRSFeedback(4)">Easy (4)</button>
+                        </div>
+                    </div>
                 </div>
             </div>
+            <div id="statusMessage" class="status-msg"></div>
         </div>
 
-        <!-- Right Side: The FSRS Spacing Queue -->
+        <!-- RIGHT PANEL: ALGORITHMIC MONITOR -->
         <div>
             <div class="card">
                 <h2>Daily Focus Queue</h2>
-                <p style="font-size: 0.9em; color: #718096;">Sorted by algorithmic difficulty profile.</p>
+                <p style="font-size: 0.85em; color: #718096; margin-top:-5px;">Click a tracking name to lock it as the layout targets.</p>
                 <ul id="scheduleList">
-                    <!-- Dynamic List Generation -->
+                    <!-- Iterative FSRS Nodes -->
                 </ul>
             </div>
         </div>
     </div>
 </div>
 
+<script type="module">
+    import { GoogleGenAI } from "https://esm.run/@google/genai";
+
+    // Global variable trackers
+    window.parsedSlidesArray = []; // Array containing text items per individual page/slide
+    window.currentSlideIndex = 0;
+    window.activeLectureName = "";
+    window.mediaRecorder = null;
+    window.audioChunks = [];
+    window.audioBlob = null;
+    window.isRecording = false;
+
+    // Load saved API token key
+    document.getElementById('apiKeyInput').value = localStorage.getItem('gemini_api_key') || "";
+
+    window.saveApiKey = function() {
+        const key = document.getElementById('apiKeyInput').value.trim();
+        localStorage.setItem('gemini_api_key', key);
+    }
+
+    // --- PDF.js Setup configuration ---
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+    window.processLectureSource = function() {
+        const nameInput = document.getElementById('topicInput').value.trim();
+        const fileField = document.getElementById('pdfFileInput').files[0];
+        const status = document.getElementById('statusMessage');
+
+        if (!nameInput || !fileField) {
+            status.innerHTML = "<span style='color:#e53e3e;'>Error: Please enter a topic name and load a lecture PDF file.</span>";
+            return;
+        }
+
+        window.activeLectureName = nameInput;
+        status.innerHTML = "<span style='color:#3182ce;'>Parsing multi-page layout structures...</span>";
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const typedarray = new Uint8Array(e.target.result);
+            pdfjsLib.getDocument({data: typedarray}).promise.then(pdf => {
+                let parsePromises = [];
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    parsePromises.push(pdf.getPage(i).then(page => page.getTextContent().then(content => {
+                        return {
+                            slideNum: i,
+                            text: content.items.map(item => item.str).join(" ")
+                        };
+                    })));
+                }
+                Promise.all(parsePromises).then(slides => {
+                    window.parsedSlidesArray = slides;
+                    window.currentSlideIndex = 0;
+                    
+                    document.getElementById('sandboxTopicTitle').innerText = window.activeLectureName;
+                    document.getElementById('totalSlidesNum').innerText = window.parsedSlidesArray.length;
+                    
+                    updateSlideWorkspaceView();
+                    
+                    document.getElementById('sandboxCard').classList.remove('hidden');
+                    document.getElementById('aiOutputBlock').classList.add('hidden');
+                    
+                    status.innerHTML = "<span style='color:#38a169;'>Ingestion complete. Slide iteration unlocked.</span>";
+                });
+            });
+        };
+        reader.readAsArrayBuffer(fileField);
+    }
+
+    window.updateSlideWorkspaceView = function() {
+        document.getElementById('currentSlideNum').innerText = window.currentSlideIndex + 1;
+        document.getElementById('userTextInput').value = "";
+        document.getElementById('audioPlayback').classList.add('hidden');
+        window.audioBlob = null;
+        
+        // Disable/enable navigation controls matching boundary conditions
+        document.getElementById('prevSlideBtn').disabled = (window.currentSlideIndex === 0);
+        document.getElementById('nextSlideBtn').disabled = (window.currentSlideIndex === window.parsedSlidesArray.length - 1);
+    }
+
+    window.navigateSlide = function(direction) {
+        window.currentSlideIndex += direction;
+        updateSlideWorkspaceView();
+        document.getElementById('aiOutputBlock').classList.add('hidden');
+        document.getElementById('statusMessage').innerHTML = "";
+    }
+
+    // --- AUDIO RECORDING HOOKS ---
+    window.toggleAudioRecording = function() {
+        const recordBtn = document.getElementById('recordBtn');
+        
+        if (!window.isRecording) {
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                window.mediaRecorder = new MediaRecorder(stream);
+                window.audioChunks = [];
+                
+                window.mediaRecorder.ondataavailable = e => {
+                    if (e.data.size > 0) window.audioChunks.push(e.data);
+                };
+                
+                window.mediaRecorder.onstop = () => {
+                    window.audioBlob = new Blob(window.audioChunks, { type: 'audio/mp3' });
+                    const audioUrl = URL.createObjectURL(window.audioBlob);
+                    const playback = document.getElementById('audioPlayback');
+                    playback.src = audioUrl;
+                    playback.classList.remove('hidden');
+                };
+
+                window.mediaRecorder.start();
+                window.isRecording = true;
+                recordBtn.innerText = "Stop Slide Clip";
+                recordBtn.className = "btn-recording";
+            }).catch(err => alert("Audio Access Denied: " + err.message));
+        } else {
+            window.mediaRecorder.stop();
+            window.isRecording = false;
+            recordBtn.innerText = "Start Voice Recording";
+            recordBtn.className = "btn-audio";
+        }
+    }
+
+    // --- GEMINI CORE CALL ENGINE ---
+    window.runGeminiGrading = function() {
+        const apiKey = localStorage.getItem('gemini_api_key');
+        const textExplanation = document.getElementById('userTextInput').value.trim();
+        const status = document.getElementById('statusMessage');
+        const gradeBtn = document.getElementById('gradeBtn');
+
+        if (!apiKey) {
+            alert("Error: Please provide your Gemini API key inside the header layout entry block first.");
+            return;
+        }
+        if (!textExplanation && !window.audioBlob) {
+            alert("Error: Provide an explanation for this slide before requesting an audit.");
+            return;
+        }
+
+        status.innerHTML = "<span style='color:#3182ce;'>Streaming slide parameters to Gemini AI...</span>";
+        document.getElementById('aiOutputBlock').classList.remove('hidden');
+        document.getElementById('aiAnalysisText').innerText = "Comparing your active explanation against this slide's text layers...";
+        gradeBtn.disabled = true;
+
+        const ai = new GoogleGenAI({ apiKey: apiKey });
+
+        function blobToGenerativePart(blob) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve({
+                    inlineData: { data: reader.result.split(',')[1], mimeType: blob.type },
+                });
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        const activeSlideData = window.parsedSlidesArray[window.currentSlideIndex];
+
+        const systemPrompt = `You are a medical school reviewer auditing a student explaining a specific, single lecture slide BLIND from memory.
+Compare the student's output layout presentation against the single slide text content below.
+
+Provide a high-speed checklist containing:
+1. MISSING KEYWORDS/STRUCTURES: Specific high-yield clinical structures, paths, or terms on this slide that they missed or stated incorrectly.
+2. POSITIVE HIT VERIFICATION: What they remembered accurately.
+Keep your analysis brief so they can quickly process their errors before jumping to the next slide page.`;
+
+        const textPart = `[SOURCE TEXT FOR SLIDE PAGE #${activeSlideData.slideNum}]:\n${activeSlideData.text}\n\n[STUDENT Workspace Explanation Input]:\n${textExplanation}`;
+        const promptArray = [systemPrompt, textPart];
+
+        if (window.audioBlob) {
+            blobToGenerativePart(window.audioBlob).then(audioPart => {
+                promptArray.push(audioPart);
+                executeGeminiCall(ai, promptArray);
+            });
+        } else {
+            executeGeminiCall(ai, promptArray);
+        }
+    }
+
+    function executeGeminiCall(aiInstance, contentArray) {
+        const gradeBtn = document.getElementById('gradeBtn');
+        const status = document.getElementById('statusMessage');
+
+        // Target the precise, verified production model identifier
+        aiInstance.models.generateContent({
+            model: 'gemini-3.5-flash', // Or use 'gemini-3.5-flash' based on your tier access
+            contents: contentArray,
+        }).then(response => {
+            document.getElementById('aiAnalysisText').innerText = response.text;
+            status.innerHTML = `<span style='color:#38a169;'>Audited Slide #${window.currentSlideIndex + 1} Complete.</span>`;
+            gradeBtn.disabled = false;
+        }).catch(err => {
+            document.getElementById('aiAnalysisText').innerText = "API Exception Fault: " + err.message;
+            status.innerHTML = "<span style='color:#e53e3e;'>Grading engine sequence failed.</span>";
+            gradeBtn.disabled = false;
+        });
+    }
+</script>
+
 <script>
-    // --- 1. THE FSRS MEMORY MATHEMATICS ENGINE ---
+    // --- Official FSRS v4.5/6 Memory Mathematics Engine ---
     class FSRSEngine {
         constructor() {
             this.w = [
@@ -149,35 +408,37 @@
                 2.1818, 0.1654, 1.0523, 0.8123, 0.9024, 0.4497, 1.5472, 0.4018, 
                 0.3951, 0.1118, 0.8974
             ];
-            this.w20 = 0.003;
             this.targetRetention = 0.90; 
-            this.factor = Math.pow(0.9, -1 / this.w20) - 1;
         }
 
         initializeTopic(grade) {
             const initialDifficulty = this.w[4] - (grade - 3);
-            const initialStability = this.w[0] * 0.25 * Math.pow(2, grade - 1);
-            return {
-                stability: initialStability,
-                difficulty: Math.max(1, Math.min(10, initialDifficulty))
-            };
+            const initialStability = this.w[grade - 1]; 
+            return { stability: initialStability, difficulty: Math.max(1, Math.min(10, initialDifficulty)) };
         }
 
         calculateRetrievability(stability, elapsedDays) {
-            if (elapsedDays === 0) return 1.0;
-            return Math.pow(1 + this.factor * (elapsedDays / stability), -this.w20);
+            if (elapsedDays <= 0) return 1.0;
+            return Math.pow(1 + 0.07895 * (elapsedDays / stability), -this.w[18]);
         }
 
         updateTopic(currentStability, currentDifficulty, elapsedDays, grade) {
-            const R = this.calculateRetrievability(currentStability, elapsedDays);
             let nextDifficulty = currentDifficulty - 0.1 * (grade - 3);
             nextDifficulty = Math.max(1, Math.min(10, nextDifficulty));
-
             let nextStability;
+            
+            if (elapsedDays < 0.2) { 
+                nextStability = currentStability * Math.exp(this.w[16] * (grade - 3 + this.w[17]) * Math.pow(currentStability, -this.w[18]));
+                return { stability: nextStability, difficulty: nextDifficulty };
+            }
+
+            const R = this.calculateRetrievability(currentStability, elapsedDays);
+
             if (grade === 1) {
                 nextStability = this.w[9] * Math.pow(nextDifficulty, -this.w[10]) * 
                                 Math.pow(currentStability, this.w[11]) * 
                                 Math.exp(this.w[12] * (1 - R));
+                nextStability = Math.min(nextStability, currentStability); 
             } else {
                 const hardModifier = grade === 2 ? this.w[15] : 1.0;
                 const easyModifier = grade === 4 ? this.w[16] : 1.0;
@@ -191,107 +452,78 @@
         }
 
         calculateNextInterval(stability) {
-            const interval = (stability / this.factor) * (Math.pow(this.targetRetention, -1 / this.w20) - 1);
-            return Math.max(1, Math.round(interval));
+            const w18 = this.w[18];
+            const numerator = Math.pow(this.targetRetention, -1 / w18) - 1;
+            const denominator = Math.pow(0.9, -1 / w18) - 1;
+            const interval = stability * (numerator / denominator);
+            return Math.max(1, Math.round(interval)); 
         }
     }
 
     const fsrs = new FSRSEngine();
-    let currentLoadedTopicName = "";
 
-    // --- 2. FILE PROCESSING ENGINE ---
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+    window.processFSRSFeedback = function(grade) {
+        if (!window.activeLectureName) return;
 
-    const dropzone = document.getElementById('dropzone');
-    const fileInput = document.getElementById('fileInput');
-    const statusDiv = document.getElementById('status');
-
-    dropzone.addEventListener('click', () => fileInput.click());
-    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.style.borderColor = '#4299e1'; });
-    dropzone.addEventListener('dragleave', () => dropzone.style.borderColor = '#cbd5e0'; });
-    dropzone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
-    });
-    fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length) handleFile(e.target.files[0]);
-    });
-
-    function handleFile(file) {
-        if (file.type !== "application/pdf") {
-            statusDiv.innerText = "Error: Please upload a PDF file.";
-            return;
-        }
-        currentLoadedTopicName = file.name.replace(".pdf", "");
-        statusDiv.innerText = `Parsing layout: ${file.name}...`;
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const typedarray = new Uint8Array(e.target.result);
-            pdfjsLib.getDocument(typedarray).promise.then(pdf => {
-                let maxPages = Math.min(pdf.numPages, 5); // Pull preview sample text
-                let countPromises = [];
-                for (let i = 1; i <= maxPages; i++) {
-                    countPromises.push(pdf.getPage(i).then(page => page.getTextContent()));
-                }
-                Promise.all(countPromises).then(contents => {
-                    let fullText = contents.map(c => c.items.map(item => item.str).join(" ")).join("\n\n--- Slide Border ---\n\n");
-                    document.getElementById('slideViewer').innerText = fullText || "[No readable text layers found on initial slides]";
-                    document.getElementById('currentTopicName').innerText = currentLoadedTopicName;
-                    document.getElementById('workspaceCard').classList.remove('hidden');
-                    statusDiv.innerText = "Ingestion Complete.";
-                });
-            });
-        };
-        reader.readAsArrayBuffer(file);
-    }
-
-    // --- 3. CORE LOGIC / DATABASE LOOP ---
-    function submitGrade(grade) {
-        if (!currentLoadedTopicName) return;
-        
         let db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
         const now = new Date();
+        const topic = db[window.activeLectureName];
 
-        if (!db[currentLoadedTopicName]) {
+        let stability, difficulty;
+        if (!topic) {
             const initial = fsrs.initializeTopic(grade);
-            const interval = fsrs.calculateNextInterval(initial.stability);
-            db[currentLoadedTopicName] = {
-                name: currentLoadedTopicName,
-                stability: initial.stability,
-                difficulty: initial.difficulty,
-                lastReviewed: now.toISOString(),
-                nextDue: new Date(now.getTime() + interval * 24 * 60 * 60 * 1000).toISOString()
-            };
+            stability = initial.stability;
+            difficulty = initial.difficulty;
         } else {
-            const topic = db[currentLoadedTopicName];
             const elapsedDays = Math.max(0, (now - new Date(topic.lastReviewed)) / (1000 * 60 * 60 * 24));
             const updated = fsrs.updateTopic(topic.stability, topic.difficulty, elapsedDays, grade);
-            const interval = fsrs.calculateNextInterval(updated.stability);
-
-            topic.stability = updated.stability;
-            topic.difficulty = updated.difficulty;
-            topic.lastReviewed = now.toISOString();
-            topic.nextDue = new Date(now.getTime() + interval * 24 * 60 * 60 * 1000).toISOString();
+            stability = updated.stability;
+            difficulty = updated.difficulty;
         }
 
+        const interval = fsrs.calculateNextInterval(stability);
+
+        db[window.activeLectureName] = {
+            name: window.activeLectureName,
+            stability: stability,
+            difficulty: difficulty,
+            lastReviewed: now.toISOString(),
+            nextDue: new Date(now.getTime() + interval * 24 * 60 * 60 * 1000).toISOString()
+        };
+
         localStorage.setItem('teach_program_db', JSON.stringify(db));
-        document.getElementById('workspaceCard').classList.add('hidden');
-        statusDiv.innerText = `Topic score updated. Next review interval set.`;
+        document.getElementById('statusMessage').innerHTML = `<span style='color:#38a169;'>FSRS Log Complete. Lecture scheduled out for ${interval} day(s).</span>`;
+        
+        document.getElementById('sandboxCard').classList.add('hidden');
+        document.getElementById('topicInput').value = "";
+        window.activeLectureName = "";
         displaySchedule();
     }
 
-    function displaySchedule() {
+    window.loadTargetProfile = function(topicKey) {
+        document.getElementById('topicInput').value = topicKey;
+        document.getElementById('statusMessage').innerHTML = `<span style='color:#3182ce;'>Loaded context tracking label. Upload the matching PDF to deploy the slides framework.</span>`;
+    }
+
+    window.removeTopic = function(topicName) {
+        if(confirm(`Remove "${topicName}" permanently?`)) {
+            let db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
+            delete db[topicName];
+            localStorage.setItem('teach_program_db', JSON.stringify(db));
+            displaySchedule();
+        }
+    }
+
+    window.displaySchedule = function() {
         const db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
         const now = new Date();
         const listContainer = document.getElementById('scheduleList');
         listContainer.innerHTML = "";
 
-        // Collect all targets
         const topics = Object.values(db).sort((a,b) => b.difficulty - a.difficulty);
 
         if (topics.length === 0) {
-            listContainer.innerHTML = "<li style='color: #718096;'>No tracking items found. Ingest your first deck to initialize database framework.</li>";
+            listContainer.innerHTML = "<li style='color: #718096; font-size: 0.95em;'>Queue empty. Ingest a layout block to initialize.</li>";
             return;
         }
 
@@ -300,14 +532,15 @@
             const dueDateFormatted = new Date(topic.nextDue).toLocaleDateString();
             const li = document.createElement('li');
             
-            if (topic.difficulty > 7) li.className = "high-difficulty";
-            
             li.innerHTML = `
                 <div>
-                    <strong>${topic.name}</strong><br>
-                    <span style="font-size:0.8em; color:#718096;">Diff: ${topic.difficulty.toFixed(1)} | Next Review: ${dueDateFormatted}</span>
+                    <strong style="cursor:pointer; color:#3182ce; text-decoration:underline; font-size:1.05em;" onclick="loadTargetProfile('${topic.name}')">${topic.name}</strong><br>
+                    <span style="font-size:0.75em; color:#718096;">Diff: ${topic.difficulty.toFixed(1)} | Next Due: ${dueDateFormatted}</span>
+                    <div class="action-links">
+                        <span style="color:#e53e3e;" onclick="removeTopic('${topic.name}')">Delete</span>
+                    </div>
                 </div>
-                <span style="font-weight:bold; color: ${isDue ? '#e53e3e' : '#38a169'}">
+                <span style="font-weight:bold; font-size:0.85em; color: ${isDue ? '#e53e3e' : '#38a169'}">
                     ${isDue ? "DUE NOW" : "STABLE"}
                 </span>
             `;
@@ -315,7 +548,6 @@
         });
     }
 
-    // Initialize display layout on page launch
     displaySchedule();
 </script>
 </body>
