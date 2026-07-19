@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Med School Slide-by-Slide TEACH Sandbox (FSRS + GitHub Sync)</title>
-    <!-- Include PDF.js Library for Browser Parsing -->
+    <title>Master Focus Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <style>
         body {
@@ -25,7 +24,6 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 20px;
         }
         .config-panel {
             display: flex;
@@ -35,7 +33,7 @@
         }
         .grid {
             display: grid;
-            grid-template-columns: 1.2fr 0.8fr;
+            grid-template-columns: 1.1fr 0.9fr;
             gap: 20px;
         }
         @media (max-width: 992px) { .grid { grid-template-columns: 1fr; } }
@@ -76,7 +74,7 @@
             cursor: pointer;
             transition: 0.1s;
         }
-        button:disabled { background: #cbd5e0; color: #718096; cursor: not-allowed; transform: none; opacity: 1; }
+        button:disabled { background: #cbd5e0; color: #718096; cursor: not-allowed; }
         .btn-primary { background: #3182ce; color: white; }
         .btn-success { background: #38a169; color: white; }
         .btn-audio { background: #dd6b20; color: white; }
@@ -86,7 +84,7 @@
         .btn-2 { background: #fbd38d; color: #9c4221; } 
         .btn-3 { background: #9ae6b4; color: #22543d; } 
         .btn-4 { background: #63b3ed; color: #2a4365; } 
-        button:hover { opacity: 0.85; transform: translateY(-1px); }
+        button:hover { opacity: 0.85; }
         ul { list-style: none; padding: 0; }
         li {
             padding: 15px;
@@ -124,90 +122,80 @@
 <div class="container">
     <header>
         <div>
-            <h1 style="margin:0; font-size: 1.8em;">Slide-by-Slide TEACH Workspace</h1>
-            <p style="margin:5px 0 0 0; color:#718096;">Automated Git Cloud Synchronization Framework</p>
-            <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync State: Offline</div>
+            <h1 style="margin:0; font-size: 1.8em;">Study Tracker Command Center</h1>
+            <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
         </div>
         <div class="config-panel">
-            <input type="password" id="apiKeyInput" placeholder="Enter Gemini API Key" onchange="saveConfig()">
-            <input type="password" id="githubPatInput" placeholder="Enter GitHub Token (github_pat_...)" onchange="saveConfig()">
-            <input type="text" id="githubRepoInput" placeholder="username/repository_name" onchange="saveConfig()" style="padding: 6px 10px; font-size: 0.9em;">
+            <input type="password" id="apiKeyInput" placeholder="Gemini API Key" onchange="saveConfig()">
+            <input type="password" id="githubPatInput" placeholder="GitHub Token" onchange="saveConfig()">
+            <input type="text" id="githubRepoInput" placeholder="username/repo" onchange="saveConfig()">
         </div>
     </header>
 
     <div class="grid">
-        <!-- LEFT PANEL: INTERACTIVE SANDBOX -->
+        <!-- LEFT PANEL -->
         <div>
+            <!-- MODULE 1: QUICK ENTRY INTERFACE -->
             <div class="card">
-                <h2>1. Deploy Lecture Source</h2>
+                <h2>Log Spaced Review</h2>
                 <div class="input-group">
-                    <label style="font-weight:bold; font-size:0.9em;">Topic / Lecture Identifier:</label>
-                    <input type="text" id="topicInput" placeholder="e.g., Anatomy of Brachial Plexus">
+                    <input type="text" id="fsrsTopicInput" placeholder="Topic / Lecture Name">
                 </div>
-                <div class="input-group">
-                    <label style="font-weight:bold; font-size:0.9em;">Upload Lecture Slide PDF Deck:</label>
-                    <input type="file" id="pdfFileInput" accept="application/pdf">
+                <div class="btn-group">
+                    <button class="btn-1" onclick="submitQuickFSRS(1)">Again (1)</button>
+                    <button class="btn-2" onclick="submitQuickFSRS(2)">Hard (2)</button>
+                    <button class="btn-3" onclick="submitQuickFSRS(3)">Good (3)</button>
+                    <button class="btn-4" onclick="submitQuickFSRS(4)">Easy (4)</button>
                 </div>
-                <button class="btn-primary" style="width:100%; margin-top: 5px;" onclick="processLectureSource()">Initialize Ingestion</button>
             </div>
 
+            <!-- MODULE 2: TEACH RUN OVERLAY -->
+            <div class="card">
+                <h2>TEACH Slide Sandbox</h2>
+                <div class="input-group">
+                    <input type="file" id="pdfFileInput" accept="application/pdf">
+                </div>
+                <button class="btn-primary" style="width:100%;" onclick="initializeTeachSession()">Load Deck</button>
+            </div>
+
+            <!-- ACTIVE RUNNER LAYOUT -->
             <div class="card hidden" id="sandboxCard">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; margin-bottom: 15px;">
-                    <h2 style="margin:0; border:none; padding:0;">2. TEACH Sandbox</h2>
+                    <h3 style="margin:0; color:#2b6cb0;">Recall Sandbox</h3>
                     <span style="font-weight:bold; color:#4a5568; background:#edf2f7; padding:4px 10px; border-radius:12px; font-size:0.9em;">
-                        Slide <span id="currentSlideNum">1</span> of <span id="totalSlidesNum">1</span>
+                        Slide <span id="currentSlideNum">1</span> / <span id="totalSlidesNum">1</span>
                     </span>
                 </div>
-                <p><strong>Active Processing Target:</strong> <span id="sandboxTopicTitle" style="font-weight:bold; color:#2b6cb0;">None</span></p>
                 
                 <div class="input-group">
-                    <label style="font-weight:bold; font-size:0.9em; color:#4a5568;">Type out your blind presentation explanation for THIS SLIDE:</label>
-                    <textarea id="userTextInput" rows="5" placeholder="Explain this specific slide's anatomical structures, pathways, or rules here..."></textarea>
+                    <textarea id="userTextInput" rows="4" placeholder="Type core mechanics, structures, or rules from memory..."></textarea>
                 </div>
 
-                <div class="input-group" style="margin-top: 10px;">
-                    <label style="font-weight:bold; font-size:0.9em;">Or, record your voice teaching this slide blind:</label>
+                <div class="input-group">
                     <div style="display: flex; gap: 10px;">
-                        <button class="btn-audio" id="recordBtn" onclick="toggleAudioRecording()">Start Voice Recording</button>
+                        <button class="btn-audio" id="recordBtn" onclick="toggleAudioRecording()">Record Audio Pass</button>
                         <audio id="audioPlayback" controls class="hidden" style="flex: 1; height: 40px;"></audio>
                     </div>
                 </div>
 
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
-                    <button class="btn-nav" id="prevSlideBtn" onclick="navigateSlide(-1)" disabled>Prev Slide</button>
-                    <button class="btn-success" style="margin: 0 15px;" id="gradeBtn" onclick="runGeminiGrading()">
-                        Audit This Slide
-                    </button>
-                    <button class="btn-nav" id="nextSlideBtn" onclick="navigateSlide(1)">Next Slide</button>
+                    <button class="btn-nav" id="prevSlideBtn" onclick="navigateSlide(-1)" disabled>Prev</button>
+                    <button class="btn-success" style="margin: 0 15px;" id="gradeBtn" onclick="runGeminiGrading()">Audit Slide</button>
+                    <button class="btn-nav" id="nextSlideBtn" onclick="navigateSlide(1)">Next</button>
                 </div>
 
-                <!-- AI Output Presentation Layer -->
                 <div id="aiOutputBlock" class="hidden" style="margin-top: 25px; border-top: 1px dashed #cbd5e0; padding-top: 20px;">
-                    <h3>Gemini Slide Audit Diagnostics</h3>
-                    <div class="ai-analysis" id="aiAnalysisText">Processing analytical algorithms...</div>
-                    
-                    <div id="fsrsTriggerBlock" style="margin-top: 30px; background: #fffaf0; border: 1px solid #feebc8; padding: 15px; border-radius: 6px;">
-                        <p style="margin-top:0; font-weight:bold; color:#dd6b20;">Finished teaching the full deck? Log your final adjusted FSRS rating for the whole lecture:</p>
-                        <div class="btn-group">
-                            <button class="btn-1" onclick="processFSRSFeedback(1)">Again (1)</button>
-                            <button class="btn-2" onclick="processFSRSFeedback(2)">Hard (2)</button>
-                            <button class="btn-3" onclick="processFSRSFeedback(3)">Good (3)</button>
-                            <button class="btn-4" onclick="processFSRSFeedback(4)">Easy (4)</button>
-                        </div>
-                    </div>
+                    <div class="ai-analysis" id="aiAnalysisText"></div>
                 </div>
             </div>
             <div id="statusMessage" class="status-msg"></div>
         </div>
 
-        <!-- RIGHT PANEL: ALGORITHMIC QUEUE -->
+        <!-- RIGHT PANEL -->
         <div>
             <div class="card">
                 <h2>Daily Focus Queue</h2>
-                <p style="font-size: 0.85em; color: #718096; margin-top:-5px;">Click a tracking name to load it as the current active target.</p>
-                <ul id="scheduleList">
-                    <!-- Dynamic Rows Rendered by JS -->
-                </ul>
+                <ul id="scheduleList"></ul>
             </div>
         </div>
     </div>
@@ -216,17 +204,14 @@
 <script type="module">
     import { GoogleGenAI } from "https://esm.run/@google/genai";
 
-    // Global variable trackers
     window.parsedSlidesArray = []; 
     window.currentSlideIndex = 0;
-    window.activeLectureName = "";
     window.mediaRecorder = null;
     window.audioChunks = [];
     window.audioBlob = null;
     window.isRecording = false;
-    window.currentFileSha = ""; // Track GitHub file version identifier
+    window.currentFileSha = ""; 
 
-    // Initialize layout credentials configurations
     document.getElementById('apiKeyInput').value = localStorage.getItem('gemini_api_key') || "";
     document.getElementById('githubPatInput').value = localStorage.getItem('github_pat') || "";
     document.getElementById('githubRepoInput').value = localStorage.getItem('github_repo') || "";
@@ -238,109 +223,64 @@
         pullFromGitHubCloud();
     }
 
-    // --- AUTOMATED BI-DIRECTIONAL GITHUB SYNC PIPELINE ---
     async function pullFromGitHubCloud() {
         const token = localStorage.getItem('github_pat');
         const repo = localStorage.getItem('github_repo');
         const syncLabel = document.getElementById('syncStatus');
-        
-        if (!token || !repo) {
-            syncLabel.innerHTML = "Sync State: Offline (Missing GitHub Configuration Settings)";
-            syncLabel.style.color = "#e53e3e";
-            return;
-        }
-
-        syncLabel.innerHTML = "Sync State: Connecting to GitHub cloud...";
-        syncLabel.style.color = "#3182ce";
+        if (!token || !repo) return;
 
         const url = `https://api.github.com/repos/${repo}/contents/database.json`;
-        
         try {
-            const res = await fetch(url, {
-                headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
-            });
-            
+            const res = await fetch(url, { headers: { 'Authorization': `token ${token}` } });
             if (res.status === 200) {
                 const data = await res.json();
                 window.currentFileSha = data.sha;
                 const decodedState = decodeURIComponent(escape(atob(data.content)));
                 localStorage.setItem('teach_program_db', decodedState);
-                
-                syncLabel.innerHTML = "Sync State: Connected & Up to Date";
+                syncLabel.innerHTML = "Sync: Connected";
                 syncLabel.style.color = "#38a169";
                 window.displaySchedule();
-            } else if (res.status === 404) {
-                syncLabel.innerHTML = "Sync State: Error (database.json file not found in repository root)";
-                syncLabel.style.color = "#e53e3e";
-            } else {
-                syncLabel.innerHTML = `Sync State: Link Error (${res.status})`;
-                syncLabel.style.color = "#e53e3e";
             }
-        } catch(err) {
-            syncLabel.innerHTML = "Sync State: Cloud Fetch Network Disconnected";
-            syncLabel.style.color = "#e53e3e";
-        }
+        } catch(err) { console.error(err); }
     }
     window.pullFromGitHubCloud = pullFromGitHubCloud;
 
     async function pushToGitHubCloud(updatedDatabaseObj) {
         const token = localStorage.getItem('github_pat');
         const repo = localStorage.getItem('github_repo');
-        const syncLabel = document.getElementById('syncStatus');
         if (!token || !repo) return;
-
-        syncLabel.innerHTML = "Sync State: Committing changes to GitHub cloud...";
-        syncLabel.style.color = "#3182ce";
 
         const url = `https://api.github.com/repos/${repo}/contents/database.json`;
         const contentStr = JSON.stringify(updatedDatabaseObj, null, 2);
         const encodedContent = btoa(unescape(encodeURIComponent(contentStr)));
 
         const bodyData = {
-            message: "FSRS Daily Focus Engine Matrix State Update [Client Sync]",
+            message: "FSRS Master Queue Update",
             content: encodedContent,
             sha: window.currentFileSha
         };
-
         try {
             const res = await fetch(url, {
                 method: 'PUT',
                 headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify(bodyData)
             });
-
             if (res.status === 200 || res.status === 201) {
                 const resData = await res.json();
-                window.currentFileSha = resData.content.sha; // Track new version snapshot hash
-                syncLabel.innerHTML = "Sync State: Saved & Connected";
-                syncLabel.style.color = "#38a169";
-            } else {
-                syncLabel.innerHTML = `Sync State: Commit Push Denied (${res.status})`;
-                syncLabel.style.color = "#e53e3e";
+                window.currentFileSha = resData.content.sha;
             }
-        } catch(err) {
-            syncLabel.innerHTML = "Sync State: Write Stream Disconnected";
-            syncLabel.style.color = "#e53e3e";
-        }
+        } catch(err) { console.error(err); }
     }
     window.pushToGitHubCloud = pushToGitHubCloud;
 
-    // --- PDF.js Setup configuration ---
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
-    window.processLectureSource = function() {
-        const nameInput = document.getElementById('topicInput').value.trim();
+    window.initializeTeachSession = function() {
         const fileField = document.getElementById('pdfFileInput').files[0];
         const status = document.getElementById('statusMessage');
+        if (!fileField) return;
 
-        if (!nameInput || !fileField) {
-            status.innerHTML = "<span style='color:#e53e3e;'>Error: Please enter a topic name and load a lecture PDF file.</span>";
-            return;
-        }
-
-        window.activeLectureName = nameInput;
-        status.innerHTML = "<span style='color:#3182ce;'>Parsing multi-page layout structures...</span>";
-
+        status.innerHTML = "Parsing document pages...";
         const reader = new FileReader();
         reader.onload = function(e) {
             const typedarray = new Uint8Array(e.target.result);
@@ -348,25 +288,16 @@
                 let parsePromises = [];
                 for (let i = 1; i <= pdf.numPages; i++) {
                     parsePromises.push(pdf.getPage(i).then(page => page.getTextContent().then(content => {
-                        return {
-                            slideNum: i,
-                            text: content.items.map(item => item.str).join(" ")
-                        };
+                        return { slideNum: i, text: content.items.map(item => item.str).join(" ") };
                     })));
                 }
                 Promise.all(parsePromises).then(slides => {
                     window.parsedSlidesArray = slides;
                     window.currentSlideIndex = 0;
-                    
-                    document.getElementById('sandboxTopicTitle').innerText = window.activeLectureName;
                     document.getElementById('totalSlidesNum').innerText = window.parsedSlidesArray.length;
-                    
                     updateSlideWorkspaceView();
-                    
                     document.getElementById('sandboxCard').classList.remove('hidden');
-                    document.getElementById('aiOutputBlock').classList.add('hidden');
-                    
-                    status.innerHTML = "<span style='color:#38a169;'>Ingestion complete. Slide iteration unlocked.</span>";
+                    status.innerHTML = "";
                 });
             });
         };
@@ -378,7 +309,6 @@
         document.getElementById('userTextInput').value = "";
         document.getElementById('audioPlayback').classList.add('hidden');
         window.audioBlob = null;
-        
         document.getElementById('prevSlideBtn').disabled = (window.currentSlideIndex === 0);
         document.getElementById('nextSlideBtn').disabled = (window.currentSlideIndex === window.parsedSlidesArray.length - 1);
     }
@@ -387,123 +317,76 @@
         window.currentSlideIndex += direction;
         updateSlideWorkspaceView();
         document.getElementById('aiOutputBlock').classList.add('hidden');
-        document.getElementById('statusMessage').innerHTML = "";
     }
 
-    // --- AUDIO RECORDING CAPTURE ENGINE ---
     window.toggleAudioRecording = function() {
         const recordBtn = document.getElementById('recordBtn');
-        
         if (!window.isRecording) {
             navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
                 window.mediaRecorder = new MediaRecorder(stream);
                 window.audioChunks = [];
-                
-                window.mediaRecorder.ondataavailable = e => {
-                    if (e.data.size > 0) window.audioChunks.push(e.data);
-                };
-                
+                window.mediaRecorder.ondataavailable = e => { if (e.data.size > 0) window.audioChunks.push(e.data); };
                 window.mediaRecorder.onstop = () => {
                     window.audioBlob = new Blob(window.audioChunks, { type: 'audio/mp3' });
-                    const audioUrl = URL.createObjectURL(window.audioBlob);
-                    const playback = document.getElementById('audioPlayback');
-                    playback.src = audioUrl;
-                    playback.classList.remove('hidden');
+                    document.getElementById('audioPlayback').src = URL.createObjectURL(window.audioBlob);
+                    document.getElementById('audioPlayback').classList.remove('hidden');
                 };
-
                 window.mediaRecorder.start();
                 window.isRecording = true;
-                recordBtn.innerText = "Stop Slide Clip";
+                recordBtn.innerText = "Stop";
                 recordBtn.className = "btn-recording";
-            }).catch(err => alert("Audio Access Denied: " + err.message));
+            });
         } else {
             window.mediaRecorder.stop();
             window.isRecording = false;
-            recordBtn.innerText = "Start Voice Recording";
+            recordBtn.innerText = "Record Audio Pass";
             recordBtn.className = "btn-audio";
         }
     }
 
-    // --- GEMINI PRO COMPATIBILITY CORE ---
     window.runGeminiGrading = function() {
         const apiKey = localStorage.getItem('gemini_api_key');
         const textExplanation = document.getElementById('userTextInput').value.trim();
         const status = document.getElementById('statusMessage');
-        const gradeBtn = document.getElementById('gradeBtn');
 
-        if (!apiKey) {
-            alert("Error: Please provide your Gemini API key inside the config header block.");
-            return;
-        }
-        if (!textExplanation && !window.audioBlob) {
-            alert("Error: Provide an explanation before requesting an audit.");
-            return;
-        }
-
-        status.innerHTML = "<span style='color:#3182ce;'>Streaming parameters to Gemini AI...</span>";
+        if (!apiKey) return;
+        status.innerHTML = "Analyzing explanation...";
         document.getElementById('aiOutputBlock').classList.remove('hidden');
-        document.getElementById('aiAnalysisText').innerText = "Analyzing your active output presentation against the source notes...";
-        gradeBtn.disabled = true;
+        document.getElementById('aiAnalysisText').innerText = "Comparing recall to source data layers...";
 
         const ai = new GoogleGenAI({ apiKey: apiKey });
-
-        function blobToGenerativePart(blob) {
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve({
-                    inlineData: { data: reader.result.split(',')[1], mimeType: blob.type },
-                });
-                reader.readAsDataURL(blob);
-            });
-        }
-
         const activeSlideData = window.parsedSlidesArray[window.currentSlideIndex];
 
-        const systemPrompt = `You are a medical school reviewer auditing a student explaining a specific, single lecture slide BLIND from memory.
-Compare the student's output layout presentation against the single slide text content below.
-
-Provide a high-speed checklist containing:
-1. MISSING KEYWORDS/STRUCTURES: Specific high-yield clinical structures, paths, or terms on this slide that they missed or stated incorrectly.
-2. POSITIVE HIT VERIFICATION: What they remembered accurately.
-Keep your analysis brief so they can quickly process their errors before jumping to the next slide page.`;
-
-        const textPart = `[SOURCE TEXT FOR SLIDE PAGE #${activeSlideData.slideNum}]:\n${activeSlideData.text}\n\n[STUDENT Workspace Explanation Input]:\n${textExplanation}`;
+        const systemPrompt = `You are an expert reviewer auditing a medical student's blind recall of a slide. Compare their text/audio description directly against the slide text. Output a short list of missing points and correct points. Be direct.`;
+        const textPart = `[SLIDE TEXT]:\n${activeSlideData.text}\n\n[STUDENT RUN]:\n${textExplanation}`;
         const promptArray = [systemPrompt, textPart];
 
         if (window.audioBlob) {
-            blobToGenerativePart(window.audioBlob).then(audioPart => {
-                promptArray.push(audioPart);
-                executeGeminiCall(ai, promptArray);
-            });
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                promptArray.push({ inlineData: { data: reader.result.split(',')[1], mimeType: window.audioBlob.type } });
+                executeCall(ai, promptArray);
+            };
+            reader.readAsDataURL(window.audioBlob);
         } else {
-            executeGeminiCall(ai, promptArray);
+            executeCall(ai, promptArray);
         }
     }
 
-    function executeGeminiCall(aiInstance, contentArray) {
-        const gradeBtn = document.getElementById('gradeBtn');
-        const status = document.getElementById('statusMessage');
-
+    function executeCall(aiInstance, contentArray) {
         aiInstance.models.generateContent({
-            model: 'gemini-3.5-flash', 
+            model: 'gemini-3.5-flash',
             contents: contentArray,
-        }).then(response => {
-            document.getElementById('aiAnalysisText').innerText = response.text;
-            status.innerHTML = `<span style='color:#38a169;'>Audited Slide #${window.currentSlideIndex + 1} Complete.</span>`;
-            gradeBtn.disabled = false;
-        }).catch(err => {
-            document.getElementById('aiAnalysisText').innerText = "API Exception Fault: " + err.message;
-            status.innerHTML = "<span style='color:#e53e3e;'>Grading engine sequence failed.</span>";
-            gradeBtn.disabled = false;
+        }).then(res => {
+            document.getElementById('aiAnalysisText').innerText = res.text;
+            document.getElementById('statusMessage').innerHTML = "";
         });
     }
 
-    // Trigger an initial automatic state sync on startup check
     pullFromGitHubCloud();
 </script>
 
 <script>
-    // --- Official FSRS v4.5/6 Memory Mathematics Engine ---
     class FSRSEngine {
         constructor() {
             this.w = [
@@ -513,64 +396,39 @@ Keep your analysis brief so they can quickly process their errors before jumping
             ];
             this.targetRetention = 0.90; 
         }
-
         initializeTopic(grade) {
-            const initialDifficulty = this.w[4] - (grade - 3);
-            const initialStability = this.w[grade - 1]; 
-            return { stability: initialStability, difficulty: Math.max(1, Math.min(10, initialDifficulty)) };
+            return { stability: this.w[grade - 1], difficulty: Math.max(1, Math.min(10, this.w[4] - (grade - 3))) };
         }
-
         calculateRetrievability(stability, elapsedDays) {
             if (elapsedDays <= 0) return 1.0;
             return Math.pow(1 + 0.07895 * (elapsedDays / stability), -this.w[18]);
         }
-
         updateTopic(currentStability, currentDifficulty, elapsedDays, grade) {
-            let nextDifficulty = currentDifficulty - 0.1 * (grade - 3);
-            nextDifficulty = Math.max(1, Math.min(10, nextDifficulty));
-            let nextStability;
-            
+            let nextDifficulty = Math.max(1, Math.min(10, currentDifficulty - 0.1 * (grade - 3)));
             if (elapsedDays < 0.2) { 
-                nextStability = currentStability * Math.exp(this.w[16] * (grade - 3 + this.w[17]) * Math.pow(currentStability, -this.w[18]));
-                return { stability: nextStability, difficulty: nextDifficulty };
+                return { stability: currentStability * Math.exp(this.w[16] * (grade - 3 + this.w[17]) * Math.pow(currentStability, -this.w[18])), difficulty: nextDifficulty };
             }
-
             const R = this.calculateRetrievability(currentStability, elapsedDays);
-
-            if (grade === 1) {
-                nextStability = this.w[9] * Math.pow(nextDifficulty, -this.w[10]) * 
-                                Math.pow(currentStability, this.w[11]) * 
-                                Math.exp(this.w[12] * (1 - R));
-                nextStability = Math.min(nextStability, currentStability); 
-            } else {
-                const hardModifier = grade === 2 ? this.w[15] : 1.0;
-                const easyModifier = grade === 4 ? this.w[16] : 1.0;
-                nextStability = currentStability * (
-                    Math.exp(this.w[6] * (11 - nextDifficulty)) * 
-                    Math.pow(currentStability, -this.w[7]) * 
-                    (Math.exp(this.w[8] * (1 - R)) - 1) + 1
-                ) * hardModifier * easyModifier;
-            }
+            let nextStability = grade === 1 ? 
+                Math.min(this.w[9] * Math.pow(nextDifficulty, -this.w[10]) * Math.pow(currentStability, this.w[11]) * Math.exp(this.w[12] * (1 - R)), currentStability) :
+                currentStability * (Math.exp(this.w[6] * (11 - nextDifficulty)) * Math.pow(currentStability, -this.w[7]) * (Math.exp(this.w[8] * (1 - R)) - 1) + 1) * (grade === 2 ? this.w[15] : 1.0) * (grade === 4 ? this.w[16] : 1.0);
             return { stability: nextStability, difficulty: nextDifficulty };
         }
-
         calculateNextInterval(stability) {
-            const w18 = this.w[18];
-            const numerator = Math.pow(this.targetRetention, -1 / w18) - 1;
-            const denominator = Math.pow(0.9, -1 / w18) - 1;
-            const interval = stability * (numerator / denominator);
-            return Math.max(1, Math.round(interval)); 
+            return Math.max(1, Math.round(stability * ((Math.pow(this.targetRetention, -1 / this.w[18]) - 1) / (Math.pow(0.9, -1 / this.w[18]) - 1))));
         }
     }
 
     const fsrs = new FSRSEngine();
 
-    window.processFSRSFeedback = function(grade) {
-        if (!window.activeLectureName) return;
+    window.submitQuickFSRS = function(grade) {
+        const inputField = document.getElementById('fsrsTopicInput');
+        const topicName = inputField.value.trim();
+        if (!topicName) return;
 
         let db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
         const now = new Date();
-        const topic = db[window.activeLectureName];
+        const topic = db[topicName];
 
         let stability, difficulty;
         if (!topic) {
@@ -585,9 +443,8 @@ Keep your analysis brief so they can quickly process their errors before jumping
         }
 
         const interval = fsrs.calculateNextInterval(stability);
-
-        db[window.activeLectureName] = {
-            name: window.activeLectureName,
+        db[topicName] = {
+            name: topicName,
             stability: stability,
             difficulty: difficulty,
             lastReviewed: now.toISOString(),
@@ -595,30 +452,22 @@ Keep your analysis brief so they can quickly process their errors before jumping
         };
 
         localStorage.setItem('teach_program_db', JSON.stringify(db));
-        document.getElementById('statusMessage').innerHTML = `<span style='color:#38a169;'>FSRS Log Complete. Lecture scheduled for ${interval} day(s).</span>`;
-        
-        document.getElementById('sandboxCard').classList.add('hidden');
-        document.getElementById('topicInput').value = "";
-        window.activeLectureName = "";
-        
-        // AUTOMATED CLOUD SYNC EXECUTED HERE
+        inputField.value = "";
         window.pushToGitHubCloud(db);
-        window.displaySchedule();
+        displaySchedule();
     }
 
     window.loadTargetProfile = function(topicKey) {
-        document.getElementById('topicInput').value = topicKey;
-        document.getElementById('statusMessage').innerHTML = `<span style='color:#3182ce;'>Topic loaded. Please upload the active slide PDF deck to proceed.</span>`;
+        document.getElementById('fsrsTopicInput').value = topicKey;
     }
 
     window.removeTopic = function(topicName) {
-        if(confirm(`Remove "${topicName}" permanently?`)) {
+        if(confirm(`Delete "${topicName}"?`)) {
             let db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
             delete db[topicName];
             localStorage.setItem('teach_program_db', JSON.stringify(db));
-            
             window.pushToGitHubCloud(db);
-            window.displaySchedule();
+            displaySchedule();
         }
     }
 
@@ -629,28 +478,21 @@ Keep your analysis brief so they can quickly process their errors before jumping
         listContainer.innerHTML = "";
 
         const topics = Object.values(db).sort((a,b) => b.difficulty - a.difficulty);
-
         if (topics.length === 0) {
-            listContainer.innerHTML = "<li style='color: #718096; font-size: 0.95em;'>Queue empty. Ingest a layout block to initialize.</li>";
+            listContainer.innerHTML = "<li style='color: #718096;'>Queue empty.</li>";
             return;
         }
 
         topics.forEach(topic => {
             const isDue = new Date(topic.nextDue) <= now;
-            const dueDateFormatted = new Date(topic.nextDue).toLocaleDateString();
             const li = document.createElement('li');
-            
             li.innerHTML = `
                 <div>
-                    <strong style="cursor:pointer; color:#3182ce; text-decoration:underline; font-size:1.05em;" onclick="loadTargetProfile('${topic.name}')">${topic.name}</strong><br>
-                    <span style="font-size:0.75em; color:#718096;">Diff: ${topic.difficulty.toFixed(1)} | Next Due: ${dueDateFormatted}</span>
-                    <div class="action-links">
-                        <span style="color:#e53e3e;" onclick="removeTopic('${topic.name}')">Delete</span>
-                    </div>
+                    <strong style="cursor:pointer; color:#3182ce; text-decoration:underline;" onclick="loadTargetProfile('${topic.name}')">${topic.name}</strong><br>
+                    <span style="font-size:0.75em; color:#718096;">Diff: ${topic.difficulty.toFixed(1)} | Due: ${new Date(topic.nextDue).toLocaleDateString()}</span>
+                    <div class="action-links"><span style="color:#e53e3e;" onclick="removeTopic('${topic.name}')">Delete</span></div>
                 </div>
-                <span style="font-weight:bold; font-size:0.85em; color: ${isDue ? '#e53e3e' : '#38a169'}">
-                    ${isDue ? "DUE NOW" : "STABLE"}
-                </span>
+                <span style="font-weight:bold; font-size:0.85em; color: ${isDue ? '#e53e3e' : '#38a169'}">${isDue ? "DUE" : "STABLE"}</span>
             `;
             listContainer.appendChild(li);
         });
