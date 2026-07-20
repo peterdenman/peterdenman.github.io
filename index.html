@@ -51,13 +51,14 @@
             gap: 8px;
             margin-bottom: 15px;
         }
-        input[type="text"], input[type="password"], textarea {
+        input[type="text"], input[type="password"], textarea, select {
             width: 100%;
             padding: 10px;
             border: 1px solid #cbd5e0;
             border-radius: 4px;
             font-size: 1em;
             box-sizing: border-box;
+            background: white;
         }
         textarea { font-family: inherit; resize: vertical; }
         .btn-group {
@@ -110,6 +111,14 @@
         .action-links { font-size: 0.85em; display: flex; gap: 10px; margin-top: 5px;}
         .action-links span { cursor: pointer; color: #3182ce; text-decoration: underline; }
         .hidden { display: none; }
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            font-size: 0.75em;
+            font-weight: bold;
+            border-radius: 4px;
+            margin-top: 4px;
+        }
         @keyframes pulse {
             0% { opacity: 1; }
             50% { opacity: 0.6; }
@@ -135,11 +144,18 @@
     <div class="grid">
         <!-- LEFT PANEL -->
         <div>
-            <!-- MODULE 1: QUICK ENTRY INTERFACE -->
+            <!-- MODULE 1: LOG REVIEW WITH MODALITY -->
             <div class="card">
                 <h2>Log Spaced Review</h2>
                 <div class="input-group">
                     <input type="text" id="fsrsTopicInput" placeholder="Topic / Lecture Name">
+                </div>
+                <div class="input-group">
+                    <select id="modalitySelect">
+                        <option value="Anki">Anki Flashcards</option>
+                        <option value="Q-Bank">Practice Questions (Q-Bank)</option>
+                        <option value="TEACH">TEACH Slide Pass</option>
+                    </select>
                 </div>
                 <div class="btn-group">
                     <button class="btn-1" onclick="submitQuickFSRS(1)">Again (1)</button>
@@ -151,7 +167,7 @@
 
             <!-- MODULE 2: TEACH RUN OVERLAY -->
             <div class="card">
-                <h2>TEACH Slides</h2>
+                <h2>Explanation Checker</h2>
                 <div class="input-group">
                     <input type="file" id="pdfFileInput" accept="application/pdf">
                 </div>
@@ -298,6 +314,12 @@
                     updateSlideWorkspaceView();
                     document.getElementById('sandboxCard').classList.remove('hidden');
                     status.innerHTML = "";
+                    
+                    // Automatically drop matching title parameter if present in main field box
+                    const activeName = document.getElementById('fsrsTopicInput').value.trim();
+                    if (activeName) {
+                        document.getElementById('statusMessage').innerHTML = `<span style='color:#38a169;'>Active Quiz Stack Loaded for "${activeName}"</span>`;
+                    }
                 });
             });
         };
@@ -357,7 +379,7 @@
         const ai = new GoogleGenAI({ apiKey: apiKey });
         const activeSlideData = window.parsedSlidesArray[window.currentSlideIndex];
 
-        const systemPrompt = `You are an expert reviewer auditing a medical student's blind recall of a slide. Compare their text/audio description directly against the slide text. Output a short list of missing points and correct points. Be direct.`;
+        const systemPrompt = `You are an expert reviewer auditing a medical student's blind recall of a slide. Compare their description directly against the slide text. Output a short list of missing points and correct points. Be direct.`;
         const textPart = `[SLIDE TEXT]:\n${activeSlideData.text}\n\n[STUDENT RUN]:\n${textExplanation}`;
         const promptArray = [systemPrompt, textPart];
 
@@ -423,7 +445,9 @@
 
     window.submitQuickFSRS = function(grade) {
         const inputField = document.getElementById('fsrsTopicInput');
+        const modalityField = document.getElementById('modalitySelect');
         const topicName = inputField.value.trim();
+        const selectedModality = modalityField.value;
         if (!topicName) return;
 
         let db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
@@ -443,12 +467,22 @@
         }
 
         const interval = fsrs.calculateNextInterval(stability);
+        
+        // Capture tracking histories inside profile row arrays
+        const historyEntry = {
+            date: now.toISOString(),
+            grade: grade,
+            modality: selectedModality
+        };
+
         db[topicName] = {
             name: topicName,
             stability: stability,
             difficulty: difficulty,
             lastReviewed: now.toISOString(),
-            nextDue: new Date(now.getTime() + interval * 24 * 60 * 60 * 1000).toISOString()
+            nextDue: new Date(now.getTime() + interval * 24 * 60 * 60 * 1000).toISOString(),
+            lastModality: selectedModality,
+            history: topic && topic.history ? [...topic.history, historyEntry] : [historyEntry]
         };
 
         localStorage.setItem('teach_program_db', JSON.stringify(db));
@@ -485,11 +519,34 @@
 
         topics.forEach(topic => {
             const isDue = new Date(topic.nextDue) <= now;
+            
+            // AUTOMATED MODALITY ROUTING DECISION MATRIX
+            let recModality = "Anki Maintenance";
+            let recColor = "#4a5568"; 
+            let bgLight = "#edf2f7";
+
+            if (topic.difficulty > 7.0) {
+                recModality = "TEACH Slide Pass REQUIRED";
+                recColor = "#9b2c2c";
+                bgLight = "#fed7d7";
+            } else if (topic.difficulty > 4.5) {
+                recModality = "Execute Q-Bank Pass";
+                recColor = "#9c4221";
+                bgLight = "#feebc8";
+            } else {
+                recColor = "#22543d";
+                bgLight = "#c6f6d5";
+            }
+
+            const historicalLog = topic.lastModality ? ` [Last: ${topic.lastModality}]` : "";
+
             const li = document.createElement('li');
             li.innerHTML = `
                 <div>
                     <strong style="cursor:pointer; color:#3182ce; text-decoration:underline;" onclick="loadTargetProfile('${topic.name}')">${topic.name}</strong><br>
-                    <span style="font-size:0.75em; color:#718096;">Diff: ${topic.difficulty.toFixed(1)} | Due: ${new Date(topic.nextDue).toLocaleDateString()}</span>
+                    <span style="font-size:0.75em; color:#718096;">Diff: ${topic.difficulty.toFixed(1)} | Due: ${new Date(topic.nextDue).toLocaleDateString()}${historicalLog}</span>
+                    <br>
+                    <span class="badge" style="background: ${bgLight}; color: ${recColor};">Target: ${recModality}</span>
                     <div class="action-links"><span style="color:#e53e3e;" onclick="removeTopic('${topic.name}')">Delete</span></div>
                 </div>
                 <span style="font-weight:bold; font-size:0.85em; color: ${isDue ? '#e53e3e' : '#38a169'}">${isDue ? "DUE" : "STABLE"}</span>
