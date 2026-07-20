@@ -1,56 +1,58 @@
-Study Tracker
+# Study Tracker
 
-A simple webpage to track your medical school lectures using science-based review schedules (**FSRS algorithm**). It also includes an optional **AI slide tester** that listens to you teach a slide from memory and tells you what you missed.
+A minimal, fast webpage to manage medical school lecture volume using science-based review schedules (**FSRS algorithm** calibrated to an optimal $85\%$ retention sweet spot). It includes a master schedule tracker and an **AI slide tester** that listens to you teach a slide from memory and tells you exactly what clinical points you missed.
 
-Your progress saves automatically to GitHub, so you can study on your phone, tablet, or computer, and always see the same updated list.
+Your progress saves automatically to a file on your GitHub account. This means you can access your study dashboard on your phone, tablet, or computer, and your queue will always stay perfectly in sync.
 
 ---
 
 ## How to Set It Up
 
-### 0. Create Your Repository
+### 1. Create Your Repository & Add the Code
 
-1. Log in to [GitHub](https://github.com).
+1. Log into your account at [GitHub.com](https://github.com).
 2. Click the **+** icon in the top right corner and select **New repository**.
-3. **Repository name:** Name it `med-school-tracker` (or anything you like).
-4. **Public/Private:** Choose **Public** if you want it to be easy to host for free, or **Private** if you want your data to stay hidden.
-5. **Initialize this repository:** Check the box that says **Add a README file**.
-6. Click **Create repository**.
-7. Once created, click the **Add file** button $\rightarrow$ **Upload files**. Drag and drop your `index.html` file into the box and click **Commit changes**.
+3. **Repository name:** Type `med-school-tracker`.
+4. Check the box that says **Add a README file** and click **Create repository**.
+5. Click the **Add file** button $\rightarrow$ **Create new file**.
+6. Name the file exactly **`index.html`**.
+7. Copy the complete code from the `index.html` file in this project, paste it entirely into the large text box, and click **Commit changes**.
 
-### 1. Host the Page on the Web (GitHub Pages)
+### 2. Create Your Save File
 
-Before you hook up the database, you need to make the webpage live so you can access it on your phone or tablet:
+1. Inside your repository, click **Add file** $\rightarrow$ **Create new file**.
+2. Name the file exactly **`database.json`**.
+3. Inside the file box, type just two empty curly brackets: `{}`
+4. Click **Commit changes** at the bottom.
 
-1. In your GitHub repository, click on the **Settings** tab (the gear icon at the top of the repository page).
-2. Look at the left sidebar, scroll down to the "Code and automation" section, and click **Pages**.
-3. Under **Build and deployment**, look for **Source** and ensure it says "Deploy from a branch".
-4. Under **Branch**, change the dropdown from *None* to **main** (or *master*), leave the folder as `/ (root)`, and click **Save**.
-5. Wait about 1 to 2 minutes. Refresh the page, and GitHub will display a live link at the top (like `[https://yourusername.github.io/your-repo/](https://yourusername.github.io/your-repo/)`). **Bookmark this link on your phone and computer**—this is your private study portal!
+### 3. Host the Page on the Web (GitHub Pages)
 
-### 2. Create a Save File on GitHub
+To turn your code into a live website you can access on any device:
 
-1. Go to your GitHub repository where this code is hosted.
-2. Create a new file named exactly `database.json`.
-3. Inside the file, type just two curly brackets: `{}`. Save and commit the file.
+1. Inside your repository, click on the **Settings** tab (the gear icon at the top menu).
+2. Look at the left sidebar, scroll down to the *Code and automation* section, and click **Pages**.
+3. Under *Build and deployment*, look for **Source** and ensure it says "Deploy from a branch".
+4. Under **Branch**, change the dropdown selector from *None* to **main** (or *master*), leave the folder setting as `/ (root)`, and click **Save**.
+5. Wait 1 to 2 minutes, then refresh the page. GitHub will show a live website link at the top (like `[https://yourusername.github.io/med-school-tracker/](https://yourusername.github.io/med-school-tracker/)`). **Bookmark this link on your phone and computer.**
 
-### 3. Get a GitHub Key (Token)
+### 4. Get a Secure GitHub Key (Token)
 
-To let the webpage save your data automatically, it needs permission:
+To let the webpage write updates directly to your `database.json` file, it needs secure permission:
 
-1. On GitHub, click your profile picture (top right) $\rightarrow$ **Settings** $\rightarrow$ **Developer settings** (bottom left).
-2. Click **Personal access tokens** $\rightarrow$ **Fine-grained tokens**.
-3. Click **Generate new token**. Name it `Study Tracker`.
-4. Set **Repository access** to *Only select repositories* and pick your repository.
-5. Under **Permissions**, click *Repository permissions*, scroll to **Contents**, and change it to **Read and write**.
-6. Click **Generate token** at the bottom. Copy the long key that pops up.
+1. On GitHub, click your profile picture (top right corner) $\rightarrow$ **Settings**.
+2. Scroll all the way down the left sidebar and click **Developer settings**.
+3. Click **Personal access tokens** $\rightarrow$ **Fine-grained tokens**.
+4. Click **Generate new token**. Name it `Study Tracker Sync`.
+5. Set **Repository access** to *Only select repositories* and pick your `med-school-tracker` repo from the dropdown.
+6. Under **Permissions**, click *Repository permissions*, scroll down to **Contents**, and change it from *No access* to **Read and write**.
+7. Click **Generate token** at the bottom. **Copy the long key string immediately** (it starts with `github_pat_`). GitHub will never show it to you again.
 
-### 4. Connect Your Webpage
+### 5. Connect the App
 
-Open your webpage in your browser and fill out the boxes at the top:
+Open your live bookmarked webpage link and fill out the configuration inputs at the top right:
 
-* **Gemini API Key:** Your Google AI key for slide grading.
-* **GitHub Token:** The long key you just generated.
-* **username/repo:** Your GitHub username and repository name (for example: `peterdenman/peterdenman.github.io`).
+* **Gemini API Key:** Your Google AI developer key for slide grading (configured for `gemini-2.5-flash`).
+* **GitHub Token:** The long `github_pat_...` key you just generated.
+* **username/repo:** Your GitHub username and repo name separated by a slash (for example: `peterdenman/med-school-tracker`).
 
-Once connected, the top text will change to **Sync: Connected**.
+The status label will switch to **Sync: Connected**, pulling down your tracking array instantly.
