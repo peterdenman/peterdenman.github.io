@@ -8,7 +8,15 @@ Your progress saves automatically to GitHub, so you can study on your phone, tab
 
 ## How to Set It Up
 
+### 0. Create Your Repository
 
+1. Log in to [GitHub](https://github.com).
+2. Click the **+** icon in the top right corner and select **New repository**.
+3. **Repository name:** Name it `med-school-tracker` (or anything you like).
+4. **Public/Private:** Choose **Public** if you want it to be easy to host for free, or **Private** if you want your data to stay hidden.
+5. **Initialize this repository:** Check the box that says **Add a README file**.
+6. Click **Create repository**.
+7. Once created, click the **Add file** button $\rightarrow$ **Upload files**. Drag and drop your `index.html` file into the box and click **Commit changes**.
 
 ### 1. Host the Page on the Web (GitHub Pages)
 
@@ -19,7 +27,6 @@ Before you hook up the database, you need to make the webpage live so you can ac
 3. Under **Build and deployment**, look for **Source** and ensure it says "Deploy from a branch".
 4. Under **Branch**, change the dropdown from *None* to **main** (or *master*), leave the folder as `/ (root)`, and click **Save**.
 5. Wait about 1 to 2 minutes. Refresh the page, and GitHub will display a live link at the top (like `[https://yourusername.github.io/your-repo/](https://yourusername.github.io/your-repo/)`). **Bookmark this link on your phone and computer**—this is your private study portal!
-
 
 ### 2. Create a Save File on GitHub
 
@@ -47,6 +54,3 @@ Open your webpage in your browser and fill out the boxes at the top:
 * **username/repo:** Your GitHub username and repository name (for example: `peterdenman/peterdenman.github.io`).
 
 Once connected, the top text will change to **Sync: Connected**.
-
-
-The tracker instantly saves your score to the cloud and pushes the next review date out into the future.
