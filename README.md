@@ -8,13 +8,26 @@ Your progress saves automatically to GitHub, so you can study on your phone, tab
 
 ## How to Set It Up
 
-### 1. Create a Save File on GitHub
+
+
+### 1. Host the Page on the Web (GitHub Pages)
+
+Before you hook up the database, you need to make the webpage live so you can access it on your phone or tablet:
+
+1. In your GitHub repository, click on the **Settings** tab (the gear icon at the top of the repository page).
+2. Look at the left sidebar, scroll down to the "Code and automation" section, and click **Pages**.
+3. Under **Build and deployment**, look for **Source** and ensure it says "Deploy from a branch".
+4. Under **Branch**, change the dropdown from *None* to **main** (or *master*), leave the folder as `/ (root)`, and click **Save**.
+5. Wait about 1 to 2 minutes. Refresh the page, and GitHub will display a live link at the top (like `[https://yourusername.github.io/your-repo/](https://yourusername.github.io/your-repo/)`). **Bookmark this link on your phone and computer**—this is your private study portal!
+
+
+### 2. Create a Save File on GitHub
 
 1. Go to your GitHub repository where this code is hosted.
 2. Create a new file named exactly `database.json`.
 3. Inside the file, type just two curly brackets: `{}`. Save and commit the file.
 
-### 2. Get a GitHub Key (Token)
+### 3. Get a GitHub Key (Token)
 
 To let the webpage save your data automatically, it needs permission:
 
@@ -25,7 +38,7 @@ To let the webpage save your data automatically, it needs permission:
 5. Under **Permissions**, click *Repository permissions*, scroll to **Contents**, and change it to **Read and write**.
 6. Click **Generate token** at the bottom. Copy the long key that pops up.
 
-### 3. Connect Your Webpage
+### 4. Connect Your Webpage
 
 Open your webpage in your browser and fill out the boxes at the top:
 
@@ -35,8 +48,5 @@ Open your webpage in your browser and fill out the boxes at the top:
 
 Once connected, the top text will change to **Sync: Connected**.
 
-
-
-3. **Log Your Work:** Type the topic name into the box, choose how you studied it (Anki, Q-Bank, or TEACH), and press a button from **1 (Again)** to **4 (Easy)**.
 
 The tracker instantly saves your score to the cloud and pushes the next review date out into the future.
