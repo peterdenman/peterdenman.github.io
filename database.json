@@ -1,1 +1,17 @@
-{}
+{
+  "Introduction to Radiology (HSF)": {
+    "name": "Introduction to Radiology (HSF)",
+    "stability": 3.3458,
+    "difficulty": 5.8273,
+    "lastReviewed": "2026-07-23T17:37:42.210Z",
+    "nextDue": "2026-07-28T17:37:42.210Z",
+    "lastModality": "TEACH",
+    "history": [
+      {
+        "date": "2026-07-23T17:37:42.210Z",
+        "grade": 3,
+        "modality": "TEACH"
+      }
+    ]
+  }
+}
