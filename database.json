@@ -28,5 +28,20 @@
         "modality": "TEACH"
       }
     ]
+  },
+  "Intro to Cell Biology (HSF)": {
+    "name": "Intro to Cell Biology (HSF)",
+    "stability": 1.4612,
+    "difficulty": 6.8273,
+    "lastReviewed": "2026-07-24T01:32:01.769Z",
+    "nextDue": "2026-07-26T01:32:01.769Z",
+    "lastModality": "TEACH",
+    "history": [
+      {
+        "date": "2026-07-24T01:32:01.769Z",
+        "grade": 2,
+        "modality": "TEACH"
+      }
+    ]
   }
 }
