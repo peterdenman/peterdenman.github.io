@@ -16,11 +16,11 @@
   },
   "Introduction to Embryology (HSF)": {
     "name": "Introduction to Embryology (HSF)",
-    "stability": 1.5938266399149785,
-    "difficulty": 7.9273,
-    "lastReviewed": "2026-07-24T20:04:45.766Z",
-    "nextDue": "2026-07-27T20:04:45.766Z",
-    "lastModality": "Anki",
+    "stability": 1.2651267125009833,
+    "difficulty": 8.0273,
+    "lastReviewed": "2026-07-24T22:22:57.223Z",
+    "nextDue": "2026-07-26T22:22:57.223Z",
+    "lastModality": "Q-Bank",
     "history": [
       {
         "date": "2026-07-24T00:14:32.984Z",
@@ -31,6 +31,11 @@
         "date": "2026-07-24T20:04:45.766Z",
         "grade": 2,
         "modality": "Anki"
+      },
+      {
+        "date": "2026-07-24T22:22:57.223Z",
+        "grade": 2,
+        "modality": "Q-Bank"
       }
     ]
   },
