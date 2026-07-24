@@ -43,5 +43,20 @@
         "modality": "TEACH"
       }
     ]
+  },
+  "Epithelia": {
+    "name": "Epithelia",
+    "stability": 1.4612,
+    "difficulty": 6.8273,
+    "lastReviewed": "2026-07-24T14:23:14.231Z",
+    "nextDue": "2026-07-26T14:23:14.231Z",
+    "lastModality": "TEACH",
+    "history": [
+      {
+        "date": "2026-07-24T14:23:14.231Z",
+        "grade": 2,
+        "modality": "TEACH"
+      }
+    ]
   }
 }
