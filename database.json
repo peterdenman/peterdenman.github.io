@@ -185,6 +185,12 @@
         "grade": 1,
         "modality": "TEACH"
       }
+    ],
+    "notes": [
+      {
+        "id": 1785008996145,
+        "text": "Describe what conductance is and how it goes up or down"
+      }
     ]
   }
 }
