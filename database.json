@@ -58,7 +58,12 @@
         "modality": "Q-Bank"
       }
     ],
-    "notes": []
+    "notes": [
+      {
+        "id": 1785017044269,
+        "text": "Difference between nucleus and nucleuolus"
+      }
+    ]
   },
   "Epithelia": {
     "name": "Epithelia",
