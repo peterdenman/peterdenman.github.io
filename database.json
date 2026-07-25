@@ -180,16 +180,21 @@
   },
   "Membrane Physiology and Bioelectricity (HSF)": {
     "name": "Membrane Physiology and Bioelectricity (HSF)",
-    "stability": 0.4025,
-    "difficulty": 7.8273,
-    "lastReviewed": "2026-07-24T19:01:54.687Z",
-    "nextDue": "2026-07-25T19:01:54.687Z",
-    "lastModality": "TEACH",
+    "stability": 0.010229600720400458,
+    "difficulty": 8.0273,
+    "lastReviewed": "2026-07-25T22:03:05.570Z",
+    "nextDue": "2026-07-26T22:03:05.570Z",
+    "lastModality": "Anki",
     "history": [
       {
         "date": "2026-07-24T19:01:54.687Z",
         "grade": 1,
         "modality": "TEACH"
+      },
+      {
+        "date": "2026-07-25T22:03:05.570Z",
+        "grade": 1,
+        "modality": "Anki"
       }
     ],
     "notes": [
