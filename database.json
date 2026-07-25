@@ -76,16 +76,21 @@
   },
   "Introduction to Neuroanatomy (HSF)": {
     "name": "Introduction to Neuroanatomy (HSF)",
-    "stability": 0.4025,
-    "difficulty": 7.8273,
-    "lastReviewed": "2026-07-24T16:36:09.229Z",
-    "nextDue": "2026-07-25T16:36:09.229Z",
-    "lastModality": "TEACH",
+    "stability": 0.010214164110907151,
+    "difficulty": 8.0273,
+    "lastReviewed": "2026-07-25T19:17:23.195Z",
+    "nextDue": "2026-07-26T19:17:23.195Z",
+    "lastModality": "Q-Bank",
     "history": [
       {
         "date": "2026-07-24T16:36:09.229Z",
         "grade": 1,
         "modality": "TEACH"
+      },
+      {
+        "date": "2026-07-25T19:17:23.195Z",
+        "grade": 1,
+        "modality": "Q-Bank"
       }
     ]
   },
