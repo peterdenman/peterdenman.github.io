@@ -103,7 +103,12 @@
         "modality": "Q-Bank"
       }
     ],
-    "notes": []
+    "notes": [
+      {
+        "id": 1785008540765,
+        "text": "Map cells of each type to different structures, e.g. simple squamous to lung alveola"
+      }
+    ]
   },
   "Introduction to Neuroanatomy (HSF)": {
     "name": "Introduction to Neuroanatomy (HSF)",
