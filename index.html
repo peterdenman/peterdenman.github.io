@@ -79,6 +79,7 @@
         .btn-primary { background: #3182ce; color: white; }
         .btn-success { background: #38a169; color: white; }
         .btn-audio { background: #dd6b20; color: white; }
+        .btn-warning { background: #e53e3e; color: white; }
         .btn-nav { background: #4a5568; color: white; max-width: 100px; }
         .btn-recording { background: #e53e3e; color: white; animation: pulse 1.5s infinite; }
         .btn-1 { background: #feb2b2; color: #9b2c2c; } 
@@ -93,9 +94,15 @@
             margin-bottom: 8px;
             border-radius: 4px;
             display: flex;
+            flex-direction: column;
+            gap: 6px;
+            border-left: 4px solid #cbd5e0;
+        }
+        .li-row {
+            display: flex;
             justify-content: space-between;
             align-items: center;
-            border-left: 4px solid #cbd5e0;
+            width: 100%;
         }
         .ai-analysis {
             background: #ebf8ff;
@@ -119,6 +126,23 @@
             border-radius: 4px;
             margin-top: 4px;
         }
+        .struggle-box {
+            background: #fff5f5;
+            border: 1px solid #feb2b2;
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin-top: 6px;
+            font-size: 0.85em;
+            color: #9b2c2c;
+        }
+        .struggle-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            border-bottom: 1px dashed #fed7d7;
+        }
+        .struggle-item:last-child { border-bottom: none; }
         @keyframes pulse {
             0% { opacity: 1; }
             50% { opacity: 0.6; }
@@ -208,6 +232,15 @@
 
                 <div id="aiOutputBlock" class="hidden" style="margin-top: 25px; border-top: 1px dashed #cbd5e0; padding-top: 20px;">
                     <div class="ai-analysis" id="aiAnalysisText"></div>
+
+                    <!-- SAVE STRUGGLE CONCEPT BOX -->
+                    <div style="margin-top: 15px; background: #fff5f5; padding: 12px; border-radius: 6px; border: 1px solid #feb2b2;">
+                        <label style="font-weight:bold; font-size:0.85em; color:#9b2c2c;">Log a specific concept/LO you struggled with:</label>
+                        <div style="display:flex; gap:8px; margin-top:6px;">
+                            <input type="text" id="struggleInput" placeholder="e.g., Mechanism of Dobutamine in heart failure" style="margin:0;">
+                            <button class="btn-warning" style="flex:0 0 130px; padding:8px;" onclick="addStruggleToActiveTopic()">Save Issue</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div id="statusMessage" class="status-msg"></div>
@@ -328,7 +361,6 @@
         reader.readAsArrayBuffer(fileField);
     }
 
-    // MULTI-SLIDE PARSER HELPER: Converts "1-3, 5" into [1, 2, 3, 5]
     function parseSlideRangeString(rangeStr, maxSlides) {
         const slideNumbers = new Set();
         const parts = rangeStr.split(',');
@@ -394,7 +426,6 @@
             return;
         }
 
-        // Combine slide text across all selected targets
         let combinedSlideText = targetSlideIndices.map(num => {
             const slideObj = window.parsedSlidesArray.find(s => s.slideNum === num);
             return `--- SLIDE #${num} ---\n${slideObj ? slideObj.text : ''}`;
@@ -439,6 +470,39 @@ Be brief and direct.`;
             document.getElementById('aiAnalysisText').innerText = res.text;
             document.getElementById('statusMessage').innerHTML = "";
         });
+    }
+
+    window.addStruggleToActiveTopic = function() {
+        const activeName = document.getElementById('fsrsTopicInput').value.trim();
+        const struggleText = document.getElementById('struggleInput').value.trim();
+        if (!activeName || !struggleText) {
+            alert("Ensure both the Topic Name (top box) and Struggle Concept are filled in.");
+            return;
+        }
+
+        let db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
+        if (!db[activeName]) {
+            // Initialize basic placeholder if not already logged
+            db[activeName] = {
+                name: activeName,
+                stability: 1.0,
+                difficulty: 8.0,
+                lastReviewed: new Date().toISOString(),
+                nextDue: new Date().toISOString(),
+                lastModality: "TEACH",
+                history: [],
+                struggles: []
+            };
+        }
+
+        if (!db[activeName].struggles) db[activeName].struggles = [];
+        db[activeName].struggles.push({ id: Date.now(), text: struggleText });
+
+        localStorage.setItem('teach_program_db', JSON.stringify(db));
+        document.getElementById('struggleInput').value = "";
+        window.pushToGitHubCloud(db);
+        displaySchedule();
+        alert(`Saved struggle note to "${activeName}"!`);
     }
 
     pullFromGitHubCloud();
@@ -517,7 +581,8 @@ Be brief and direct.`;
             lastReviewed: now.toISOString(),
             nextDue: new Date(now.getTime() + interval * 24 * 60 * 60 * 1000).toISOString(),
             lastModality: selectedModality,
-            history: topic && topic.history ? [...topic.history, historyEntry] : [historyEntry]
+            history: topic && topic.history ? [...topic.history, historyEntry] : [historyEntry],
+            struggles: topic && topic.struggles ? topic.struggles : []
         };
 
         localStorage.setItem('teach_program_db', JSON.stringify(db));
@@ -534,6 +599,16 @@ Be brief and direct.`;
         if(confirm(`Delete "${topicName}"?`)) {
             let db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
             delete db[topicName];
+            localStorage.setItem('teach_program_db', JSON.stringify(db));
+            window.pushToGitHubCloud(db);
+            displaySchedule();
+        }
+    }
+
+    window.resolveStruggle = function(topicName, id) {
+        let db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
+        if (db[topicName] && db[topicName].struggles) {
+            db[topicName].struggles = db[topicName].struggles.filter(item => item.id !== id);
             localStorage.setItem('teach_program_db', JSON.stringify(db));
             window.pushToGitHubCloud(db);
             displaySchedule();
@@ -573,17 +648,39 @@ Be brief and direct.`;
             }
 
             const historicalLog = topic.lastModality ? ` [Last: ${topic.lastModality}]` : "";
+            const hasStruggles = topic.struggles && topic.struggles.length > 0;
+
+            let strugglesHtml = "";
+            if (hasStruggles) {
+                const itemsList = topic.struggles.map(s => `
+                    <div class="struggle-item">
+                        <span>• ${s.text}</span>
+                        <span style="color:#38a169; cursor:pointer; font-weight:bold; margin-left:8px;" onclick="resolveStruggle('${topic.name}', ${s.id})">✓ Resolved</span>
+                    </div>
+                `).join("");
+
+                strugglesHtml = `
+                    <div class="struggle-box">
+                        <strong>Targeted Review Pitfalls (${topic.struggles.length}):</strong>
+                        ${itemsList}
+                    </div>
+                `;
+            }
 
             const li = document.createElement('li');
             li.innerHTML = `
-                <div>
-                    <strong style="cursor:pointer; color:#3182ce; text-decoration:underline;" onclick="loadTargetProfile('${topic.name}')">${topic.name}</strong><br>
-                    <span style="font-size:0.75em; color:#718096;">Diff: ${topic.difficulty.toFixed(1)} | Due: ${new Date(topic.nextDue).toLocaleDateString()}${historicalLog}</span>
-                    <br>
-                    <span class="badge" style="background: ${bgLight}; color: ${recColor};">Target: ${recModality}</span>
-                    <div class="action-links"><span style="color:#e53e3e;" onclick="removeTopic('${topic.name}')">Delete</span></div>
+                <div class="li-row">
+                    <div>
+                        <strong style="cursor:pointer; color:#3182ce; text-decoration:underline;" onclick="loadTargetProfile('${topic.name}')">${topic.name}</strong><br>
+                        <span style="font-size:0.75em; color:#718096;">Diff: ${topic.difficulty.toFixed(1)} | Due: ${new Date(topic.nextDue).toLocaleDateString()}${historicalLog}</span>
+                        <br>
+                        <span class="badge" style="background: ${bgLight}; color: ${recColor};">Target: ${recModality}</span>
+                        ${hasStruggles ? `<span class="badge" style="background: #fed7d7; color: #9b2c2c; margin-left: 4px;">⚠️ ${topic.struggles.length} Review Pitfall(s)</span>` : ''}
+                    </div>
+                    <span style="font-weight:bold; font-size:0.85em; color: ${isDue ? '#e53e3e' : '#38a169'}">${isDue ? "DUE" : "STABLE"}</span>
                 </div>
-                <span style="font-weight:bold; font-size:0.85em; color: ${isDue ? '#e53e3e' : '#38a169'}">${isDue ? "DUE" : "STABLE"}</span>
+                ${strugglesHtml}
+                <div class="action-links"><span style="color:#e53e3e;" onclick="removeTopic('${topic.name}')">Delete Topic</span></div>
             `;
             listContainer.appendChild(li);
         });
