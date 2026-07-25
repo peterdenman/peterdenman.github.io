@@ -56,10 +56,10 @@
   },
   "Epithelia": {
     "name": "Epithelia",
-    "stability": 2.0200836539674225,
-    "difficulty": 7.927300000000001,
-    "lastReviewed": "2026-07-25T19:40:45.282Z",
-    "nextDue": "2026-07-28T19:40:45.282Z",
+    "stability": 1.3582627729886994,
+    "difficulty": 8.1273,
+    "lastReviewed": "2026-07-25T19:40:49.733Z",
+    "nextDue": "2026-07-27T19:40:49.733Z",
     "lastModality": "Q-Bank",
     "history": [
       {
@@ -94,6 +94,11 @@
       },
       {
         "date": "2026-07-25T19:40:45.282Z",
+        "grade": 1,
+        "modality": "Q-Bank"
+      },
+      {
+        "date": "2026-07-25T19:40:49.733Z",
         "grade": 1,
         "modality": "Q-Bank"
       }
