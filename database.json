@@ -136,6 +136,12 @@
         "grade": 1,
         "modality": "Q-Bank"
       }
+    ],
+    "notes": [
+      {
+        "id": 1785008685964,
+        "text": "Describe a spinal segment, which is afferent, which is efferent"
+      }
     ]
   },
   "Membrane Physiology and Bioelectricity (HSF)": {
