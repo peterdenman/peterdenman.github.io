@@ -281,5 +281,21 @@
       }
     ],
     "notes": []
+  },
+  "Muscle Tissue Histology (HSF)": {
+    "name": "Muscle Tissue Histology (HSF)",
+    "stability": 0.4025,
+    "difficulty": 7.8273,
+    "lastReviewed": "2026-07-27T21:33:24.222Z",
+    "nextDue": "2026-07-28T21:33:24.222Z",
+    "lastModality": "TEACH",
+    "history": [
+      {
+        "date": "2026-07-27T21:33:24.222Z",
+        "grade": 1,
+        "modality": "TEACH"
+      }
+    ],
+    "notes": []
   }
 }
