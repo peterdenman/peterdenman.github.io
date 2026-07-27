@@ -265,5 +265,21 @@
       }
     ],
     "notes": []
+  },
+  "Connective Tissue Histology (HSF)": {
+    "name": "Connective Tissue Histology (HSF)",
+    "stability": 0.4025,
+    "difficulty": 7.8273,
+    "lastReviewed": "2026-07-27T21:33:12.689Z",
+    "nextDue": "2026-07-28T21:33:12.689Z",
+    "lastModality": "TEACH",
+    "history": [
+      {
+        "date": "2026-07-27T21:33:12.689Z",
+        "grade": 1,
+        "modality": "TEACH"
+      }
+    ],
+    "notes": []
   }
 }
