@@ -249,5 +249,21 @@
         "text": "Explain the steps of a synapse"
       }
     ]
+  },
+  "Autonomic Nervous System (HSF)": {
+    "name": "Autonomic Nervous System (HSF)",
+    "stability": 0.4025,
+    "difficulty": 7.8273,
+    "lastReviewed": "2026-07-27T21:19:44.028Z",
+    "nextDue": "2026-07-28T21:19:44.028Z",
+    "lastModality": "TEACH",
+    "history": [
+      {
+        "date": "2026-07-27T21:19:44.028Z",
+        "grade": 1,
+        "modality": "TEACH"
+      }
+    ],
+    "notes": []
   }
 }
