@@ -297,5 +297,21 @@
       }
     ],
     "notes": []
+  },
+  "Histology of the Epithelia (HSF)": {
+    "name": "Histology of the Epithelia (HSF)",
+    "stability": 0.4025,
+    "difficulty": 7.8273,
+    "lastReviewed": "2026-07-28T15:24:12.822Z",
+    "nextDue": "2026-07-29T15:24:12.822Z",
+    "lastModality": "Q-Bank",
+    "history": [
+      {
+        "date": "2026-07-28T15:24:12.822Z",
+        "grade": 1,
+        "modality": "Q-Bank"
+      }
+    ],
+    "notes": []
   }
 }
