@@ -462,7 +462,7 @@ Be brief and direct.`;
 
     function executeCall(aiInstance, contentArray) {
         aiInstance.models.generateContent({
-            model: 'gemini-3.5-flash',
+            model: 'gemini-3.6-flash',
             contents: contentArray,
         }).then(res => {
             document.getElementById('aiAnalysisText').innerText = res.text;
