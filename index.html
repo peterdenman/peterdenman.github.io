@@ -68,7 +68,7 @@
         }
         button {
             flex: 1;
-            padding: 12px;
+            padding: 10px 14px;
             border: none;
             border-radius: 4px;
             font-weight: bold;
@@ -79,12 +79,8 @@
         .btn-primary { background: #3182ce; color: white; }
         .btn-success { background: #38a169; color: white; }
         .btn-audio { background: #dd6b20; color: white; }
-        .btn-nav { background: #4a5568; color: white; max-width: 100px; }
         .btn-recording { background: #e53e3e; color: white; animation: pulse 1.5s infinite; }
-        .btn-1 { background: #feb2b2; color: #9b2c2c; } 
-        .btn-2 { background: #fbd38d; color: #9c4221; } 
-        .btn-3 { background: #9ae6b4; color: #22543d; } 
-        .btn-4 { background: #63b3ed; color: #2a4365; } 
+        .btn-move { background: #edf2f7; color: #2d3748; border: 1px solid #cbd5e0; flex: 0 0 35px; padding: 4px 8px; }
         button:hover { opacity: 0.85; }
         ul { list-style: none; padding: 0; }
         li {
@@ -130,6 +126,20 @@
             align-items: center;
             font-size: 0.9em;
         }
+        .deck-download-link {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            text-decoration: none;
+            color: #2b6cb0;
+            font-weight: bold;
+        }
+        .deck-download-link:hover { background: #ebf8ff; }
         @keyframes pulse {
             0% { opacity: 1; }
             50% { opacity: 0.6; }
@@ -155,28 +165,24 @@
     <div class="grid">
         <!-- LEFT PANEL -->
         <div>
-            <!-- MODULE 1: LOG REVIEW WITH MODALITY -->
+            <!-- MODULE 1: MANUAL TOPIC & PRIORITY CREATOR -->
             <div class="card">
-                <h2>Log Spaced Review</h2>
+                <h2>Add / Update Topic Priority</h2>
                 <div class="input-group">
-                    <input type="text" id="fsrsTopicInput" placeholder="Topic / Lecture Name">
+                    <input type="text" id="topicInput" placeholder="Topic / Lecture Name">
                 </div>
                 <div class="input-group">
-                    <select id="modalitySelect">
-                        <option value="Anki">Anki Flashcards</option>
-                        <option value="Q-Bank">Practice Questions (Q-Bank)</option>
-                        <option value="TEACH">TEACH Slide Pass</option>
+                    <label style="font-weight:bold; font-size:0.85em;">Set Priority Level:</label>
+                    <select id="prioritySelect">
+                        <option value="P1">🔴 P1 - High Importance / Urgent</option>
+                        <option value="P2" selected>🟠 P2 - Medium Priority</option>
+                        <option value="P3">🟢 P3 - Low Priority / Review</option>
                     </select>
                 </div>
-                <div class="btn-group">
-                    <button class="btn-1" onclick="submitQuickFSRS(1)">Again (1)</button>
-                    <button class="btn-2" onclick="submitQuickFSRS(2)">Hard (2)</button>
-                    <button class="btn-3" onclick="submitQuickFSRS(3)">Good (3)</button>
-                    <button class="btn-4" onclick="submitQuickFSRS(4)">Easy (4)</button>
-                </div>
+                <button class="btn-primary" style="width:100%;" onclick="saveTopicManual()">Save Topic to Queue</button>
             </div>
 
-            <!-- MODULE 2: TEACH RUN OVERLAY -->
+            <!-- MODULE 2: RECALL / TEACH CHECKER -->
             <div class="card">
                 <h2>Explanation Checker</h2>
                 <div class="input-group">
@@ -198,7 +204,7 @@
                 </div>
 
                 <div class="input-group">
-                    <label style="font-weight:bold; font-size:0.85em; color:#4a5568;">Select Slide Range to Audit (e.g. 1-3, 5, 8-10):</label>
+                    <label style="font-weight:bold; font-size:0.85em; color:#4a5568;">Select Slide Range to Audit (e.g. 1-3, 5):</label>
                     <input type="text" id="slideRangeInput" value="1" placeholder="e.g. 1-3 or 4,5,6">
                 </div>
                 
@@ -221,14 +227,28 @@
                     <div class="ai-analysis" id="aiAnalysisText"></div>
                 </div>
             </div>
+
+            <!-- MODULE 3: ANKI DECK DOWNLOADS -->
+            <div class="card">
+                <h2>Shared Anki Decks</h2>
+                <p style="font-size:0.85em; color:#718096; margin-top:-5px;">Click to download exported Anki deck packages (.apkg):</p>
+                <div id="ankiDeckList">
+                    <!-- Example Links (Add your exported deck filenames here) -->
+                    <a class="deck-download-link" href="./decks/block1_master.apkg" download>
+                        <span>📦 Block 1 Master Deck</span>
+                        <span style="font-size:0.8em; font-weight:normal;">Download .apkg</span>
+                    </a>
+                </div>
+            </div>
+
             <div id="statusMessage" class="status-msg"></div>
         </div>
 
         <!-- RIGHT PANEL -->
         <div>
-            <!-- DAILY FOCUS QUEUE -->
+            <!-- MANUAL PRIORITY QUEUE -->
             <div class="card">
-                <h2>Daily Focus Queue</h2>
+                <h2>Priority Queue (Manual Order)</h2>
                 <ul id="scheduleList"></ul>
             </div>
 
@@ -240,7 +260,7 @@
                 </h2>
                 
                 <div class="input-group">
-                    <textarea id="newNoteInput" rows="2" placeholder="Add a key concept, learning objective, or equation to review for this topic..."></textarea>
+                    <textarea id="newNoteInput" rows="2" placeholder="Add a key concept, learning objective, or equation..."></textarea>
                     <button class="btn-primary" style="padding: 8px;" onclick="addNoteToActiveTopic()">Add Note</button>
                 </div>
 
@@ -307,7 +327,7 @@
         const encodedContent = btoa(unescape(encodeURIComponent(contentStr)));
 
         const bodyData = {
-            message: "FSRS Master Queue Update",
+            message: "Manual Priority Queue Update",
             content: encodedContent,
             sha: window.currentFileSha
         };
@@ -348,11 +368,6 @@
                     document.getElementById('totalSlidesNum').innerText = window.parsedSlidesArray.length;
                     document.getElementById('sandboxCard').classList.remove('hidden');
                     status.innerHTML = "";
-                    
-                    const activeName = document.getElementById('fsrsTopicInput').value.trim();
-                    if (activeName) {
-                        document.getElementById('statusMessage').innerHTML = `<span style='color:#38a169;'>Loaded slides for "${activeName}"</span>`;
-                    }
                 });
             });
         };
@@ -474,82 +489,32 @@ Be brief and direct.`;
 </script>
 
 <script>
-    class FSRSEngine {
-        constructor() {
-            this.w = [
-                0.4025, 1.4612, 3.3458, 15.6889, 5.8273, 0.7259, 1.0652, 0.0631, 
-                2.1818, 0.1654, 1.0523, 0.8123, 0.9024, 0.4497, 1.5472, 0.4018, 
-                0.3951, 0.1118, 0.8974
-            ];
-            this.targetRetention = 0.85; 
-        }
-        initializeTopic(grade) {
-            return { stability: this.w[grade - 1], difficulty: Math.max(1, Math.min(10, this.w[4] - (grade - 3))) };
-        }
-        calculateRetrievability(stability, elapsedDays) {
-            if (elapsedDays <= 0) return 1.0;
-            return Math.pow(1 + 0.07895 * (elapsedDays / stability), -this.w[18]);
-        }
-        updateTopic(currentStability, currentDifficulty, elapsedDays, grade) {
-            let nextDifficulty = Math.max(1, Math.min(10, currentDifficulty - 0.1 * (grade - 3)));
-            if (elapsedDays < 0.2) { 
-                return { stability: currentStability * Math.exp(this.w[16] * (grade - 3 + this.w[17]) * Math.pow(currentStability, -this.w[18])), difficulty: nextDifficulty };
-            }
-            const R = this.calculateRetrievability(currentStability, elapsedDays);
-            let nextStability = grade === 1 ? 
-                Math.min(this.w[9] * Math.pow(nextDifficulty, -this.w[10]) * Math.pow(currentStability, this.w[11]) * Math.exp(this.w[12] * (1 - R)), currentStability) :
-                currentStability * (Math.exp(this.w[6] * (11 - nextDifficulty)) * Math.pow(currentStability, -this.w[7]) * (Math.exp(this.w[8] * (1 - R)) - 1) + 1) * (grade === 2 ? this.w[15] : 1.0) * (grade === 4 ? this.w[16] : 1.0);
-            return { stability: nextStability, difficulty: nextDifficulty };
-        }
-        calculateNextInterval(stability) {
-            return Math.max(1, Math.round(stability * ((Math.pow(this.targetRetention, -1 / this.w[18]) - 1) / (Math.pow(0.9, -1 / this.w[18]) - 1))));
-        }
-    }
-
-    const fsrs = new FSRSEngine();
-
-    window.submitQuickFSRS = function(grade) {
-        const inputField = document.getElementById('fsrsTopicInput');
-        const modalityField = document.getElementById('modalitySelect');
+    // --- MANUAL PRIORITY QUEUE LOGIC ---
+    window.saveTopicManual = function() {
+        const inputField = document.getElementById('topicInput');
+        const priorityField = document.getElementById('prioritySelect');
         const topicName = inputField.value.trim();
-        const selectedModality = modalityField.value;
+        const selectedPriority = priorityField.value;
         if (!topicName) return;
 
         let db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
-        const now = new Date();
-        const topic = db[topicName];
+        let topicList = db.queueArray || [];
 
-        let stability, difficulty;
-        if (!topic) {
-            const initial = fsrs.initializeTopic(grade);
-            stability = initial.stability;
-            difficulty = initial.difficulty;
+        // Check if topic exists
+        const existingIdx = topicList.findIndex(t => t.name.toLowerCase() === topicName.toLowerCase());
+        
+        if (existingIdx !== -1) {
+            topicList[existingIdx].priority = selectedPriority;
         } else {
-            const elapsedDays = Math.max(0, (now - new Date(topic.lastReviewed)) / (1000 * 60 * 60 * 24));
-            const updated = fsrs.updateTopic(topic.stability, topic.difficulty, elapsedDays, grade);
-            stability = updated.stability;
-            difficulty = updated.difficulty;
+            topicList.push({
+                id: Date.now(),
+                name: topicName,
+                priority: selectedPriority,
+                notes: []
+            });
         }
 
-        const interval = fsrs.calculateNextInterval(stability);
-        
-        const historyEntry = {
-            date: now.toISOString(),
-            grade: grade,
-            modality: selectedModality
-        };
-
-        db[topicName] = {
-            name: topicName,
-            stability: stability,
-            difficulty: difficulty,
-            lastReviewed: now.toISOString(),
-            nextDue: new Date(now.getTime() + interval * 24 * 60 * 60 * 1000).toISOString(),
-            lastModality: selectedModality,
-            history: topic && topic.history ? [...topic.history, historyEntry] : [historyEntry],
-            notes: topic && topic.notes ? topic.notes : []
-        };
-
+        db.queueArray = topicList;
         localStorage.setItem('teach_program_db', JSON.stringify(db));
         inputField.value = "";
         window.pushToGitHubCloud(db);
@@ -557,8 +522,26 @@ Be brief and direct.`;
         window.loadNotebook(topicName);
     }
 
+    window.moveTopic = function(index, direction) {
+        let db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
+        let topicList = db.queueArray || [];
+
+        const targetIdx = index + direction;
+        if (targetIdx < 0 || targetIdx >= topicList.length) return;
+
+        // Swap positions
+        const temp = topicList[index];
+        topicList[index] = topicList[targetIdx];
+        topicList[targetIdx] = temp;
+
+        db.queueArray = topicList;
+        localStorage.setItem('teach_program_db', JSON.stringify(db));
+        window.pushToGitHubCloud(db);
+        displaySchedule();
+    }
+
     window.loadTargetProfile = function(topicKey) {
-        document.getElementById('fsrsTopicInput').value = topicKey;
+        document.getElementById('topicInput').value = topicKey;
         window.loadNotebook(topicKey);
     }
 
@@ -567,7 +550,8 @@ Be brief and direct.`;
         document.getElementById('activeNotebookTitle').innerText = `Active: ${topicName}`;
         
         const db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
-        const topic = db[topicName];
+        const topicList = db.queueArray || [];
+        const topic = topicList.find(t => t.name.toLowerCase() === topicName.toLowerCase());
         const container = document.getElementById('notesContainer');
         container.innerHTML = "";
 
@@ -588,28 +572,24 @@ Be brief and direct.`;
     }
 
     window.addNoteToActiveTopic = function() {
-        const topicName = window.activeNotebookTopic || document.getElementById('fsrsTopicInput').value.trim();
+        const topicName = window.activeNotebookTopic || document.getElementById('topicInput').value.trim();
         const noteText = document.getElementById('newNoteInput').value.trim();
         if (!topicName) { alert("Please select or type a topic name first."); return; }
         if (!noteText) return;
 
         let db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
-        if (!db[topicName]) {
-            db[topicName] = {
-                name: topicName,
-                stability: 1.0,
-                difficulty: 5.0,
-                lastReviewed: new Date().toISOString(),
-                nextDue: new Date().toISOString(),
-                lastModality: "Anki",
-                history: [],
-                notes: []
-            };
+        let topicList = db.queueArray || [];
+        let topic = topicList.find(t => t.name.toLowerCase() === topicName.toLowerCase());
+
+        if (!topic) {
+            topic = { id: Date.now(), name: topicName, priority: "P2", notes: [] };
+            topicList.push(topic);
         }
 
-        if (!db[topicName].notes) db[topicName].notes = [];
-        db[topicName].notes.push({ id: Date.now(), text: noteText });
+        if (!topic.notes) topic.notes = [];
+        topic.notes.push({ id: Date.now(), text: noteText });
 
+        db.queueArray = topicList;
         localStorage.setItem('teach_program_db', JSON.stringify(db));
         document.getElementById('newNoteInput').value = "";
         window.pushToGitHubCloud(db);
@@ -619,8 +599,12 @@ Be brief and direct.`;
 
     window.deleteNote = function(topicName, noteId) {
         let db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
-        if (db[topicName] && db[topicName].notes) {
-            db[topicName].notes = db[topicName].notes.filter(n => n.id !== noteId);
+        let topicList = db.queueArray || [];
+        let topic = topicList.find(t => t.name.toLowerCase() === topicName.toLowerCase());
+
+        if (topic && topic.notes) {
+            topic.notes = topic.notes.filter(n => n.id !== noteId);
+            db.queueArray = topicList;
             localStorage.setItem('teach_program_db', JSON.stringify(db));
             window.pushToGitHubCloud(db);
             displaySchedule();
@@ -631,8 +615,11 @@ Be brief and direct.`;
     window.removeTopic = function(topicName) {
         if(confirm(`Delete "${topicName}" and all associated notes?`)) {
             let db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
-            delete db[topicName];
+            let topicList = db.queueArray || [];
+
+            db.queueArray = topicList.filter(t => t.name.toLowerCase() !== topicName.toLowerCase());
             localStorage.setItem('teach_program_db', JSON.stringify(db));
+
             if (window.activeNotebookTopic === topicName) {
                 window.activeNotebookTopic = "";
                 document.getElementById('activeNotebookTitle').innerText = "(Select a topic above)";
@@ -645,50 +632,40 @@ Be brief and direct.`;
 
     window.displaySchedule = function() {
         const db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
-        const now = new Date();
         const listContainer = document.getElementById('scheduleList');
         listContainer.innerHTML = "";
 
-        const topics = Object.values(db).sort((a,b) => b.difficulty - a.difficulty);
-        if (topics.length === 0) {
-            listContainer.innerHTML = "<li style='color: #718096;'>Queue empty.</li>";
+        const topicList = db.queueArray || [];
+        if (topicList.length === 0) {
+            listContainer.innerHTML = "<li style='color: #718096;'>Queue empty. Add a topic on the left!</li>";
             return;
         }
 
-        topics.forEach(topic => {
-            const isDue = new Date(topic.nextDue) <= now;
-            
-            let recModality = "Anki Maintenance";
-            let recColor = "#4a5568"; 
-            let bgLight = "#edf2f7";
+        topicList.forEach((topic, idx) => {
+            let pColor = "#4a5568";
+            let pBg = "#edf2f7";
+            let pLabel = "P2 - Medium";
 
-            if (topic.difficulty > 7.0) {
-                recModality = "TEACH Slide Pass REQUIRED";
-                recColor = "#9b2c2c";
-                bgLight = "#fed7d7";
-            } else if (topic.difficulty > 4.5) {
-                recModality = "Execute Q-Bank Pass";
-                recColor = "#9c4221";
-                bgLight = "#feebc8";
-            } else {
-                recColor = "#22543d";
-                bgLight = "#c6f6d5";
+            if (topic.priority === "P1") {
+                pColor = "#9b2c2c"; pBg = "#fed7d7"; pLabel = "P1 - High Priority";
+            } else if (topic.priority === "P3") {
+                pColor = "#22543d"; pBg = "#c6f6d5"; pLabel = "P3 - Low Priority";
             }
 
-            const historicalLog = topic.lastModality ? ` [Last: ${topic.lastModality}]` : "";
             const noteCount = topic.notes ? topic.notes.length : 0;
 
             const li = document.createElement('li');
             li.innerHTML = `
-                <div>
+                <div style="flex: 1;">
                     <strong style="cursor:pointer; color:#3182ce; text-decoration:underline;" onclick="loadTargetProfile('${topic.name}')">${topic.name}</strong><br>
-                    <span style="font-size:0.75em; color:#718096;">Diff: ${topic.difficulty.toFixed(1)} | Due: ${new Date(topic.nextDue).toLocaleDateString()}${historicalLog}</span>
-                    <br>
-                    <span class="badge" style="background: ${bgLight}; color: ${recColor};">Target: ${recModality}</span>
+                    <span class="badge" style="background: ${pBg}; color: ${pColor};">${pLabel}</span>
                     ${noteCount > 0 ? `<span class="badge" style="background: #ebf8ff; color: #2b6cb0; margin-left: 4px; cursor:pointer;" onclick="loadTargetProfile('${topic.name}')">📝 ${noteCount} Note(s)</span>` : ''}
                     <div class="action-links"><span style="color:#e53e3e;" onclick="removeTopic('${topic.name}')">Delete Topic</span></div>
                 </div>
-                <span style="font-weight:bold; font-size:0.85em; color: ${isDue ? '#e53e3e' : '#38a169'}">${isDue ? "DUE" : "STABLE"}</span>
+                <div style="display: flex; gap: 4px;">
+                    <button class="btn-move" onclick="moveTopic(${idx}, -1)" ${idx === 0 ? 'disabled' : ''}>▲</button>
+                    <button class="btn-move" onclick="moveTopic(${idx}, 1)" ${idx === topicList.length - 1 ? 'disabled' : ''}>▼</button>
+                </div>
             `;
             listContainer.appendChild(li);
         });
