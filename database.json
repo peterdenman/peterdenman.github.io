@@ -368,15 +368,15 @@
       "notes": []
     },
     {
-      "id": 1785713804892,
-      "name": "Radiology",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1785779133785,
       "name": "Pulmonary Histology",
       "priority": "P2",
+      "notes": []
+    },
+    {
+      "id": 1785713804892,
+      "name": "Radiology",
+      "priority": "P3",
       "notes": []
     }
   ]
