@@ -362,15 +362,15 @@
       "notes": []
     },
     {
-      "id": 1785713783609,
-      "name": "Introduction to Neuroanatomy",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1785779133785,
       "name": "Pulmonary Histology",
       "priority": "P2",
+      "notes": []
+    },
+    {
+      "id": 1785713783609,
+      "name": "Introduction to Neuroanatomy",
+      "priority": "P3",
       "notes": []
     },
     {
