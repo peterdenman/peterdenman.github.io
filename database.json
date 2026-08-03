@@ -344,15 +344,15 @@
       "notes": []
     },
     {
-      "id": 1785713765242,
-      "name": "Membrane Physiology",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1785779133785,
       "name": "Pulmonary Histology",
       "priority": "P2",
+      "notes": []
+    },
+    {
+      "id": 1785713765242,
+      "name": "Membrane Physiology",
+      "priority": "P3",
       "notes": []
     },
     {
