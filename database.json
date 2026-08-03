@@ -350,6 +350,12 @@
       "notes": []
     },
     {
+      "id": 1785779133785,
+      "name": "Pulmonary Histology",
+      "priority": "P2",
+      "notes": []
+    },
+    {
       "id": 1785713771743,
       "name": "Epithelium",
       "priority": "P3",
@@ -359,12 +365,6 @@
       "id": 1785713776309,
       "name": "Cell Biology",
       "priority": "P3",
-      "notes": []
-    },
-    {
-      "id": 1785779133785,
-      "name": "Pulmonary Histology",
-      "priority": "P2",
       "notes": []
     },
     {
