@@ -344,15 +344,15 @@
       "notes": []
     },
     {
-      "id": 1785713771743,
-      "name": "Epithelium",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1785769534313,
       "name": "Anatomy of the Thorax and Back",
       "priority": "P2",
+      "notes": []
+    },
+    {
+      "id": 1785713771743,
+      "name": "Epithelium",
+      "priority": "P3",
       "notes": []
     },
     {
