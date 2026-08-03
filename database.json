@@ -344,15 +344,15 @@
       "notes": []
     },
     {
-      "id": 1785713771743,
-      "name": "Epithelium",
-      "priority": "P2",
-      "notes": []
-    },
-    {
       "id": 1785799115573,
       "name": "Respiratory System Physiology",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1785713771743,
+      "name": "Epithelium",
+      "priority": "P2",
       "notes": []
     },
     {
