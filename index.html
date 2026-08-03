@@ -130,16 +130,17 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px;
-            background: #f7fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 4px;
+            padding: 12px;
+            background: #ebf8ff;
+            border: 1px solid #3182ce;
+            border-radius: 6px;
             margin-bottom: 8px;
             text-decoration: none;
             color: #2b6cb0;
             font-weight: bold;
+            transition: 0.15s;
         }
-        .deck-download-link:hover { background: #ebf8ff; }
+        .deck-download-link:hover { background: #bee3f8; }
         @keyframes pulse {
             0% { opacity: 1; }
             50% { opacity: 0.6; }
@@ -228,15 +229,15 @@
                 </div>
             </div>
 
-            <!-- MODULE 3: ANKI DECK DOWNLOADS -->
+            <!-- MODULE 3: ANKI DECK DRIVE REPOSITORY -->
             <div class="card">
-                <h2>Shared Anki Decks</h2>
-                <p style="font-size:0.85em; color:#718096; margin-top:-5px;">Click to download exported Anki deck packages (.apkg):</p>
+                <h2>Shared Anki Deck Drive</h2>
+                <p style="font-size:0.85em; color:#718096; margin-top:-5px;">Access and download full-resolution Anki deck packages (.apkg):</p>
                 <div id="ankiDeckList">
-                    <!-- Example Links (Add your exported deck filenames here) -->
-                    <a class="deck-download-link" href="./decks/block1_master.apkg" download>
-                        <span>📦 Block 1 Master Deck</span>
-                        <span style="font-size:0.8em; font-weight:normal;">Download .apkg</span>
+                    <!-- PASTE YOUR GOOGLE DRIVE FOLDER LINK IN THE href BELOW -->
+                    <a class="deck-download-link" href="https://drive.google.com/drive/folders/1bcm9yEH_pCHWxF1poSxnS8CZMSbTxunm?usp=sharing" target="_blank" rel="noopener noreferrer">
+                        <span>📁 Open Shared Anki Google Drive Folder</span>
+                        <span style="font-size:0.8em; font-weight:normal;">View Folder ↗</span>
                     </a>
                 </div>
             </div>
@@ -500,7 +501,6 @@ Be brief and direct.`;
         let db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
         let topicList = db.queueArray || [];
 
-        // Check if topic exists
         const existingIdx = topicList.findIndex(t => t.name.toLowerCase() === topicName.toLowerCase());
         
         if (existingIdx !== -1) {
@@ -529,7 +529,6 @@ Be brief and direct.`;
         const targetIdx = index + direction;
         if (targetIdx < 0 || targetIdx >= topicList.length) return;
 
-        // Swap positions
         const temp = topicList[index];
         topicList[index] = topicList[targetIdx];
         topicList[targetIdx] = temp;
