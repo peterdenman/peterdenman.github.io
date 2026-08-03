@@ -356,15 +356,15 @@
       "notes": []
     },
     {
-      "id": 1785713746043,
-      "name": "Connective Tissue",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1785797246403,
       "name": "Pulmonary Development",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1785713746043,
+      "name": "Connective Tissue",
+      "priority": "P3",
       "notes": []
     },
     {
