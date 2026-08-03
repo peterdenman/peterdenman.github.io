@@ -344,15 +344,15 @@
       "notes": []
     },
     {
-      "id": 1785713765242,
-      "name": "Membrane Physiology",
-      "priority": "P2",
-      "notes": []
-    },
-    {
       "id": 1785797246403,
       "name": "Pulmonary Development",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1785713765242,
+      "name": "Membrane Physiology",
+      "priority": "P2",
       "notes": []
     },
     {
