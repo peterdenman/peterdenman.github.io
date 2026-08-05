@@ -380,6 +380,12 @@
       "notes": []
     },
     {
+      "id": 1785944274215,
+      "name": "Physiology of the CV System 1",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1785713776309,
       "name": "Cell Biology",
       "priority": "P3",
@@ -389,12 +395,6 @@
       "id": 1785713783609,
       "name": "Introduction to Neuroanatomy",
       "priority": "P3",
-      "notes": []
-    },
-    {
-      "id": 1785944274215,
-      "name": "Physiology of the CV System 1",
-      "priority": "P1",
       "notes": []
     },
     {
