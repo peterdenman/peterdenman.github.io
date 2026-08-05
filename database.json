@@ -390,6 +390,12 @@
       "name": "Radiology",
       "priority": "P3",
       "notes": []
+    },
+    {
+      "id": 1785934866089,
+      "name": "Anatomy of the Lungs and Pleura",
+      "priority": "P1",
+      "notes": []
     }
   ]
 }
