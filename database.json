@@ -362,6 +362,12 @@
       "notes": []
     },
     {
+      "id": 1785934866089,
+      "name": "Anatomy of the Lungs and Pleura",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1785713723160,
       "name": "Embryology",
       "priority": "P3",
@@ -371,12 +377,6 @@
       "id": 1785713746043,
       "name": "Connective Tissue",
       "priority": "P3",
-      "notes": []
-    },
-    {
-      "id": 1785934866089,
-      "name": "Anatomy of the Lungs and Pleura",
-      "priority": "P1",
       "notes": []
     },
     {
