@@ -380,15 +380,15 @@
       "notes": []
     },
     {
-      "id": 1785713783609,
-      "name": "Introduction to Neuroanatomy",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1785934866089,
       "name": "Anatomy of the Lungs and Pleura",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1785713783609,
+      "name": "Introduction to Neuroanatomy",
+      "priority": "P3",
       "notes": []
     },
     {
