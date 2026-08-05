@@ -362,15 +362,15 @@
       "notes": []
     },
     {
-      "id": 1785713771743,
-      "name": "Epithelium",
-      "priority": "P2",
-      "notes": []
-    },
-    {
       "id": 1785944276581,
       "name": "Physiology of the CV System 2",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1785713771743,
+      "name": "Epithelium",
+      "priority": "P2",
       "notes": []
     },
     {
