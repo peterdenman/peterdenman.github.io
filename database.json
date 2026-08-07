@@ -344,14 +344,14 @@
       "notes": []
     },
     {
-      "id": 1785797246403,
-      "name": "Pulmonary Development",
+      "id": 1786112720473,
+      "name": "Physiology of the CV System 3",
       "priority": "P1",
       "notes": []
     },
     {
-      "id": 1786112720473,
-      "name": "Physiology of the CV System 3",
+      "id": 1785797246403,
+      "name": "Pulmonary Development",
       "priority": "P1",
       "notes": []
     },
@@ -410,15 +410,15 @@
       "notes": []
     },
     {
-      "id": 1785713804892,
-      "name": "Radiology",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1786112723156,
       "name": "Physiology of the CV System 4",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1785713804892,
+      "name": "Radiology",
+      "priority": "P3",
       "notes": []
     },
     {
