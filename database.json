@@ -392,6 +392,12 @@
       "notes": []
     },
     {
+      "id": 1786112726972,
+      "name": "Cell Signaling",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1785713723160,
       "name": "Embryology",
       "priority": "P3",
@@ -401,12 +407,6 @@
       "id": 1785713746043,
       "name": "Connective Tissue",
       "priority": "P3",
-      "notes": []
-    },
-    {
-      "id": 1786112726972,
-      "name": "Cell Signaling",
-      "priority": "P1",
       "notes": []
     },
     {
