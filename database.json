@@ -404,15 +404,15 @@
       "notes": []
     },
     {
-      "id": 1785713804892,
-      "name": "Radiology",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1786112720473,
       "name": "Physiology of the CV System 3",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1785713804892,
+      "name": "Radiology",
+      "priority": "P3",
       "notes": []
     },
     {
