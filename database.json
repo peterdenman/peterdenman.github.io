@@ -362,15 +362,15 @@
       "notes": []
     },
     {
-      "id": 1786112726972,
-      "name": "Cell Signaling",
-      "priority": "P2",
-      "notes": []
-    },
-    {
       "id": 1786370269218,
       "name": "Anatomy of the Heart and Great Vessels",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1786112726972,
+      "name": "Cell Signaling",
+      "priority": "P2",
       "notes": []
     },
     {
