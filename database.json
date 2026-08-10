@@ -374,6 +374,12 @@
       "notes": []
     },
     {
+      "id": 1786370269218,
+      "name": "Anatomy of the Heart and Great Vessels",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1785779133785,
       "name": "Pulmonary Histology",
       "priority": "P2",
@@ -383,12 +389,6 @@
       "id": 1785713742360,
       "name": "ANS",
       "priority": "P3",
-      "notes": []
-    },
-    {
-      "id": 1786370269218,
-      "name": "Anatomy of the Heart and Great Vessels",
-      "priority": "P1",
       "notes": []
     },
     {
