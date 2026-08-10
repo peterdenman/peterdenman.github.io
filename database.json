@@ -410,6 +410,12 @@
       "notes": []
     },
     {
+      "id": 1786370303901,
+      "name": "Development of the Cardiovascular System",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1785713746043,
       "name": "Connective Tissue",
       "priority": "P3",
@@ -419,12 +425,6 @@
       "id": 1785713776309,
       "name": "Cell Biology",
       "priority": "P3",
-      "notes": []
-    },
-    {
-      "id": 1786370303901,
-      "name": "Development of the Cardiovascular System",
-      "priority": "P1",
       "notes": []
     },
     {
