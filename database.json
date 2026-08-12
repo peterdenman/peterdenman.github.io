@@ -410,15 +410,15 @@
       "notes": []
     },
     {
-      "id": 1785713723160,
-      "name": "Embryology",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1786550104024,
       "name": "Anatomy of the Mediastinum",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1785713723160,
+      "name": "Embryology",
+      "priority": "P3",
       "notes": []
     },
     {
@@ -428,15 +428,15 @@
       "notes": []
     },
     {
-      "id": 1785713746043,
-      "name": "Connective Tissue",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1786550115840,
       "name": "Lymphoreticular System",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1785713746043,
+      "name": "Connective Tissue",
+      "priority": "P3",
       "notes": []
     },
     {
