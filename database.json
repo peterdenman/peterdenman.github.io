@@ -398,15 +398,15 @@
       "notes": []
     },
     {
-      "id": 1785713771743,
-      "name": "Epithelium",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1786550104024,
       "name": "Anatomy of the Mediastinum",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1785713771743,
+      "name": "Epithelium",
+      "priority": "P3",
       "notes": []
     },
     {
