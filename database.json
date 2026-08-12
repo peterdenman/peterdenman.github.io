@@ -440,12 +440,6 @@
       "notes": []
     },
     {
-      "id": 1785713783609,
-      "name": "Introduction to Neuroanatomy",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1786550110374,
       "name": "Blood",
       "priority": "P1",
@@ -455,6 +449,12 @@
       "id": 1786550115840,
       "name": "Lymphoreticular System",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1785713783609,
+      "name": "Introduction to Neuroanatomy",
+      "priority": "P3",
       "notes": []
     }
   ]
