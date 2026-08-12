@@ -332,15 +332,15 @@
       "notes": []
     },
     {
-      "id": 1785769534313,
-      "name": "Anatomy of the Thorax and Back",
-      "priority": "P2",
-      "notes": []
-    },
-    {
       "id": 1786550104024,
       "name": "Anatomy of the Mediastinum",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1785769534313,
+      "name": "Anatomy of the Thorax and Back",
+      "priority": "P2",
       "notes": []
     },
     {
