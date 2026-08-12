@@ -422,15 +422,15 @@
       "notes": []
     },
     {
-      "id": 1785713776309,
-      "name": "Cell Biology",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1786550104024,
       "name": "Anatomy of the Mediastinum",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1785713776309,
+      "name": "Cell Biology",
+      "priority": "P3",
       "notes": []
     },
     {
@@ -440,15 +440,15 @@
       "notes": []
     },
     {
-      "id": 1785713804892,
-      "name": "Radiology",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1786550115840,
       "name": "Lymphoreticular System",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1785713804892,
+      "name": "Radiology",
+      "priority": "P3",
       "notes": []
     },
     {
