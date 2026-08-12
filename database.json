@@ -392,15 +392,15 @@
       "notes": []
     },
     {
-      "id": 1785713742360,
-      "name": "ANS",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1786550104024,
       "name": "Anatomy of the Mediastinum",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1785713742360,
+      "name": "ANS",
+      "priority": "P3",
       "notes": []
     },
     {
