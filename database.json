@@ -428,12 +428,6 @@
       "notes": []
     },
     {
-      "id": 1785713804892,
-      "name": "Radiology",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1786550104024,
       "name": "Anatomy of the Mediastinum",
       "priority": "P1",
@@ -443,6 +437,12 @@
       "id": 1786550110374,
       "name": "Blood",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1785713804892,
+      "name": "Radiology",
+      "priority": "P3",
       "notes": []
     },
     {
