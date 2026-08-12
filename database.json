@@ -320,15 +320,15 @@
   },
   "queueArray": [
     {
-      "id": 1786370269218,
-      "name": "Anatomy of the Heart and Great Vessels",
-      "priority": "P2",
-      "notes": []
-    },
-    {
       "id": 1786550104024,
       "name": "Anatomy of the Mediastinum",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1786370269218,
+      "name": "Anatomy of the Heart and Great Vessels",
+      "priority": "P2",
       "notes": []
     },
     {
