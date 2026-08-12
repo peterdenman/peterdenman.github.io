@@ -368,15 +368,15 @@
       "notes": []
     },
     {
-      "id": 1786112723156,
-      "name": "Physiology of the CV System 4",
-      "priority": "P2",
-      "notes": []
-    },
-    {
       "id": 1786550104024,
       "name": "Anatomy of the Mediastinum",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1786112723156,
+      "name": "Physiology of the CV System 4",
+      "priority": "P2",
       "notes": []
     },
     {
@@ -386,15 +386,15 @@
       "notes": []
     },
     {
-      "id": 1786112726972,
-      "name": "Cell Signaling",
-      "priority": "P2",
-      "notes": []
-    },
-    {
       "id": 1786550115840,
       "name": "Lymphoreticular System",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1786112726972,
+      "name": "Cell Signaling",
+      "priority": "P2",
       "notes": []
     },
     {
