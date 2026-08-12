@@ -326,12 +326,6 @@
       "notes": []
     },
     {
-      "id": 1786370303901,
-      "name": "Development of the Cardiovascular System",
-      "priority": "P2",
-      "notes": []
-    },
-    {
       "id": 1786550104024,
       "name": "Anatomy of the Mediastinum",
       "priority": "P1",
@@ -341,6 +335,12 @@
       "id": 1786550115840,
       "name": "Lymphoreticular System",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1786370303901,
+      "name": "Development of the Cardiovascular System",
+      "priority": "P2",
       "notes": []
     },
     {
