@@ -362,12 +362,6 @@
       "notes": []
     },
     {
-      "id": 1786112720473,
-      "name": "Physiology of the CV System 3",
-      "priority": "P2",
-      "notes": []
-    },
-    {
       "id": 1786550110374,
       "name": "Blood",
       "priority": "P1",
@@ -377,6 +371,12 @@
       "id": 1786550115840,
       "name": "Lymphoreticular System",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1786112720473,
+      "name": "Physiology of the CV System 3",
+      "priority": "P2",
       "notes": []
     },
     {
