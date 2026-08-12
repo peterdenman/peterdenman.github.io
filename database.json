@@ -344,15 +344,15 @@
       "notes": []
     },
     {
-      "id": 1785944274215,
-      "name": "Physiology of the CV System 1",
-      "priority": "P2",
-      "notes": []
-    },
-    {
       "id": 1786550104024,
       "name": "Anatomy of the Mediastinum",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1785944274215,
+      "name": "Physiology of the CV System 1",
+      "priority": "P2",
       "notes": []
     },
     {
