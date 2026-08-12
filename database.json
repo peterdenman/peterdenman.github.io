@@ -344,6 +344,12 @@
       "notes": []
     },
     {
+      "id": 1786550115840,
+      "name": "Lymphoreticular System",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1786550110374,
       "name": "Blood",
       "priority": "P1",
@@ -353,12 +359,6 @@
       "id": 1785934866089,
       "name": "Anatomy of the Lungs and Pleura",
       "priority": "P2",
-      "notes": []
-    },
-    {
-      "id": 1786550115840,
-      "name": "Lymphoreticular System",
-      "priority": "P1",
       "notes": []
     },
     {
