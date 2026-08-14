@@ -323,7 +323,12 @@
       "id": 1786741528026,
       "name": "Missed / Difficult Sections on Practical",
       "priority": "P1",
-      "notes": []
+      "notes": [
+        {
+          "id": 1786741573925,
+          "text": "Identifying lung tertiary segments"
+        }
+      ]
     },
     {
       "id": 1786550104024,
