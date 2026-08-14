@@ -327,6 +327,10 @@
         {
           "id": 1786741573925,
           "text": "Identifying lung tertiary segments"
+        },
+        {
+          "id": 1786741596224,
+          "text": "Identifying specific cusps / leaflets of valves"
         }
       ]
     },
