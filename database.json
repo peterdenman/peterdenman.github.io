@@ -404,15 +404,15 @@
       "notes": []
     },
     {
-      "id": 1785779133785,
-      "name": "Pulmonary Histology",
-      "priority": "P2",
-      "notes": []
-    },
-    {
       "id": 1786741528026,
       "name": "Missed / Difficult Sections on Practical",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1785779133785,
+      "name": "Pulmonary Histology",
+      "priority": "P2",
       "notes": []
     },
     {
