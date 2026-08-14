@@ -422,15 +422,15 @@
       "notes": []
     },
     {
-      "id": 1785713765242,
-      "name": "Membrane Physiology",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1786741528026,
       "name": "Missed / Difficult Sections on Practical",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1785713765242,
+      "name": "Membrane Physiology",
+      "priority": "P3",
       "notes": []
     },
     {
