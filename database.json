@@ -446,15 +446,15 @@
       "notes": []
     },
     {
-      "id": 1785713804892,
-      "name": "Radiology",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1786741528026,
       "name": "Missed / Difficult Sections on Practical",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1785713804892,
+      "name": "Radiology",
+      "priority": "P3",
       "notes": []
     },
     {
