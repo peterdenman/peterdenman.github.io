@@ -473,15 +473,15 @@
       "notes": []
     },
     {
-      "id": 1785797246403,
-      "name": "Pulmonary Development",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1785779133785,
       "name": "Pulmonary Histology",
       "priority": "P2",
+      "notes": []
+    },
+    {
+      "id": 1785797246403,
+      "name": "Pulmonary Development",
+      "priority": "P3",
       "notes": []
     }
   ]
