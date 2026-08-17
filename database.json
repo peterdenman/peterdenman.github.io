@@ -489,6 +489,12 @@
       "name": "Radiology",
       "priority": "P1",
       "notes": []
+    },
+    {
+      "id": 1786976160132,
+      "name": "Histology Anki",
+      "priority": "P1",
+      "notes": []
     }
   ]
 }
