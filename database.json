@@ -448,15 +448,15 @@
       "notes": []
     },
     {
-      "id": 1786370303901,
-      "name": "Development of the Cardiovascular System",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1786112723156,
       "name": "Physiology of the CV System 4",
       "priority": "P2",
+      "notes": []
+    },
+    {
+      "id": 1786370303901,
+      "name": "Development of the Cardiovascular System",
+      "priority": "P3",
       "notes": []
     },
     {
