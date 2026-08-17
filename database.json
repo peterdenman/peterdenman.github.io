@@ -424,15 +424,15 @@
       "notes": []
     },
     {
-      "id": 1786370269218,
-      "name": "Anatomy of the Heart and Great Vessels",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1785934866089,
       "name": "Anatomy of the Lungs and Pleura",
       "priority": "P2",
+      "notes": []
+    },
+    {
+      "id": 1786370269218,
+      "name": "Anatomy of the Heart and Great Vessels",
+      "priority": "P3",
       "notes": []
     },
     {
