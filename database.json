@@ -442,6 +442,12 @@
       "notes": []
     },
     {
+      "id": 1785779133785,
+      "name": "Pulmonary Histology",
+      "priority": "P2",
+      "notes": []
+    },
+    {
       "id": 1785769534313,
       "name": "Anatomy of the Thorax and Back",
       "priority": "P3",
@@ -451,12 +457,6 @@
       "id": 1786550110374,
       "name": "Blood",
       "priority": "P3",
-      "notes": []
-    },
-    {
-      "id": 1785779133785,
-      "name": "Pulmonary Histology",
-      "priority": "P2",
       "notes": []
     },
     {
