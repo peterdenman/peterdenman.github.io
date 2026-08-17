@@ -443,12 +443,6 @@
       "notes": []
     },
     {
-      "id": 1785944276581,
-      "name": "Physiology of the CV System 2",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1786976155798,
       "name": "Radiology",
       "priority": "P1",
@@ -458,6 +452,12 @@
           "text": "Prelab video is good"
         }
       ]
+    },
+    {
+      "id": 1785944276581,
+      "name": "Physiology of the CV System 2",
+      "priority": "P3",
+      "notes": []
     },
     {
       "id": 1786976160132,
