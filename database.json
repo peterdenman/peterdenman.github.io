@@ -488,7 +488,12 @@
       "id": 1786976155798,
       "name": "Radiology",
       "priority": "P1",
-      "notes": []
+      "notes": [
+        {
+          "id": 1786976435863,
+          "text": "Prelab video is good"
+        }
+      ]
     },
     {
       "id": 1786976160132,
