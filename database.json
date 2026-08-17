@@ -437,12 +437,6 @@
       "notes": []
     },
     {
-      "id": 1785944274215,
-      "name": "Physiology of the CV System 1",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1786976155798,
       "name": "Radiology",
       "priority": "P1",
@@ -454,8 +448,8 @@
       ]
     },
     {
-      "id": 1785944276581,
-      "name": "Physiology of the CV System 2",
+      "id": 1785944274215,
+      "name": "Physiology of the CV System 1",
       "priority": "P3",
       "notes": []
     },
@@ -463,6 +457,12 @@
       "id": 1786976160132,
       "name": "Histology Anki",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1785944276581,
+      "name": "Physiology of the CV System 2",
+      "priority": "P3",
       "notes": []
     },
     {
