@@ -448,15 +448,15 @@
       "notes": []
     },
     {
-      "id": 1785769534313,
-      "name": "Anatomy of the Thorax and Back",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1785799115573,
       "name": "Respiratory System Physiology",
       "priority": "P2",
+      "notes": []
+    },
+    {
+      "id": 1785769534313,
+      "name": "Anatomy of the Thorax and Back",
+      "priority": "P3",
       "notes": []
     },
     {
