@@ -401,12 +401,6 @@
       "notes": []
     },
     {
-      "id": 1786550104024,
-      "name": "Anatomy of the Mediastinum",
-      "priority": "P2",
-      "notes": []
-    },
-    {
       "id": 1786976155798,
       "name": "Radiology",
       "priority": "P1",
@@ -418,8 +412,20 @@
       ]
     },
     {
+      "id": 1786550104024,
+      "name": "Anatomy of the Mediastinum",
+      "priority": "P2",
+      "notes": []
+    },
+    {
       "id": 1786550115840,
       "name": "Lymphoreticular System",
+      "priority": "P2",
+      "notes": []
+    },
+    {
+      "id": 1786370269218,
+      "name": "Anatomy of the Heart and Great Vessels",
       "priority": "P2",
       "notes": []
     },
@@ -427,12 +433,6 @@
       "id": 1786550110374,
       "name": "Blood",
       "priority": "P3",
-      "notes": []
-    },
-    {
-      "id": 1786370269218,
-      "name": "Anatomy of the Heart and Great Vessels",
-      "priority": "P2",
       "notes": []
     },
     {
