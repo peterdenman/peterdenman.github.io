@@ -407,12 +407,6 @@
       "notes": []
     },
     {
-      "id": 1786550115840,
-      "name": "Lymphoreticular System",
-      "priority": "P2",
-      "notes": []
-    },
-    {
       "id": 1786976155798,
       "name": "Radiology",
       "priority": "P1",
@@ -422,6 +416,12 @@
           "text": "Prelab video is good"
         }
       ]
+    },
+    {
+      "id": 1786550115840,
+      "name": "Lymphoreticular System",
+      "priority": "P2",
+      "notes": []
     },
     {
       "id": 1786550110374,
