@@ -425,6 +425,12 @@
       "notes": []
     },
     {
+      "id": 1786976160132,
+      "name": "Histology Anki",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1786976155798,
       "name": "Radiology",
       "priority": "P1",
@@ -439,12 +445,6 @@
       "id": 1785769534313,
       "name": "Anatomy of the Thorax and Back",
       "priority": "P3",
-      "notes": []
-    },
-    {
-      "id": 1786976160132,
-      "name": "Histology Anki",
-      "priority": "P1",
       "notes": []
     },
     {
