@@ -414,7 +414,7 @@
     {
       "id": 1786550104024,
       "name": "Anatomy of the Mediastinum",
-      "priority": "P2",
+      "priority": "P3",
       "notes": []
     },
     {
@@ -430,15 +430,15 @@
       "notes": []
     },
     {
-      "id": 1786370269218,
-      "name": "Anatomy of the Heart and Great Vessels",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1785779133785,
       "name": "Pulmonary Histology",
       "priority": "P2",
+      "notes": []
+    },
+    {
+      "id": 1786370269218,
+      "name": "Anatomy of the Heart and Great Vessels",
+      "priority": "P3",
       "notes": []
     },
     {
