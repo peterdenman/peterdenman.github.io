@@ -478,6 +478,12 @@
       ]
     },
     {
+      "id": 1787161500653,
+      "name": "Sections Missed on Review Session",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1786550110374,
       "name": "Blood",
       "priority": "P3",
@@ -487,12 +493,6 @@
       "id": 1786112726972,
       "name": "Cell Signaling",
       "priority": "P3",
-      "notes": []
-    },
-    {
-      "id": 1787161500653,
-      "name": "Sections Missed on Review Session",
-      "priority": "P1",
       "notes": []
     },
     {
