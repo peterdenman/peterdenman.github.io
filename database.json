@@ -433,7 +433,12 @@
       "id": 1785779133785,
       "name": "Pulmonary Histology",
       "priority": "P3",
-      "notes": []
+      "notes": [
+        {
+          "id": 1787161440120,
+          "text": "Function of Basal / Supporting cells"
+        }
+      ]
     },
     {
       "id": 1786370269218,
