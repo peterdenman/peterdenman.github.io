@@ -522,7 +522,12 @@
       "id": 1786112726972,
       "name": "Cell Signaling",
       "priority": "P3",
-      "notes": []
+      "notes": [
+        {
+          "id": 1787163403551,
+          "text": "Function of IP3 and DAG"
+        }
+      ]
     },
     {
       "id": 1786370303901,
