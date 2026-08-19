@@ -421,7 +421,12 @@
       "id": 1786550104024,
       "name": "Anatomy of the Mediastinum",
       "priority": "P3",
-      "notes": []
+      "notes": [
+        {
+          "id": 1787165188430,
+          "text": "Sternal angle, which levels vessels come in"
+        }
+      ]
     },
     {
       "id": 1786550115840,
