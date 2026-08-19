@@ -320,6 +320,12 @@
   },
   "queueArray": [
     {
+      "id": 1787160523941,
+      "name": "Missed Concepts on Quizzes",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1786741528026,
       "name": "Missed / Difficult Sections on Practical",
       "priority": "P1",
@@ -398,12 +404,6 @@
       "id": 1786976160132,
       "name": "Histology Anki",
       "priority": "P2",
-      "notes": []
-    },
-    {
-      "id": 1787160523941,
-      "name": "Missed Concepts on Quizzes",
-      "priority": "P1",
       "notes": []
     },
     {
