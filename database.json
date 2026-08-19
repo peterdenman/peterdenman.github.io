@@ -453,6 +453,12 @@
       "notes": []
     },
     {
+      "id": 1787161500653,
+      "name": "Sections Missed on Review Session",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1785799115573,
       "name": "Respiratory System Physiology",
       "priority": "P3",
@@ -476,12 +482,6 @@
           "text": "Function of semispinales vs splenius capitus"
         }
       ]
-    },
-    {
-      "id": 1787161500653,
-      "name": "Sections Missed on Review Session",
-      "priority": "P1",
-      "notes": []
     },
     {
       "id": 1786550110374,
