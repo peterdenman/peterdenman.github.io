@@ -323,7 +323,12 @@
       "id": 1787161500653,
       "name": "Sections Missed on Review Session",
       "priority": "P1",
-      "notes": []
+      "notes": [
+        {
+          "id": 1787166595106,
+          "text": "attatchments on the scapula, fxn of pec minor"
+        }
+      ]
     },
     {
       "id": 1786741528026,
