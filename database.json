@@ -320,12 +320,6 @@
   },
   "queueArray": [
     {
-      "id": 1787160523941,
-      "name": "Missed Concepts on Quizzes",
-      "priority": "P1",
-      "notes": []
-    },
-    {
       "id": 1786741528026,
       "name": "Missed / Difficult Sections on Practical",
       "priority": "P1",
