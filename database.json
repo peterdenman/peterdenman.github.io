@@ -433,7 +433,12 @@
       "id": 1785934866089,
       "name": "Anatomy of the Lungs and Pleura",
       "priority": "P3",
-      "notes": []
+      "notes": [
+        {
+          "id": 1787162061384,
+          "text": "Fascia of the thoracic cavity"
+        }
+      ]
     },
     {
       "id": 1785779133785,
