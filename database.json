@@ -441,15 +441,15 @@
       ]
     },
     {
-      "id": 1786370269218,
-      "name": "Anatomy of the Heart and Great Vessels",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1787161500653,
       "name": "Sections Missed on Review Session",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1786370269218,
+      "name": "Anatomy of the Heart and Great Vessels",
+      "priority": "P3",
       "notes": []
     },
     {
