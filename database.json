@@ -502,6 +502,12 @@
       "notes": []
     },
     {
+      "id": 1787161500653,
+      "name": "Sections Missed on Review Session",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1785944276581,
       "name": "Physiology of the CV System 2",
       "priority": "P3",
@@ -511,12 +517,6 @@
       "id": 1786112720473,
       "name": "Physiology of the CV System 3",
       "priority": "P3",
-      "notes": []
-    },
-    {
-      "id": 1787161500653,
-      "name": "Sections Missed on Review Session",
-      "priority": "P1",
       "notes": []
     },
     {
