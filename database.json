@@ -401,6 +401,12 @@
       "notes": []
     },
     {
+      "id": 1787161500653,
+      "name": "Sections Missed on Review Session",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1786976155798,
       "name": "Radiology",
       "priority": "P2",
@@ -415,12 +421,6 @@
       "id": 1786550104024,
       "name": "Anatomy of the Mediastinum",
       "priority": "P3",
-      "notes": []
-    },
-    {
-      "id": 1787161500653,
-      "name": "Sections Missed on Review Session",
-      "priority": "P1",
       "notes": []
     },
     {
