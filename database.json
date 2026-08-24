@@ -320,17 +320,6 @@
   },
   "queueArray": [
     {
-      "id": 1786112720473,
-      "name": "Physiology of the CV System 3",
-      "priority": "P3",
-      "notes": [
-        {
-          "id": 1787163645565,
-          "text": "Frank-Starling Graph"
-        }
-      ]
-    },
-    {
       "id": 1785797246403,
       "name": "Pulmonary Development",
       "priority": "P3",
