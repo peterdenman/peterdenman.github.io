@@ -320,25 +320,6 @@
   },
   "queueArray": [
     {
-      "id": 1785769534313,
-      "name": "Anatomy of the Thorax and Back",
-      "priority": "P3",
-      "notes": [
-        {
-          "id": 1787161110288,
-          "text": "Function of the central tendon of the diaphram"
-        },
-        {
-          "id": 1787161125388,
-          "text": "When the spinal cord ends"
-        },
-        {
-          "id": 1787161163623,
-          "text": "Function of semispinales vs splenius capitus"
-        }
-      ]
-    },
-    {
       "id": 1786550110374,
       "name": "Blood",
       "priority": "P3",
