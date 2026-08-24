@@ -320,41 +320,6 @@
   },
   "queueArray": [
     {
-      "id": 1785934866089,
-      "name": "Anatomy of the Lungs and Pleura",
-      "priority": "P3",
-      "notes": [
-        {
-          "id": 1787162061384,
-          "text": "Fascia of the thoracic cavity"
-        },
-        {
-          "id": 1787162289848,
-          "text": "Terms defining breathing (eg tidal volume)"
-        },
-        {
-          "id": 1787162334029,
-          "text": "Reflections of the lungs on ribs"
-        },
-        {
-          "id": 1787162571410,
-          "text": "Pathologies of the lung (pneumothorax)"
-        },
-        {
-          "id": 1787162642509,
-          "text": "Lung impressions"
-        },
-        {
-          "id": 1787162660943,
-          "text": "Atelectasis"
-        },
-        {
-          "id": 1787162703209,
-          "text": "Cavities of the pleura"
-        }
-      ]
-    },
-    {
       "id": 1785779133785,
       "name": "Pulmonary Histology",
       "priority": "P3",
