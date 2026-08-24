@@ -320,17 +320,6 @@
   },
   "queueArray": [
     {
-      "id": 1785944274215,
-      "name": "Physiology of the CV System 1",
-      "priority": "P3",
-      "notes": [
-        {
-          "id": 1787162993072,
-          "text": "How vasodilation vs vasoconstriction happens"
-        }
-      ]
-    },
-    {
       "id": 1785944276581,
       "name": "Physiology of the CV System 2",
       "priority": "P3",
