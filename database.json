@@ -320,32 +320,6 @@
   },
   "queueArray": [
     {
-      "id": 1786976155798,
-      "name": "Radiology",
-      "priority": "P2",
-      "notes": [
-        {
-          "id": 1786976435863,
-          "text": "Prelab video is good"
-        }
-      ]
-    },
-    {
-      "id": 1786550104024,
-      "name": "Anatomy of the Mediastinum",
-      "priority": "P3",
-      "notes": [
-        {
-          "id": 1787165188430,
-          "text": "Sternal angle, which levels vessels come in"
-        },
-        {
-          "id": 1787165518418,
-          "text": "Need to focus on this lecture"
-        }
-      ]
-    },
-    {
       "id": 1786550115840,
       "name": "Lymphoreticular System",
       "priority": "P3",
