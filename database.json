@@ -318,5 +318,12 @@
     ],
     "notes": []
   },
-  "queueArray": []
+  "queueArray": [
+    {
+      "id": 1787578874526,
+      "name": "Digestive Histology",
+      "priority": "P1",
+      "notes": []
+    }
+  ]
 }
