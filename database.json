@@ -336,6 +336,12 @@
       "name": "Foregut Midgut Anatomy",
       "priority": "P1",
       "notes": []
+    },
+    {
+      "id": 1787751274132,
+      "name": "Midgut Hindgut Anatomy",
+      "priority": "P1",
+      "notes": []
     }
   ]
 }
