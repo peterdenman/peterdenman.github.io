@@ -356,7 +356,12 @@
       "id": 1787751274132,
       "name": "Midgut Hindgut Anatomy",
       "priority": "P1",
-      "notes": []
+      "notes": [
+        {
+          "id": 1788438832641,
+          "text": "td: LOs and qbank"
+        }
+      ]
     },
     {
       "id": 1787751281598,
