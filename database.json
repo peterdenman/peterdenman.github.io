@@ -478,6 +478,12 @@
       "name": "Radiology of Abdomen",
       "priority": "P1",
       "notes": []
+    },
+    {
+      "id": 1788438908857,
+      "name": "Radiology of Female and Male Pelvis",
+      "priority": "P1",
+      "notes": []
     }
   ]
 }
