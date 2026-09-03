@@ -389,7 +389,12 @@
       "id": 1788187417920,
       "name": "Renal Histology & Physiology II",
       "priority": "P1",
-      "notes": []
+      "notes": [
+        {
+          "id": 1788438785525,
+          "text": "td: LOs and qbank"
+        }
+      ]
     },
     {
       "id": 1788436828249,
