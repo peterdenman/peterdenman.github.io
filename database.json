@@ -383,7 +383,12 @@
       "id": 1788187410803,
       "name": "General Considerations of the Pelvis",
       "priority": "P1",
-      "notes": []
+      "notes": [
+        {
+          "id": 1788438787925,
+          "text": "td: LOs and qbank"
+        }
+      ]
     },
     {
       "id": 1788187417920,
