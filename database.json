@@ -507,7 +507,12 @@
       "id": 1788438928941,
       "name": "Histology of GI",
       "priority": "P1",
-      "notes": []
+      "notes": [
+        {
+          "id": 1788439012074,
+          "text": "Review Biolucida, Bootcamp"
+        }
+      ]
     },
     {
       "id": 1788438951891,
