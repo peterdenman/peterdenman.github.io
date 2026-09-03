@@ -334,7 +334,12 @@
       "id": 1787582904393,
       "name": "Abdominal Wall Anatomy",
       "priority": "P1",
-      "notes": []
+      "notes": [
+        {
+          "id": 1788438824542,
+          "text": "td: LOs and qbank"
+        }
+      ]
     },
     {
       "id": 1787585848444,
