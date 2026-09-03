@@ -488,7 +488,12 @@
       "id": 1788438908857,
       "name": "Radiology of Female and Male Pelvis",
       "priority": "P1",
-      "notes": []
+      "notes": [
+        {
+          "id": 1788438985691,
+          "text": "Review PPTX"
+        }
+      ]
     },
     {
       "id": 1788438928941,
