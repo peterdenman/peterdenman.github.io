@@ -477,7 +477,12 @@
       "id": 1788438901808,
       "name": "Radiology of Abdomen",
       "priority": "P1",
-      "notes": []
+      "notes": [
+        {
+          "id": 1788438982240,
+          "text": "Review PPTX"
+        }
+      ]
     },
     {
       "id": 1788438908857,
