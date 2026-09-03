@@ -345,7 +345,12 @@
       "id": 1787585848444,
       "name": "Foregut Midgut Anatomy",
       "priority": "P1",
-      "notes": []
+      "notes": [
+        {
+          "id": 1788438828458,
+          "text": "td: LOs and qbank"
+        }
+      ]
     },
     {
       "id": 1787751274132,
