@@ -529,7 +529,12 @@
       "id": 1788438962007,
       "name": "Histology of Urinary System",
       "priority": "P1",
-      "notes": []
+      "notes": [
+        {
+          "id": 1788439016940,
+          "text": "Review Biolucida, Bootcamp"
+        }
+      ]
     }
   ]
 }
