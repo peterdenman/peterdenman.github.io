@@ -484,6 +484,12 @@
       "name": "Radiology of Female and Male Pelvis",
       "priority": "P1",
       "notes": []
+    },
+    {
+      "id": 1788438928941,
+      "name": "Histology of GI",
+      "priority": "P1",
+      "notes": []
     }
   ]
 }
