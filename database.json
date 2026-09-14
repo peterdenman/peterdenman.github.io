@@ -320,28 +320,6 @@
   },
   "queueArray": [
     {
-      "id": 1788438928941,
-      "name": "Histology of GI",
-      "priority": "P2",
-      "notes": [
-        {
-          "id": 1788439012074,
-          "text": "Review Biolucida, Bootcamp"
-        }
-      ]
-    },
-    {
-      "id": 1788438951891,
-      "name": "Histology of Reproductive System",
-      "priority": "P2",
-      "notes": [
-        {
-          "id": 1788439014190,
-          "text": "Review Biolucida, Bootcamp"
-        }
-      ]
-    },
-    {
       "id": 1788438962007,
       "name": "Histology of Urinary System",
       "priority": "P2",
