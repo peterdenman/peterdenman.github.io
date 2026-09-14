@@ -320,36 +320,6 @@
   },
   "queueArray": [
     {
-      "id": 1788438901808,
-      "name": "Radiology of Abdomen",
-      "priority": "P2",
-      "notes": [
-        {
-          "id": 1788438982240,
-          "text": "Review PPTX"
-        },
-        {
-          "id": 1788439002657,
-          "text": "Casestacks / IAMOS"
-        }
-      ]
-    },
-    {
-      "id": 1788438908857,
-      "name": "Radiology of Female and Male Pelvis",
-      "priority": "P2",
-      "notes": [
-        {
-          "id": 1788438985691,
-          "text": "Review PPTX"
-        },
-        {
-          "id": 1788438997924,
-          "text": "Casestacks / IAMOS"
-        }
-      ]
-    },
-    {
       "id": 1788438928941,
       "name": "Histology of GI",
       "priority": "P2",
