@@ -320,17 +320,6 @@
   },
   "queueArray": [
     {
-      "id": 1787928433539,
-      "name": "Renal Physiology & Histology I",
-      "priority": "P2",
-      "notes": [
-        {
-          "id": 1788572004799,
-          "text": "qbank"
-        }
-      ]
-    },
-    {
       "id": 1788187404587,
       "name": "Posterior Abdominal Wall & Kidneys",
       "priority": "P2",
