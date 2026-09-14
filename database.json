@@ -320,17 +320,6 @@
   },
   "queueArray": [
     {
-      "id": 1787578874526,
-      "name": "Digestive Histology",
-      "priority": "P2",
-      "notes": [
-        {
-          "id": 1788571911533,
-          "text": "qbank"
-        }
-      ]
-    },
-    {
       "id": 1787582904393,
       "name": "Abdominal Wall Anatomy",
       "priority": "P2",
