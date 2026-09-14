@@ -320,28 +320,6 @@
   },
   "queueArray": [
     {
-      "id": 1788187404587,
-      "name": "Posterior Abdominal Wall & Kidneys",
-      "priority": "P2",
-      "notes": [
-        {
-          "id": 1788567845311,
-          "text": "td: qbank"
-        }
-      ]
-    },
-    {
-      "id": 1788187410803,
-      "name": "General Considerations of the Pelvis",
-      "priority": "P2",
-      "notes": [
-        {
-          "id": 1788571973083,
-          "text": "qbank"
-        }
-      ]
-    },
-    {
       "id": 1788187417920,
       "name": "Renal Histology & Physiology II",
       "priority": "P2",
