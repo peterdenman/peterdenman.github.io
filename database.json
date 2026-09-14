@@ -320,17 +320,6 @@
   },
   "queueArray": [
     {
-      "id": 1788436831764,
-      "name": "Female Perineum",
-      "priority": "P2",
-      "notes": [
-        {
-          "id": 1788480246082,
-          "text": "td: qbank"
-        }
-      ]
-    },
-    {
       "id": 1788438901808,
       "name": "Radiology of Abdomen",
       "priority": "P2",
