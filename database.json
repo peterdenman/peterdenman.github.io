@@ -320,17 +320,6 @@
   },
   "queueArray": [
     {
-      "id": 1788187417920,
-      "name": "Renal Histology & Physiology II",
-      "priority": "P2",
-      "notes": [
-        {
-          "id": 1788571905233,
-          "text": "qbank"
-        }
-      ]
-    },
-    {
       "id": 1788436828249,
       "name": "Male Perineum",
       "priority": "P2",
