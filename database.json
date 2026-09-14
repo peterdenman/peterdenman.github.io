@@ -320,28 +320,6 @@
   },
   "queueArray": [
     {
-      "id": 1787751274132,
-      "name": "Midgut Hindgut Anatomy",
-      "priority": "P2",
-      "notes": [
-        {
-          "id": 1788571240335,
-          "text": "td: qbank"
-        }
-      ]
-    },
-    {
-      "id": 1787751281598,
-      "name": "GI Development",
-      "priority": "P2",
-      "notes": [
-        {
-          "id": 1788438816758,
-          "text": "td: qbank"
-        }
-      ]
-    },
-    {
       "id": 1787751289515,
       "name": "GI Physiology",
       "priority": "P2",
