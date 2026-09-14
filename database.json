@@ -320,28 +320,6 @@
   },
   "queueArray": [
     {
-      "id": 1787582904393,
-      "name": "Abdominal Wall Anatomy",
-      "priority": "P2",
-      "notes": [
-        {
-          "id": 1788571916433,
-          "text": "qbank"
-        }
-      ]
-    },
-    {
-      "id": 1787585848444,
-      "name": "Foregut Midgut Anatomy",
-      "priority": "P2",
-      "notes": [
-        {
-          "id": 1788571921216,
-          "text": "qbank"
-        }
-      ]
-    },
-    {
       "id": 1787751274132,
       "name": "Midgut Hindgut Anatomy",
       "priority": "P2",
