@@ -320,28 +320,6 @@
   },
   "queueArray": [
     {
-      "id": 1788438962007,
-      "name": "Histology of Urinary System",
-      "priority": "P2",
-      "notes": [
-        {
-          "id": 1788439016940,
-          "text": "Review Biolucida, Bootcamp"
-        }
-      ]
-    },
-    {
-      "id": 1788529050917,
-      "name": "Micturition, Defecation, Sexual Response",
-      "priority": "P2",
-      "notes": [
-        {
-          "id": 1788571873433,
-          "text": "qbank"
-        }
-      ]
-    },
-    {
       "id": 1788960725071,
       "name": "REVIEW LECTURE",
       "priority": "P1",
