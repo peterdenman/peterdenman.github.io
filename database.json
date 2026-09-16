@@ -356,7 +356,12 @@
       "id": 1789585951175,
       "name": "Cranial Nerves 1-6",
       "priority": "P1",
-      "notes": []
+      "notes": [
+        {
+          "id": 1789586028841,
+          "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
+        }
+      ]
     },
     {
       "id": 1789585959424,
