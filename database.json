@@ -406,7 +406,12 @@
       "id": 1789702569148,
       "name": "Neural Histology",
       "priority": "P1",
-      "notes": []
+      "notes": [
+        {
+          "id": 1789702573215,
+          "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
+        }
+      ]
     }
   ]
 }
