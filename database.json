@@ -409,6 +409,12 @@
       "notes": []
     },
     {
+      "id": 1790033576345,
+      "name": "Brain, Cranial Cavity, Orbit Lab",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1789994296063,
       "name": "Brainstem and Cranial Nerves 7-12",
       "priority": "P2",
@@ -418,12 +424,6 @@
           "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
         }
       ]
-    },
-    {
-      "id": 1790033576345,
-      "name": "Brain, Cranial Cavity, Orbit Lab",
-      "priority": "P1",
-      "notes": []
     },
     {
       "id": 1790033672512,
