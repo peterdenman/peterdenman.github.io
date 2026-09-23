@@ -337,6 +337,12 @@
       "notes": []
     },
     {
+      "id": 1790033543929,
+      "name": "Cranial Nerves Lab 2",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1789408492580,
       "name": "Face & Orbit",
       "priority": "P2",
@@ -348,8 +354,8 @@
       ]
     },
     {
-      "id": 1790033543929,
-      "name": "Cranial Nerves Lab 2",
+      "id": 1790033576345,
+      "name": "Brain, Cranial Cavity, Orbit Lab",
       "priority": "P1",
       "notes": []
     },
@@ -363,12 +369,6 @@
           "text": "td: qbank (bootcamp, gemini, amboss)"
         }
       ]
-    },
-    {
-      "id": 1790033576345,
-      "name": "Brain, Cranial Cavity, Orbit Lab",
-      "priority": "P1",
-      "notes": []
     },
     {
       "id": 1789585951175,
