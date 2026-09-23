@@ -441,7 +441,12 @@
       "id": 1790166823308,
       "name": "Pharynx, Larynx, Nasal Cavity",
       "priority": "P1",
-      "notes": []
+      "notes": [
+        {
+          "id": 1790166831292,
+          "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
+        }
+      ]
     }
   ]
 }
