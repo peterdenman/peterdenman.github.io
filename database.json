@@ -436,6 +436,12 @@
       "name": "Infratemporal Fossa Lab",
       "priority": "P1",
       "notes": []
+    },
+    {
+      "id": 1790166823308,
+      "name": "Pharynx, Larynx, Nasal Cavity",
+      "priority": "P1",
+      "notes": []
     }
   ]
 }
