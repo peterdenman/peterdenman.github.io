@@ -331,17 +331,6 @@
       ]
     },
     {
-      "id": 1789408498946,
-      "name": "Neck",
-      "priority": "P2",
-      "notes": [
-        {
-          "id": 1789603860866,
-          "text": "td: qbank (bootcamp, gemini, amboss)"
-        }
-      ]
-    },
-    {
       "id": 1789477187135,
       "name": "Neck and Spine Radiology",
       "priority": "P1",
@@ -349,6 +338,17 @@
         {
           "id": 1789477544518,
           "text": "go through slideshow, make cards making sure you have each structure"
+        }
+      ]
+    },
+    {
+      "id": 1789408498946,
+      "name": "Neck",
+      "priority": "P2",
+      "notes": [
+        {
+          "id": 1789603860866,
+          "text": "td: qbank (bootcamp, gemini, amboss)"
         }
       ]
     },
