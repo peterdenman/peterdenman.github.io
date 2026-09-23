@@ -359,6 +359,12 @@
       ]
     },
     {
+      "id": 1790033543929,
+      "name": "Cranial Nerves Lab 2",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1789585951175,
       "name": "Cranial Nerves 1-6",
       "priority": "P2",
@@ -370,8 +376,8 @@
       ]
     },
     {
-      "id": 1790033543929,
-      "name": "Cranial Nerves Lab 2",
+      "id": 1790033576345,
+      "name": "Brain, Cranial Cavity, Orbit Lab",
       "priority": "P1",
       "notes": []
     },
@@ -385,12 +391,6 @@
           "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
         }
       ]
-    },
-    {
-      "id": 1790033576345,
-      "name": "Brain, Cranial Cavity, Orbit Lab",
-      "priority": "P1",
-      "notes": []
     },
     {
       "id": 1789702553999,
