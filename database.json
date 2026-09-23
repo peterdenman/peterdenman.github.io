@@ -349,6 +349,17 @@
       "notes": []
     },
     {
+      "id": 1790166823308,
+      "name": "Pharynx, Larynx, Nasal Cavity",
+      "priority": "P1",
+      "notes": [
+        {
+          "id": 1790166831292,
+          "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
+        }
+      ]
+    },
+    {
       "id": 1789408492580,
       "name": "Face & Orbit",
       "priority": "P2",
@@ -367,17 +378,6 @@
         {
           "id": 1789603860866,
           "text": "td: qbank (bootcamp, gemini, amboss)"
-        }
-      ]
-    },
-    {
-      "id": 1790166823308,
-      "name": "Pharynx, Larynx, Nasal Cavity",
-      "priority": "P1",
-      "notes": [
-        {
-          "id": 1790166831292,
-          "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
         }
       ]
     },
