@@ -382,23 +382,23 @@
       ]
     },
     {
-      "id": 1789585959424,
-      "name": "Infratemporal Fossa",
-      "priority": "P2",
-      "notes": [
-        {
-          "id": 1789586025791,
-          "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
-        }
-      ]
-    },
-    {
       "id": 1790166823308,
       "name": "Pharynx, Larynx, Nasal Cavity",
       "priority": "P1",
       "notes": [
         {
           "id": 1790166831292,
+          "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
+        }
+      ]
+    },
+    {
+      "id": 1789585959424,
+      "name": "Infratemporal Fossa",
+      "priority": "P2",
+      "notes": [
+        {
+          "id": 1789586025791,
           "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
         }
       ]
