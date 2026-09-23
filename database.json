@@ -342,6 +342,12 @@
       ]
     },
     {
+      "id": 1789666423078,
+      "name": "Cranial Nerves Lab",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1789408498946,
       "name": "Neck",
       "priority": "P2",
@@ -362,12 +368,6 @@
           "text": "td: qbank (bootcamp, gemini, amboss), perrault questions (actual perrault on canvas)"
         }
       ]
-    },
-    {
-      "id": 1789666423078,
-      "name": "Cranial Nerves Lab",
-      "priority": "P1",
-      "notes": []
     },
     {
       "id": 1789585959424,
