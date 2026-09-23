@@ -331,6 +331,12 @@
       ]
     },
     {
+      "id": 1789666423078,
+      "name": "Cranial Nerves Lab",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1789408492580,
       "name": "Face & Orbit",
       "priority": "P2",
@@ -340,12 +346,6 @@
           "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
         }
       ]
-    },
-    {
-      "id": 1789666423078,
-      "name": "Cranial Nerves Lab",
-      "priority": "P1",
-      "notes": []
     },
     {
       "id": 1789408498946,
@@ -403,6 +403,12 @@
       ]
     },
     {
+      "id": 1790033543929,
+      "name": "Cranial Nerves Lab 2",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1789994296063,
       "name": "Brainstem and Cranial Nerves 7-12",
       "priority": "P2",
@@ -412,12 +418,6 @@
           "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
         }
       ]
-    },
-    {
-      "id": 1790033543929,
-      "name": "Cranial Nerves Lab 2",
-      "priority": "P1",
-      "notes": []
     },
     {
       "id": 1790033576345,
