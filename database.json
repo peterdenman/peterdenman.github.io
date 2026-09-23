@@ -343,6 +343,12 @@
       "notes": []
     },
     {
+      "id": 1790033576345,
+      "name": "Brain, Cranial Cavity, Orbit Lab",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1789408492580,
       "name": "Face & Orbit",
       "priority": "P2",
@@ -352,12 +358,6 @@
           "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
         }
       ]
-    },
-    {
-      "id": 1790033576345,
-      "name": "Brain, Cranial Cavity, Orbit Lab",
-      "priority": "P1",
-      "notes": []
     },
     {
       "id": 1789408498946,
@@ -432,12 +432,6 @@
       "notes": []
     },
     {
-      "id": 1790033697462,
-      "name": "Infratemporal Fossa Lab",
-      "priority": "P2",
-      "notes": []
-    },
-    {
       "id": 1790166823308,
       "name": "Pharynx, Larynx, Nasal Cavity",
       "priority": "P1",
@@ -447,6 +441,12 @@
           "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
         }
       ]
+    },
+    {
+      "id": 1790033697462,
+      "name": "Infratemporal Fossa Lab",
+      "priority": "P2",
+      "notes": []
     }
   ]
 }
