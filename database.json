@@ -320,17 +320,6 @@
   },
   "queueArray": [
     {
-      "id": 1789408492580,
-      "name": "Face & Orbit",
-      "priority": "P2",
-      "notes": [
-        {
-          "id": 1789586011841,
-          "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
-        }
-      ]
-    },
-    {
       "id": 1789477187135,
       "name": "Neck and Spine Radiology",
       "priority": "P1",
@@ -338,6 +327,17 @@
         {
           "id": 1789477544518,
           "text": "go through slideshow, make cards making sure you have each structure"
+        }
+      ]
+    },
+    {
+      "id": 1789408492580,
+      "name": "Face & Orbit",
+      "priority": "P2",
+      "notes": [
+        {
+          "id": 1789586011841,
+          "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
         }
       ]
     },
@@ -364,6 +364,12 @@
       ]
     },
     {
+      "id": 1789666423078,
+      "name": "Cranial Nerves Lab",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1789585959424,
       "name": "Infratemporal Fossa",
       "priority": "P2",
@@ -373,12 +379,6 @@
           "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
         }
       ]
-    },
-    {
-      "id": 1789666423078,
-      "name": "Cranial Nerves Lab",
-      "priority": "P1",
-      "notes": []
     },
     {
       "id": 1789702553999,
