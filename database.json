@@ -415,6 +415,17 @@
       ]
     },
     {
+      "id": 1790166823308,
+      "name": "Pharynx, Larynx, Nasal Cavity",
+      "priority": "P1",
+      "notes": [
+        {
+          "id": 1790166831292,
+          "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
+        }
+      ]
+    },
+    {
       "id": 1789994296063,
       "name": "Brainstem and Cranial Nerves 7-12",
       "priority": "P2",
@@ -430,17 +441,6 @@
       "name": "Anterior and Posterior Neck Lab",
       "priority": "P2",
       "notes": []
-    },
-    {
-      "id": 1790166823308,
-      "name": "Pharynx, Larynx, Nasal Cavity",
-      "priority": "P1",
-      "notes": [
-        {
-          "id": 1790166831292,
-          "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
-        }
-      ]
     },
     {
       "id": 1790033697462,
