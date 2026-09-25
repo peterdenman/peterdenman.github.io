@@ -382,6 +382,12 @@
       ]
     },
     {
+      "id": 1790351348084,
+      "name": "Pharyngeal Apparatus",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1789585951175,
       "name": "Cranial Nerves 1-6",
       "priority": "P2",
@@ -393,8 +399,8 @@
       ]
     },
     {
-      "id": 1790351348084,
-      "name": "Pharyngeal Apparatus",
+      "id": 1790351337035,
+      "name": "Endocrine Physiology",
       "priority": "P1",
       "notes": []
     },
@@ -408,12 +414,6 @@
           "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
         }
       ]
-    },
-    {
-      "id": 1790351337035,
-      "name": "Endocrine Physiology",
-      "priority": "P1",
-      "notes": []
     },
     {
       "id": 1789702553999,
