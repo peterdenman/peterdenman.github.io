@@ -404,6 +404,12 @@
       ]
     },
     {
+      "id": 1790351348084,
+      "name": "Pharyngeal Apparatus",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1789702553999,
       "name": "Brain and Skull",
       "priority": "P2",
@@ -413,12 +419,6 @@
           "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
         }
       ]
-    },
-    {
-      "id": 1790351348084,
-      "name": "Pharyngeal Apparatus",
-      "priority": "P1",
-      "notes": []
     },
     {
       "id": 1789702569148,
