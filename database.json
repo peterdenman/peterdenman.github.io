@@ -360,6 +360,12 @@
       ]
     },
     {
+      "id": 1790351348084,
+      "name": "Pharyngeal Apparatus",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1789408492580,
       "name": "Face & Orbit",
       "priority": "P2",
@@ -371,8 +377,8 @@
       ]
     },
     {
-      "id": 1790351348084,
-      "name": "Pharyngeal Apparatus",
+      "id": 1790351337035,
+      "name": "Endocrine Physiology",
       "priority": "P1",
       "notes": []
     },
@@ -386,12 +392,6 @@
           "text": "td: qbank (bootcamp, gemini, amboss)"
         }
       ]
-    },
-    {
-      "id": 1790351337035,
-      "name": "Endocrine Physiology",
-      "priority": "P1",
-      "notes": []
     },
     {
       "id": 1789585951175,
