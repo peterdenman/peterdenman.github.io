@@ -393,6 +393,12 @@
       ]
     },
     {
+      "id": 1790351348084,
+      "name": "Pharyngeal Apparatus",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1789585959424,
       "name": "Infratemporal Fossa",
       "priority": "P2",
@@ -402,12 +408,6 @@
           "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
         }
       ]
-    },
-    {
-      "id": 1790351348084,
-      "name": "Pharyngeal Apparatus",
-      "priority": "P1",
-      "notes": []
     },
     {
       "id": 1790351337035,
