@@ -426,6 +426,12 @@
       ]
     },
     {
+      "id": 1790351337035,
+      "name": "Endocrine Physiology",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1789994296063,
       "name": "Brainstem and Cranial Nerves 7-12",
       "priority": "P2",
@@ -440,12 +446,6 @@
       "id": 1790033672512,
       "name": "Anterior and Posterior Neck Lab",
       "priority": "P2",
-      "notes": []
-    },
-    {
-      "id": 1790351337035,
-      "name": "Endocrine Physiology",
-      "priority": "P1",
       "notes": []
     },
     {
