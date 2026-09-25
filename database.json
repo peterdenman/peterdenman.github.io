@@ -371,6 +371,12 @@
       ]
     },
     {
+      "id": 1790351348084,
+      "name": "Pharyngeal Apparatus",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1789408498946,
       "name": "Neck",
       "priority": "P2",
@@ -382,8 +388,8 @@
       ]
     },
     {
-      "id": 1790351348084,
-      "name": "Pharyngeal Apparatus",
+      "id": 1790351337035,
+      "name": "Endocrine Physiology",
       "priority": "P1",
       "notes": []
     },
@@ -397,12 +403,6 @@
           "text": "td: qbank (bootcamp, gemini, amboss), perrault questions (actual perrault on canvas)"
         }
       ]
-    },
-    {
-      "id": 1790351337035,
-      "name": "Endocrine Physiology",
-      "priority": "P1",
-      "notes": []
     },
     {
       "id": 1789585959424,
