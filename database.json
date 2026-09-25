@@ -355,6 +355,12 @@
       "notes": []
     },
     {
+      "id": 1790351337035,
+      "name": "Endocrine Physiology",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1790166823308,
       "name": "Pharynx, Larynx, Nasal Cavity",
       "priority": "P2",
@@ -364,12 +370,6 @@
           "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
         }
       ]
-    },
-    {
-      "id": 1790351337035,
-      "name": "Endocrine Physiology",
-      "priority": "P1",
-      "notes": []
     },
     {
       "id": 1789408492580,
