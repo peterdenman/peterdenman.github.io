@@ -415,6 +415,12 @@
       ]
     },
     {
+      "id": 1790351348084,
+      "name": "Pharyngeal Apparatus",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1789702569148,
       "name": "Neural Histology",
       "priority": "P2",
@@ -428,12 +434,6 @@
     {
       "id": 1790351337035,
       "name": "Endocrine Physiology",
-      "priority": "P1",
-      "notes": []
-    },
-    {
-      "id": 1790351348084,
-      "name": "Pharyngeal Apparatus",
       "priority": "P1",
       "notes": []
     },
