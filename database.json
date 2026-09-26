@@ -394,6 +394,12 @@
       ]
     },
     {
+      "id": 1790451199280,
+      "name": "Pharynx, Larynx, Nasal Cavity Lab",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1789585951175,
       "name": "Cranial Nerves 1-6",
       "priority": "P2",
@@ -403,12 +409,6 @@
           "text": "td: qbank (bootcamp, gemini, amboss), perrault questions (actual perrault on canvas)"
         }
       ]
-    },
-    {
-      "id": 1790451199280,
-      "name": "Pharynx, Larynx, Nasal Cavity Lab",
-      "priority": "P1",
-      "notes": []
     },
     {
       "id": 1789585959424,
