@@ -355,15 +355,15 @@
       "notes": []
     },
     {
-      "id": 1790351337035,
-      "name": "Endocrine Physiology",
-      "priority": "P2",
-      "notes": []
-    },
-    {
       "id": 1790451199280,
       "name": "Pharynx, Larynx, Nasal Cavity Lab",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1790351337035,
+      "name": "Endocrine Physiology",
+      "priority": "P2",
       "notes": []
     },
     {
