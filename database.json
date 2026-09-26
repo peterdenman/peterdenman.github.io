@@ -449,15 +449,15 @@
       ]
     },
     {
-      "id": 1790033672512,
-      "name": "Anterior and Posterior Neck Lab",
-      "priority": "P2",
-      "notes": []
-    },
-    {
       "id": 1790451199280,
       "name": "Pharynx, Larynx, Nasal Cavity Lab",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1790033672512,
+      "name": "Anterior and Posterior Neck Lab",
+      "priority": "P2",
       "notes": []
     },
     {
