@@ -320,6 +320,18 @@
   },
   "queueArray": [
     {
+      "id": 1789666423078,
+      "name": "Cranial Nerves Lab",
+      "priority": "P2",
+      "notes": []
+    },
+    {
+      "id": 1790033543929,
+      "name": "Cranial Nerves Lab 2",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1789477187135,
       "name": "Neck and Spine Radiology",
       "priority": "P2",
@@ -329,18 +341,6 @@
           "text": "go through slideshow, make cards making sure you have each structure"
         }
       ]
-    },
-    {
-      "id": 1789666423078,
-      "name": "Cranial Nerves Lab",
-      "priority": "P1",
-      "notes": []
-    },
-    {
-      "id": 1790033543929,
-      "name": "Cranial Nerves Lab 2",
-      "priority": "P1",
-      "notes": []
     },
     {
       "id": 1790033576345,
