@@ -400,6 +400,12 @@
       ]
     },
     {
+      "id": 1790033672512,
+      "name": "Anterior and Posterior Neck Lab",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1789585951175,
       "name": "Cranial Nerves 1-6",
       "priority": "P2",
@@ -411,8 +417,8 @@
       ]
     },
     {
-      "id": 1790033672512,
-      "name": "Anterior and Posterior Neck Lab",
+      "id": 1790033697462,
+      "name": "Infratemporal Fossa Lab",
       "priority": "P1",
       "notes": []
     },
@@ -426,12 +432,6 @@
           "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
         }
       ]
-    },
-    {
-      "id": 1790033697462,
-      "name": "Infratemporal Fossa Lab",
-      "priority": "P1",
-      "notes": []
     },
     {
       "id": 1789702553999,
