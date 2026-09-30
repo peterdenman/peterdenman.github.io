@@ -378,6 +378,12 @@
       ]
     },
     {
+      "id": 1790033672512,
+      "name": "Anterior and Posterior Neck Lab",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1789408492580,
       "name": "Face & Orbit",
       "priority": "P2",
@@ -389,8 +395,8 @@
       ]
     },
     {
-      "id": 1790033672512,
-      "name": "Anterior and Posterior Neck Lab",
+      "id": 1790033697462,
+      "name": "Infratemporal Fossa Lab",
       "priority": "P1",
       "notes": []
     },
@@ -404,12 +410,6 @@
           "text": "td: qbank (bootcamp, gemini, amboss)"
         }
       ]
-    },
-    {
-      "id": 1790033697462,
-      "name": "Infratemporal Fossa Lab",
-      "priority": "P1",
-      "notes": []
     },
     {
       "id": 1789585951175,
