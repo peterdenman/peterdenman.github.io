@@ -361,6 +361,12 @@
       "notes": []
     },
     {
+      "id": 1790033697462,
+      "name": "Infratemporal Fossa Lab",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1790351348084,
       "name": "Pharyngeal Apparatus",
       "priority": "P1",
@@ -369,12 +375,6 @@
     {
       "id": 1790351337035,
       "name": "Endocrine Physiology",
-      "priority": "P1",
-      "notes": []
-    },
-    {
-      "id": 1790033697462,
-      "name": "Infratemporal Fossa Lab",
       "priority": "P1",
       "notes": []
     },
