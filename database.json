@@ -373,6 +373,12 @@
       "notes": []
     },
     {
+      "id": 1790033697462,
+      "name": "Infratemporal Fossa Lab",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1790166823308,
       "name": "Pharynx, Larynx, Nasal Cavity",
       "priority": "P1",
@@ -382,12 +388,6 @@
           "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
         }
       ]
-    },
-    {
-      "id": 1790033697462,
-      "name": "Infratemporal Fossa Lab",
-      "priority": "P1",
-      "notes": []
     },
     {
       "id": 1789408492580,
