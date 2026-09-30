@@ -411,6 +411,12 @@
       ]
     },
     {
+      "id": 1790033672512,
+      "name": "Anterior and Posterior Neck Lab",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1789585959424,
       "name": "Infratemporal Fossa",
       "priority": "P2",
@@ -420,12 +426,6 @@
           "text": "td: qbank (bootcamp, gemini, amboss), perrault questions"
         }
       ]
-    },
-    {
-      "id": 1790033672512,
-      "name": "Anterior and Posterior Neck Lab",
-      "priority": "P1",
-      "notes": []
     },
     {
       "id": 1790033697462,
