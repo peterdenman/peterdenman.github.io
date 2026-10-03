@@ -320,12 +320,6 @@
   },
   "queueArray": [
     {
-      "id": 1789666423078,
-      "name": "Cranial Nerves Lab",
-      "priority": "P1",
-      "notes": []
-    },
-    {
       "id": 1790033543929,
       "name": "Cranial Nerves Lab 2",
       "priority": "P1",
