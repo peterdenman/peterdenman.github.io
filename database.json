@@ -320,18 +320,6 @@
   },
   "queueArray": [
     {
-      "id": 1790033672512,
-      "name": "Anterior and Posterior Neck Lab",
-      "priority": "P1",
-      "notes": []
-    },
-    {
-      "id": 1790033697462,
-      "name": "Infratemporal Fossa Lab",
-      "priority": "P1",
-      "notes": []
-    },
-    {
       "id": 1790351348084,
       "name": "Pharyngeal Apparatus",
       "priority": "P2",
