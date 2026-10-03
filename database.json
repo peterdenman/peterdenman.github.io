@@ -323,7 +323,12 @@
       "id": 1791051567078,
       "name": "Shoulder and Arm",
       "priority": "P1",
-      "notes": []
+      "notes": [
+        {
+          "id": 1791059237272,
+          "text": "ended on LO9 in claude"
+        }
+      ]
     }
   ]
 }
