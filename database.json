@@ -320,23 +320,6 @@
   },
   "queueArray": [
     {
-      "id": 1790033543929,
-      "name": "Cranial Nerves Lab 2",
-      "priority": "P1",
-      "notes": []
-    },
-    {
-      "id": 1789477187135,
-      "name": "Neck and Spine Radiology",
-      "priority": "P1",
-      "notes": [
-        {
-          "id": 1789477544518,
-          "text": "go through slideshow, make cards making sure you have each structure"
-        }
-      ]
-    },
-    {
       "id": 1790033576345,
       "name": "Brain, Cranial Cavity, Orbit Lab",
       "priority": "P1",
