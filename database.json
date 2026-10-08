@@ -356,12 +356,6 @@
       "notes": []
     },
     {
-      "id": 1791423944974,
-      "name": "Upper Limb Cases",
-      "priority": "P1",
-      "notes": []
-    },
-    {
       "id": 1791423977408,
       "name": "Upper Limb Radiology",
       "priority": "P2",
@@ -370,6 +364,12 @@
     {
       "id": 1791423961608,
       "name": "Forearm, Hand Lab",
+      "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1791423944974,
+      "name": "Upper Limb Cases",
       "priority": "P1",
       "notes": []
     }
