@@ -371,12 +371,7 @@
       "id": 1791423977408,
       "name": "Upper Limb Radiology",
       "priority": "P2",
-      "notes": [
-        {
-          "id": 1791461187304,
-          "text": "Cards for lecture, clickable buttons --> Anki"
-        }
-      ]
+      "notes": []
     }
   ]
 }
