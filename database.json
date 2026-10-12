@@ -368,15 +368,15 @@
       "notes": []
     },
     {
-      "id": 1791423961608,
-      "name": "Forearm, Hand Lab",
-      "priority": "P2",
-      "notes": []
-    },
-    {
       "id": 1791770657733,
       "name": "Hip Function, Anterior, Posterior and Medial Thigh",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1791423961608,
+      "name": "Forearm, Hand Lab",
+      "priority": "P2",
       "notes": []
     },
     {
