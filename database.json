@@ -365,7 +365,12 @@
       "id": 1791770657733,
       "name": "Hip Function, Anterior, Posterior and Medial Thigh",
       "priority": "P2",
-      "notes": []
+      "notes": [
+        {
+          "id": 1791932511053,
+          "text": "watch lecture for this one"
+        }
+      ]
     },
     {
       "id": 1791331867461,
