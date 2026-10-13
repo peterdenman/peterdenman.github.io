@@ -356,15 +356,15 @@
       "notes": []
     },
     {
-      "id": 1791770657733,
-      "name": "Hip Function, Anterior, Posterior and Medial Thigh",
-      "priority": "P3",
-      "notes": []
-    },
-    {
       "id": 1791770667116,
       "name": "Bone and Cartilage Histology",
       "priority": "P2",
+      "notes": []
+    },
+    {
+      "id": 1791770657733,
+      "name": "Hip Function, Anterior, Posterior and Medial Thigh",
+      "priority": "P3",
       "notes": []
     },
     {
