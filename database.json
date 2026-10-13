@@ -359,7 +359,12 @@
       "id": 1791770667116,
       "name": "Bone and Cartilage Histology",
       "priority": "P2",
-      "notes": []
+      "notes": [
+        {
+          "id": 1791932536652,
+          "text": "do LOs, watch lecture for this one"
+        }
+      ]
     },
     {
       "id": 1791770657733,
