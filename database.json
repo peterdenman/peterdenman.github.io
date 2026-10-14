@@ -397,15 +397,15 @@
       "notes": []
     },
     {
-      "id": 1791423961608,
-      "name": "Forearm, Hand Lab",
-      "priority": "P2",
-      "notes": []
-    },
-    {
       "id": 1791892867943,
       "name": "Gluteal and Thigh Lab",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1791423961608,
+      "name": "Forearm, Hand Lab",
+      "priority": "P2",
       "notes": []
     }
   ]
