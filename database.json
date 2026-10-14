@@ -365,7 +365,12 @@
       "id": 1791770667116,
       "name": "Bone and Cartilage Histology",
       "priority": "P2",
-      "notes": []
+      "notes": [
+        {
+          "id": 1792018383572,
+          "text": "watch lecture for this one"
+        }
+      ]
     },
     {
       "id": 1791985889399,
@@ -382,7 +387,7 @@
     {
       "id": 1791892867943,
       "name": "Gluteal and Thigh Lab",
-      "priority": "P1",
+      "priority": "P2",
       "notes": []
     },
     {
