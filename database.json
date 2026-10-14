@@ -373,6 +373,12 @@
       ]
     },
     {
+      "id": 1791985889399,
+      "name": "Leg and Foot",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1791331867461,
       "name": "Upper Limb, Shoulder, Arm Lab",
       "priority": "P2",
@@ -382,12 +388,6 @@
       "id": 1791423977408,
       "name": "Upper Limb Radiology",
       "priority": "P2",
-      "notes": []
-    },
-    {
-      "id": 1791985889399,
-      "name": "Leg and Foot",
-      "priority": "P1",
       "notes": []
     },
     {
