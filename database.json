@@ -391,15 +391,15 @@
       "notes": []
     },
     {
-      "id": 1791423961608,
-      "name": "Forearm, Hand Lab",
-      "priority": "P2",
-      "notes": []
-    },
-    {
       "id": 1791892781710,
       "name": "Bone and Cartilage Lab",
       "priority": "P1",
+      "notes": []
+    },
+    {
+      "id": 1791423961608,
+      "name": "Forearm, Hand Lab",
+      "priority": "P2",
       "notes": []
     },
     {
