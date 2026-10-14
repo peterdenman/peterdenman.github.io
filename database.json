@@ -379,6 +379,12 @@
       "notes": []
     },
     {
+      "id": 1791892781710,
+      "name": "Bone and Cartilage Lab",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1791331867461,
       "name": "Upper Limb, Shoulder, Arm Lab",
       "priority": "P2",
@@ -388,12 +394,6 @@
       "id": 1791423977408,
       "name": "Upper Limb Radiology",
       "priority": "P2",
-      "notes": []
-    },
-    {
-      "id": 1791892781710,
-      "name": "Bone and Cartilage Lab",
-      "priority": "P1",
       "notes": []
     },
     {
