@@ -385,6 +385,12 @@
       "notes": []
     },
     {
+      "id": 1791892867943,
+      "name": "Gluteal and Thigh Lab",
+      "priority": "P1",
+      "notes": []
+    },
+    {
       "id": 1791331867461,
       "name": "Upper Limb, Shoulder, Arm Lab",
       "priority": "P2",
@@ -394,12 +400,6 @@
       "id": 1791423977408,
       "name": "Upper Limb Radiology",
       "priority": "P2",
-      "notes": []
-    },
-    {
-      "id": 1791892867943,
-      "name": "Gluteal and Thigh Lab",
-      "priority": "P1",
       "notes": []
     },
     {
