@@ -362,12 +362,6 @@
       "notes": []
     },
     {
-      "id": 1791985889399,
-      "name": "Leg and Foot",
-      "priority": "P1",
-      "notes": []
-    },
-    {
       "id": 1791770667116,
       "name": "Bone and Cartilage Histology",
       "priority": "P2",
@@ -377,6 +371,12 @@
           "text": "do LOs, watch lecture for this one"
         }
       ]
+    },
+    {
+      "id": 1791985889399,
+      "name": "Leg and Foot",
+      "priority": "P1",
+      "notes": []
     },
     {
       "id": 1791331867461,
