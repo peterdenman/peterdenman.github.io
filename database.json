@@ -398,6 +398,17 @@
       "notes": []
     },
     {
+      "id": 1792115161108,
+      "name": "Joints",
+      "priority": "P1",
+      "notes": [
+        {
+          "id": 1792150599356,
+          "text": "LOS, unlock anki"
+        }
+      ]
+    },
+    {
       "id": 1791423961608,
       "name": "Forearm, Hand Lab",
       "priority": "P2",
@@ -408,17 +419,6 @@
       "name": "Lower Limb Radiology",
       "priority": "P2",
       "notes": []
-    },
-    {
-      "id": 1792115161108,
-      "name": "Joints",
-      "priority": "P1",
-      "notes": [
-        {
-          "id": 1792150599356,
-          "text": "LOS, unlock anki"
-        }
-      ]
     },
     {
       "id": 1792101170808,
