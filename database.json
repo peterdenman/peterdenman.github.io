@@ -419,7 +419,12 @@
       "id": 1792115161108,
       "name": "Joints",
       "priority": "P1",
-      "notes": []
+      "notes": [
+        {
+          "id": 1792150599356,
+          "text": "LOS, unlock anki"
+        }
+      ]
     },
     {
       "id": 1792115164608,
