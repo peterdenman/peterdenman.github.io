@@ -421,12 +421,6 @@
       "notes": []
     },
     {
-      "id": 1792101170808,
-      "name": "Foot Lab",
-      "priority": "P1",
-      "notes": []
-    },
-    {
       "id": 1792115164608,
       "name": "Lower Limb Cases",
       "priority": "P1",
@@ -436,6 +430,12 @@
           "text": "Need to create claude quiz for this."
         }
       ]
+    },
+    {
+      "id": 1792101170808,
+      "name": "Foot Lab",
+      "priority": "P1",
+      "notes": []
     }
   ]
 }
