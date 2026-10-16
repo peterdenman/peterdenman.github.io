@@ -410,12 +410,6 @@
       "notes": []
     },
     {
-      "id": 1792101170808,
-      "name": "Foot Lab",
-      "priority": "P1",
-      "notes": []
-    },
-    {
       "id": 1792115161108,
       "name": "Joints",
       "priority": "P1",
@@ -425,6 +419,12 @@
           "text": "LOS, unlock anki"
         }
       ]
+    },
+    {
+      "id": 1792101170808,
+      "name": "Foot Lab",
+      "priority": "P1",
+      "notes": []
     },
     {
       "id": 1792115164608,
