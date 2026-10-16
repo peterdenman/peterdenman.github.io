@@ -409,6 +409,17 @@
       "notes": []
     },
     {
+      "id": 1792115164608,
+      "name": "Lower Limb Cases",
+      "priority": "P1",
+      "notes": [
+        {
+          "id": 1792115203459,
+          "text": "Need to create claude quiz for this."
+        }
+      ]
+    },
+    {
       "id": 1791423961608,
       "name": "Forearm, Hand Lab",
       "priority": "P2",
@@ -419,17 +430,6 @@
       "name": "Lower Limb Radiology",
       "priority": "P2",
       "notes": []
-    },
-    {
-      "id": 1792115164608,
-      "name": "Lower Limb Cases",
-      "priority": "P1",
-      "notes": [
-        {
-          "id": 1792115203459,
-          "text": "Need to create claude quiz for this."
-        }
-      ]
     },
     {
       "id": 1792101170808,
