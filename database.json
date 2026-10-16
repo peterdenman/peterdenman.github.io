@@ -403,12 +403,6 @@
       "notes": []
     },
     {
-      "id": 1791423977408,
-      "name": "Upper Limb Radiology",
-      "priority": "P2",
-      "notes": []
-    },
-    {
       "id": 1792115164608,
       "name": "Lower Limb Cases",
       "priority": "P1",
@@ -418,6 +412,12 @@
           "text": "Need to create claude quiz for this."
         }
       ]
+    },
+    {
+      "id": 1791423977408,
+      "name": "Upper Limb Radiology",
+      "priority": "P2",
+      "notes": []
     },
     {
       "id": 1791423961608,
