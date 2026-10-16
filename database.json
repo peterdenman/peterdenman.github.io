@@ -391,6 +391,17 @@
       "notes": []
     },
     {
+      "id": 1792115164608,
+      "name": "Lower Limb Cases",
+      "priority": "P1",
+      "notes": [
+        {
+          "id": 1792115203459,
+          "text": "Need to create claude quiz for this."
+        }
+      ]
+    },
+    {
       "id": 1791892867943,
       "name": "Gluteal and Thigh Lab",
       "priority": "P2",
@@ -401,17 +412,6 @@
       "name": "Upper Limb, Shoulder, Arm Lab",
       "priority": "P2",
       "notes": []
-    },
-    {
-      "id": 1792115164608,
-      "name": "Lower Limb Cases",
-      "priority": "P1",
-      "notes": [
-        {
-          "id": 1792115203459,
-          "text": "Need to create claude quiz for this."
-        }
-      ]
     },
     {
       "id": 1791423977408,
