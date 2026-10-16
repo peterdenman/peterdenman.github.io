@@ -430,7 +430,12 @@
       "id": 1792115164608,
       "name": "Lower Limb Cases",
       "priority": "P1",
-      "notes": []
+      "notes": [
+        {
+          "id": 1792115203459,
+          "text": "Need to create claude quiz for this."
+        }
+      ]
     }
   ]
 }
