@@ -392,7 +392,12 @@
       "id": 1792115164608,
       "name": "Lower Limb Cases",
       "priority": "P2",
-      "notes": []
+      "notes": [
+        {
+          "id": 1792286760225,
+          "text": "may not have sent claude"
+        }
+      ]
     },
     {
       "id": 1791892781710,
