@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Master Focus Dashboard</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -13,10 +12,7 @@
             margin: 0;
             padding: 20px;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+        .container { max-width: 1200px; margin: 0 auto; }
         header {
             margin-bottom: 25px;
             border-bottom: 2px solid #e1e4e8;
@@ -24,18 +20,11 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
         }
-        .config-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            width: 320px;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: 1.1fr 0.9fr;
-            gap: 20px;
-        }
+        .config-panel { display: flex; flex-direction: column; gap: 6px; width: 320px; max-width: 100%; }
+        .grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 20px; }
         @media (max-width: 992px) { .grid { grid-template-columns: 1fr; } }
         .card {
             background: white;
@@ -45,13 +34,8 @@
             margin-bottom: 20px;
         }
         h2 { margin-top: 0; color: #1a202c; border-bottom: 1px solid #edf2f7; padding-bottom: 8px; }
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 15px;
-        }
-        input[type="text"], input[type="password"], textarea, select {
+        .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
+        input[type="text"], input[type="password"], input[type="number"], textarea, select {
             width: 100%;
             padding: 10px;
             border: 1px solid #cbd5e0;
@@ -61,11 +45,10 @@
             background: white;
         }
         textarea { font-family: inherit; resize: vertical; }
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
+        label.field { font-weight: bold; font-size: 0.8em; color: #4a5568; display: flex; flex-direction: column; gap: 4px; }
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+        .settings-grid .full { grid-column: 1 / -1; }
+        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
         button {
             flex: 1;
             padding: 10px 14px;
@@ -78,34 +61,18 @@
         button:disabled { background: #cbd5e0; color: #718096; cursor: not-allowed; }
         .btn-primary { background: #3182ce; color: white; }
         .btn-success { background: #38a169; color: white; }
-        .btn-audio { background: #dd6b20; color: white; }
-        .btn-recording { background: #e53e3e; color: white; animation: pulse 1.5s infinite; }
-        .btn-move { background: #edf2f7; color: #2d3748; border: 1px solid #cbd5e0; flex: 0 0 35px; padding: 4px 8px; }
+        .btn-small {
+            flex: 0 0 auto;
+            padding: 4px 9px;
+            font-size: 0.78em;
+            background: #edf2f7;
+            color: #2d3748;
+            border: 1px solid #cbd5e0;
+        }
         button:hover { opacity: 0.85; }
-        ul { list-style: none; padding: 0; }
-        li {
-            padding: 15px;
-            background: #f7fafc;
-            margin-bottom: 8px;
-            border-radius: 4px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-left: 4px solid #cbd5e0;
-        }
-        .ai-analysis {
-            background: #ebf8ff;
-            border-left: 4px solid #3182ce;
-            padding: 15px;
-            border-radius: 6px;
-            margin-top: 15px;
-            white-space: pre-wrap;
-            font-size: 0.95em;
-            line-height: 1.6;
-        }
-        .status-msg { margin-top: 10px; font-weight: bold; color: #4a5568; }
-        .action-links { font-size: 0.85em; display: flex; gap: 10px; margin-top: 5px;}
-        .action-links span { cursor: pointer; color: #3182ce; text-decoration: underline; }
+        .status-msg { margin-top: 10px; font-weight: bold; color: #4a5568; font-size: 0.9em; white-space: pre-wrap; }
+        .status-err { color: #c53030; }
+        .muted { color: #718096; font-size: 0.9em; }
         .hidden { display: none; }
         .badge {
             display: inline-block;
@@ -113,8 +80,56 @@
             font-size: 0.75em;
             font-weight: bold;
             border-radius: 4px;
-            margin-top: 4px;
         }
+        .p1 { background: #fed7d7; color: #9b2c2c; }
+        .p2 { background: #feebc8; color: #9c4221; }
+        .p3 { background: #c6f6d5; color: #22543d; }
+
+        /* Weak area cards */
+        .area {
+            background: #f7fafc;
+            border-left: 4px solid #cbd5e0;
+            border-radius: 4px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+        .area.P1 { border-left-color: #e53e3e; }
+        .area.P2 { border-left-color: #dd6b20; }
+        .area.P3 { border-left-color: #38a169; }
+        .area-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+        .area-title { font-weight: bold; font-size: 1.05em; color: #1a202c; }
+        .area-rank { color: #a0aec0; font-weight: bold; margin-right: 6px; }
+        .area-stats { font-size: 0.82em; color: #4a5568; margin: 6px 0 8px; }
+        .bar { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin-bottom: 10px; }
+        .bar > div { height: 100%; background: #e53e3e; }
+        .area.clickable { cursor: pointer; transition: 0.1s; }
+        .area.clickable:hover { background: #edf2f7; }
+        .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0; }
+        @media (max-width: 480px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+        .stat { background: #f7fafc; border-radius: 6px; padding: 8px; text-align: center; }
+        .stat-v { font-size: 1.2em; font-weight: bold; color: #1a202c; }
+        .stat-l { font-size: 0.72em; color: #718096; }
+        .watch { display: flex; align-items: center; gap: 6px; cursor: pointer; flex-wrap: wrap; }
+        .watch .done { text-decoration: line-through; color: #a0aec0; }
+        .res-block { margin-top: 14px; }
+        .res-title { font-size: 0.8em; font-weight: bold; text-transform: uppercase; letter-spacing: 0.04em; color: #718096; margin-bottom: 4px; }
+        .res-item {
+            display: flex; justify-content: space-between; align-items: center; gap: 8px;
+            background: white; border: 1px solid #e2e8f0; border-radius: 4px;
+            padding: 6px 8px; margin-bottom: 4px; font-size: 0.88em;
+        }
+        .res-item .actions { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+        .res-item a { color: #3182ce; }
+        .hint { font-size: 0.8em; color: #4a5568; background: #fffaf0; border: 1px dashed #f6ad55; border-radius: 4px; padding: 6px 8px; margin-top: 4px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+        th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid #edf2f7; }
+        th { color: #4a5568; }
+        td.num, th.num { text-align: right; }
+        details summary { cursor: pointer; font-weight: bold; color: #2b6cb0; margin: 10px 0; }
+        .help ol { padding-left: 20px; font-size: 0.88em; line-height: 1.55; }
+        code { background: #edf2f7; padding: 1px 4px; border-radius: 3px; font-size: 0.9em; }
+
         .note-item {
             background: #ebf8ff;
             border-left: 3px solid #3182ce;
@@ -126,26 +141,6 @@
             align-items: center;
             font-size: 0.9em;
         }
-        .deck-download-link {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            background: #ebf8ff;
-            border: 1px solid #3182ce;
-            border-radius: 6px;
-            margin-bottom: 8px;
-            text-decoration: none;
-            color: #2b6cb0;
-            font-weight: bold;
-            transition: 0.15s;
-        }
-        .deck-download-link:hover { background: #bee3f8; }
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.6; }
-            100% { opacity: 1; }
-        }
     </style>
 </head>
 <body>
@@ -155,520 +150,855 @@
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
+            <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
         <div class="config-panel">
-            <input type="password" id="apiKeyInput" placeholder="Gemini API Key" onchange="saveConfig()">
-            <input type="password" id="githubPatInput" placeholder="GitHub Token" onchange="saveConfig()">
-            <input type="text" id="githubRepoInput" placeholder="username/repo" onchange="saveConfig()">
+            <input type="password" id="githubPatInput" placeholder="GitHub Token">
+            <input type="text" id="githubRepoInput" placeholder="username/repo">
         </div>
     </header>
 
     <div class="grid">
         <!-- LEFT PANEL -->
         <div>
-            <!-- MODULE 1: MANUAL TOPIC & PRIORITY CREATOR -->
+            <!-- WEAK AREAS / PRIORITY -->
             <div class="card">
-                <h2>Add / Update Topic Priority</h2>
-                <div class="input-group">
-                    <input type="text" id="topicInput" placeholder="Topic / Lecture Name">
-                </div>
-                <div class="input-group">
-                    <label style="font-weight:bold; font-size:0.85em;">Set Priority Level:</label>
-                    <select id="prioritySelect">
-                        <option value="P1">🔴 P1 - High Importance / Urgent</option>
-                        <option value="P2" selected>🟠 P2 - Medium Priority</option>
-                        <option value="P3">🟢 P3 - Low Priority / Review</option>
-                    </select>
-                </div>
-                <button class="btn-primary" style="width:100%;" onclick="saveTopicManual()">Save Topic to Queue</button>
+                <h2 style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;">
+                    <span>Priority: Weakest Areas</span>
+                    <span id="lastSynced" style="font-size:0.6em; color:#718096; font-weight:normal;"></span>
+                </h2>
+                <p class="muted" style="margin-top:-4px;">
+                    Ranked from your AnKing review history. Weakness = 70% recent fail rate on established cards + 30% share of cards with 3+ lapses.
+                </p>
+                <div id="weakList"></div>
+
+                <details id="allAreasWrap" class="hidden">
+                    <summary>All subdivisions</summary>
+                    <div style="overflow-x:auto;"><table id="allAreasTable"></table></div>
+                </details>
             </div>
 
-            <!-- MODULE 2: RECALL / TEACH CHECKER -->
+            <!-- ANKI SYNC -->
             <div class="card">
-                <h2>Explanation Checker</h2>
-                <div class="input-group">
-                    <input type="file" id="pdfFileInput" accept="application/pdf">
+                <h2>AnKing Sync</h2>
+                <div class="settings-grid">
+                    <label class="field full">AnkiConnect address
+                        <input type="text" id="ankiUrlInput">
+                    </label>
+                    <label class="field">Deck tag root
+                        <select id="rootSelect"></select>
+                    </label>
+                    <label class="field">Group subdivisions by
+                        <select id="familySelect"></select>
+                    </label>
+                    <label class="field">Detail level
+                        <select id="depthSelect">
+                            <option value="1">Broad (e.g. Cardiology)</option>
+                            <option value="2">Narrow (e.g. Cardiology › Pathology)</option>
+                        </select>
+                    </label>
+                    <label class="field">Look-back window
+                        <select id="daysSelect">
+                            <option value="14">14 days</option>
+                            <option value="30">30 days</option>
+                            <option value="60">60 days</option>
+                            <option value="90">90 days</option>
+                        </select>
+                    </label>
+                    <label class="field">Ignore areas with fewer than
+                        <input type="number" id="minCardsInput" min="1">
+                    </label>
+                    <label class="field">Limit to deck (optional)
+                        <input type="text" id="deckInput" placeholder="e.g. AnKing Step Deck">
+                    </label>
                 </div>
-                <div class="input-group">
-                    <textarea id="learningObjectivesInput" rows="2" placeholder="Optional: Paste syllabus Learning Objectives here..."></textarea>
+                <div class="btn-group">
+                    <button class="btn-primary" id="connectBtn">Connect to Anki</button>
+                    <button class="btn-success" id="analyzeBtn">Analyze my stats</button>
                 </div>
-                <button class="btn-primary" style="width:100%;" onclick="initializeTeachSession()">Load Deck</button>
+                <div id="ankiProgress" class="status-msg"></div>
+
+                <details class="help">
+                    <summary>First-time setup</summary>
+                    <ol>
+                        <li>In Anki: <b>Tools → Add-ons → Get Add-ons</b>, enter code <code>2055492159</code> (AnkiConnect), then restart Anki.</li>
+                        <li>Keep Anki open and use this page in Chrome, Edge or Firefox on the <b>same computer</b>.</li>
+                        <li>Click <b>Connect to Anki</b>. Anki shows a permission popup for this site; click <b>Yes</b>. If the browser asks to let the page access devices on your local network, allow it.</li>
+                        <li>Still blocked? In Anki open <b>Tools → Add-ons → AnkiConnect → Config</b> and add your site's address (e.g. <code>https://username.github.io</code>) to <code>webCorsOriginList</code>, then restart Anki.</li>
+                        <li>For one-click AMBOSS practice, install the <a href="https://amboss.com/us/anki/qbank" target="_blank" rel="noopener noreferrer">AMBOSS Anki add-on</a>. The notebook's <b>Start Qbank session</b> button opens your weak cards in Anki's Browse window, where the add-on turns them into a matching Qbank session.</li>
+                        <li>After each analysis, results sync to GitHub, so your phone shows the latest snapshot even without Anki.</li>
+                    </ol>
+                </details>
             </div>
-
-            <!-- ACTIVE RUNNER LAYOUT -->
-            <div class="card hidden" id="sandboxCard">
-                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; margin-bottom: 15px;">
-                    <h3 style="margin:0; color:#2b6cb0;">Recall Sandbox</h3>
-                    <span style="font-weight:bold; color:#4a5568; background:#edf2f7; padding:4px 10px; border-radius:12px; font-size:0.85em;">
-                        Total Deck: <span id="totalSlidesNum">1</span> Slides
-                    </span>
-                </div>
-
-                <div class="input-group">
-                    <label style="font-weight:bold; font-size:0.85em; color:#4a5568;">Select Slide Range to Audit (e.g. 1-3, 5):</label>
-                    <input type="text" id="slideRangeInput" value="1" placeholder="e.g. 1-3 or 4,5,6">
-                </div>
-                
-                <div class="input-group">
-                    <textarea id="userTextInput" rows="4" placeholder="Type core mechanics, structures, or rules from memory for these slides..."></textarea>
-                </div>
-
-                <div class="input-group">
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn-audio" id="recordBtn" onclick="toggleAudioRecording()">Record Audio Pass</button>
-                        <audio id="audioPlayback" controls class="hidden" style="flex: 1; height: 40px;"></audio>
-                    </div>
-                </div>
-
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
-                    <button class="btn-success" style="width:100%;" id="gradeBtn" onclick="runGeminiGrading()">Audit Selected Range</button>
-                </div>
-
-                <div id="aiOutputBlock" class="hidden" style="margin-top: 25px; border-top: 1px dashed #cbd5e0; padding-top: 20px;">
-                    <div class="ai-analysis" id="aiAnalysisText"></div>
-                </div>
-            </div>
-
-            <!-- MODULE 3: ANKI DECK DRIVE REPOSITORY -->
-            <div class="card">
-                <h2>Shared Anki Deck Drive</h2>
-                <p style="font-size:0.85em; color:#718096; margin-top:-5px;">Access and download full-resolution Anki deck packages (.apkg):</p>
-                <div id="ankiDeckList">
-                    <!-- PASTE YOUR GOOGLE DRIVE FOLDER LINK IN THE href BELOW -->
-                    <a class="deck-download-link" href="https://drive.google.com/drive/folders/1bcm9yEH_pCHWxF1poSxnS8CZMSbTxunm?usp=sharing" target="_blank" rel="noopener noreferrer">
-                        <span>📁 Open Shared Anki Google Drive Folder</span>
-                        <span style="font-size:0.8em; font-weight:normal;">View Folder ↗</span>
-                    </a>
-                </div>
-            </div>
-
-            <div id="statusMessage" class="status-msg"></div>
         </div>
 
         <!-- RIGHT PANEL -->
         <div>
-            <!-- MANUAL PRIORITY QUEUE -->
-            <div class="card">
-                <h2>Priority Queue (Manual Order)</h2>
-                <ul id="scheduleList"></ul>
-            </div>
-
-            <!-- TOPIC NOTEBOOK MODULE -->
+            <!-- ANKING NOTEBOOK -->
             <div class="card" id="notebookCard">
-                <h2 style="display:flex; justify-content:space-between; align-items:center;">
-                    <span>Topic Notebook</span>
-                    <span id="activeNotebookTitle" style="font-size:0.7em; color:#3182ce; font-weight:normal;">(Select a topic above)</span>
-                </h2>
-                
+                <h2>AnKing Notebook</h2>
                 <div class="input-group">
-                    <textarea id="newNoteInput" rows="2" placeholder="Add a key concept, learning objective, or equation..."></textarea>
-                    <button class="btn-primary" style="padding: 8px;" onclick="addNoteToActiveTopic()">Add Note</button>
+                    <select id="areaSelect"></select>
                 </div>
-
-                <div id="notesContainer" style="margin-top: 15px;">
-                    <p style="color:#718096; font-size:0.9em; margin:0;">Click any topic name in your queue to view or add review notes.</p>
+                <div id="areaDetail">
+                    <p class="muted" style="margin:0;">Run <b>Analyze my stats</b> to load your subdecks.</p>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<script type="module">
-    import { GoogleGenAI } from "https://esm.run/@google/genai";
-
-    window.parsedSlidesArray = []; 
-    window.mediaRecorder = null;
-    window.audioChunks = [];
-    window.audioBlob = null;
-    window.isRecording = false;
-    window.currentFileSha = ""; 
-    window.activeNotebookTopic = "";
-
-    document.getElementById('apiKeyInput').value = localStorage.getItem('gemini_api_key') || "";
-    document.getElementById('githubPatInput').value = localStorage.getItem('github_pat') || "";
-    document.getElementById('githubRepoInput').value = localStorage.getItem('github_repo') || "";
-
-    window.saveConfig = function() {
-        localStorage.setItem('gemini_api_key', document.getElementById('apiKeyInput').value.trim());
-        localStorage.setItem('github_pat', document.getElementById('githubPatInput').value.trim());
-        localStorage.setItem('github_repo', document.getElementById('githubRepoInput').value.trim());
-        pullFromGitHubCloud();
-    }
-
-    async function pullFromGitHubCloud() {
-        const token = localStorage.getItem('github_pat');
-        const repo = localStorage.getItem('github_repo');
-        const syncLabel = document.getElementById('syncStatus');
-        if (!token || !repo) return;
-
-        const url = `https://api.github.com/repos/${repo}/contents/database.json`;
-        try {
-            const res = await fetch(url, { headers: { 'Authorization': `token ${token}` } });
-            if (res.status === 200) {
-                const data = await res.json();
-                window.currentFileSha = data.sha;
-                const decodedState = decodeURIComponent(escape(atob(data.content)));
-                localStorage.setItem('teach_program_db', decodedState);
-                syncLabel.innerHTML = "Sync: Connected";
-                syncLabel.style.color = "#38a169";
-                window.displaySchedule();
-                if (window.activeNotebookTopic) window.loadNotebook(window.activeNotebookTopic);
-            }
-        } catch(err) { console.error(err); }
-    }
-    window.pullFromGitHubCloud = pullFromGitHubCloud;
-
-    async function pushToGitHubCloud(updatedDatabaseObj) {
-        const token = localStorage.getItem('github_pat');
-        const repo = localStorage.getItem('github_repo');
-        if (!token || !repo) return;
-
-        const url = `https://api.github.com/repos/${repo}/contents/database.json`;
-        const contentStr = JSON.stringify(updatedDatabaseObj, null, 2);
-        const encodedContent = btoa(unescape(encodeURIComponent(contentStr)));
-
-        const bodyData = {
-            message: "Manual Priority Queue Update",
-            content: encodedContent,
-            sha: window.currentFileSha
-        };
-        try {
-            const res = await fetch(url, {
-                method: 'PUT',
-                headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify(bodyData)
-            });
-            if (res.status === 200 || res.status === 201) {
-                const resData = await res.json();
-                window.currentFileSha = resData.content.sha;
-            }
-        } catch(err) { console.error(err); }
-    }
-    window.pushToGitHubCloud = pushToGitHubCloud;
-
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-
-    window.initializeTeachSession = function() {
-        const fileField = document.getElementById('pdfFileInput').files[0];
-        const status = document.getElementById('statusMessage');
-        if (!fileField) return;
-
-        status.innerHTML = "Parsing document pages...";
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const typedarray = new Uint8Array(e.target.result);
-            pdfjsLib.getDocument({data: typedarray}).promise.then(pdf => {
-                let parsePromises = [];
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    parsePromises.push(pdf.getPage(i).then(page => page.getTextContent().then(content => {
-                        return { slideNum: i, text: content.items.map(item => item.str).join(" ") };
-                    })));
-                }
-                Promise.all(parsePromises).then(slides => {
-                    window.parsedSlidesArray = slides;
-                    document.getElementById('totalSlidesNum').innerText = window.parsedSlidesArray.length;
-                    document.getElementById('sandboxCard').classList.remove('hidden');
-                    status.innerHTML = "";
-                });
-            });
-        };
-        reader.readAsArrayBuffer(fileField);
-    }
-
-    function parseSlideRangeString(rangeStr, maxSlides) {
-        const slideNumbers = new Set();
-        const parts = rangeStr.split(',');
-        
-        parts.forEach(part => {
-            const trimmed = part.trim();
-            if (trimmed.includes('-')) {
-                const [start, end] = trimmed.split('-').map(num => parseInt(num.trim(), 10));
-                if (!isNaN(start) && !isNaN(end)) {
-                    for (let i = Math.min(start, end); i <= Math.max(start, end); i++) {
-                        if (i >= 1 && i <= maxSlides) slideNumbers.add(i);
-                    }
-                }
-            } else {
-                const num = parseInt(trimmed, 10);
-                if (!isNaN(num) && num >= 1 && num <= maxSlides) {
-                    slideNumbers.add(num);
-                }
-            }
-        });
-        
-        return Array.from(slideNumbers).sort((a, b) => a - b);
-    }
-
-    window.toggleAudioRecording = function() {
-        const recordBtn = document.getElementById('recordBtn');
-        if (!window.isRecording) {
-            navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-                window.mediaRecorder = new MediaRecorder(stream);
-                window.audioChunks = [];
-                window.mediaRecorder.ondataavailable = e => { if (e.data.size > 0) window.audioChunks.push(e.data); };
-                window.mediaRecorder.onstop = () => {
-                    window.audioBlob = new Blob(window.audioChunks, { type: 'audio/mp3' });
-                    document.getElementById('audioPlayback').src = URL.createObjectURL(window.audioBlob);
-                    document.getElementById('audioPlayback').classList.remove('hidden');
-                };
-                window.mediaRecorder.start();
-                window.isRecording = true;
-                recordBtn.innerText = "Stop";
-                recordBtn.className = "btn-recording";
-            });
-        } else {
-            window.mediaRecorder.stop();
-            window.isRecording = false;
-            recordBtn.innerText = "Record Audio Pass";
-            recordBtn.className = "btn-audio";
-        }
-    }
-
-    window.runGeminiGrading = function() {
-        const apiKey = localStorage.getItem('gemini_api_key');
-        const textExplanation = document.getElementById('userTextInput').value.trim();
-        const rangeInput = document.getElementById('slideRangeInput').value.trim();
-        const learningObjectives = document.getElementById('learningObjectivesInput').value.trim();
-        const status = document.getElementById('statusMessage');
-
-        if (!apiKey) { alert("Missing Gemini API key"); return; }
-        if (!window.parsedSlidesArray || window.parsedSlidesArray.length === 0) return;
-
-        const targetSlideIndices = parseSlideRangeString(rangeInput, window.parsedSlidesArray.length);
-        if (targetSlideIndices.length === 0) {
-            alert("Invalid slide range specified.");
-            return;
-        }
-
-        let combinedSlideText = targetSlideIndices.map(num => {
-            const slideObj = window.parsedSlidesArray.find(s => s.slideNum === num);
-            return `--- SLIDE #${num} ---\n${slideObj ? slideObj.text : ''}`;
-        }).join("\n\n");
-
-        status.innerHTML = "Analyzing multi-slide recall...";
-        document.getElementById('aiOutputBlock').classList.remove('hidden');
-        document.getElementById('aiAnalysisText').innerText = `Comparing recall against Slide(s) ${targetSlideIndices.join(', ')}...`;
-
-        const ai = new GoogleGenAI({ apiKey: apiKey });
-
-        let loBlock = learningObjectives ? `\n\n[SYLLABUS LEARNING OBJECTIVES]:\n${learningObjectives}` : '';
-
-        const systemPrompt = `You are an expert medical school reviewer auditing a student's recall of a block of lecture slides.
-Compare their explanation directly against the provided slide text AND syllabus learning objectives (if present).
-Output a direct, short list evaluating:
-1. Learning Objective Alignment (Did they answer the core objective?)
-2. Missing Key Terms/Structures across the selected slides
-3. Accurate Hits
-Be brief and direct.`;
-
-        const textPart = `[TARGET SLIDES DATA (Slides: ${targetSlideIndices.join(', ')})]:\n${combinedSlideText}${loBlock}\n\n[STUDENT RECALL RUN]:\n${textExplanation}`;
-        const promptArray = [systemPrompt, textPart];
-
-        if (window.audioBlob) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                promptArray.push({ inlineData: { data: reader.result.split(',')[1], mimeType: window.audioBlob.type } });
-                executeCall(ai, promptArray);
-            };
-            reader.readAsDataURL(window.audioBlob);
-        } else {
-            executeCall(ai, promptArray);
-        }
-    }
-
-    function executeCall(aiInstance, contentArray) {
-        aiInstance.models.generateContent({
-            model: 'gemini-3.6-flash',
-            contents: contentArray,
-        }).then(res => {
-            document.getElementById('aiAnalysisText').innerText = res.text;
-            document.getElementById('statusMessage').innerHTML = "";
-        });
-    }
-
-    pullFromGitHubCloud();
-</script>
-
 <script>
-    // --- MANUAL PRIORITY QUEUE LOGIC ---
-    window.saveTopicManual = function() {
-        const inputField = document.getElementById('topicInput');
-        const priorityField = document.getElementById('prioritySelect');
-        const topicName = inputField.value.trim();
-        const selectedPriority = priorityField.value;
-        if (!topicName) return;
+// ============================================================
+// CONSTANTS — tweak these if a link doesn't land where you want
+// ============================================================
+const AMBOSS_SEARCH_URL = q => `https://next.amboss.com/us/search?q=${encodeURIComponent(q)}&v=overview`;
+const BOOTCAMP_URL = 'https://bootcamp.com/';
+const TOP_AREAS_WITH_RESOURCES = 8;   // how many weak areas get Bootcamp/AMBOSS suggestions
+const MAX_NOTES_SCANNED_PER_AREA = 200;
+const DB_KEY = 'teach_program_db';
+const SETTINGS_KEY = 'anking_settings';
 
-        let db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
-        let topicList = db.queueArray || [];
+const DEFAULT_SETTINGS = {
+    ankiUrl: 'http://127.0.0.1:8765',
+    root: '#AK_Step1_v12',
+    family: '',
+    depth: 1,
+    days: 30,
+    minCards: 20,
+    deck: ''
+};
 
-        const existingIdx = topicList.findIndex(t => t.name.toLowerCase() === topicName.toLowerCase());
-        
-        if (existingIdx !== -1) {
-            topicList[existingIdx].priority = selectedPriority;
+const $ = id => document.getElementById(id);
+const escHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pct = x => x == null ? '—' : `${Math.round(x * 100)}%`;
+const chunk = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
+
+let ankiTags = null;          // all tags from the collection (only after connecting)
+let currentAreas = [];        // areas in the current snapshot (for button handlers)
+let currentFileSha = '';
+
+// ============================================================
+// LOCAL DATABASE (same key as before, so old notes carry over)
+// ============================================================
+function loadDb() {
+    try { return JSON.parse(localStorage.getItem(DB_KEY)) || {}; } catch { return {}; }
+}
+function saveDb(db, push = true) {
+    localStorage.setItem(DB_KEY, JSON.stringify(db));
+    if (push) queuePush();
+}
+// Moves notes from the old manual queue into the notebook (old queue data is left untouched)
+function migrateDb(db) {
+    db.notebooks = db.notebooks || {};
+    if (!db.notesMigrated && Array.isArray(db.queueArray)) {
+        db.queueArray.forEach(t => {
+            if (t.notes && t.notes.length) db.notebooks[t.name] = [...(db.notebooks[t.name] || []), ...t.notes];
+        });
+        db.notesMigrated = true;
+        return true;
+    }
+    return false;
+}
+
+// ============================================================
+// CONFIG (API keys)
+// ============================================================
+localStorage.removeItem('gemini_api_key');   // clear any key saved by the old version
+$('githubPatInput').value = localStorage.getItem('github_pat') || '';
+$('githubRepoInput').value = localStorage.getItem('github_repo') || '';
+['githubPatInput', 'githubRepoInput'].forEach(id => $(id).addEventListener('change', saveConfig));
+
+function saveConfig() {
+    localStorage.setItem('github_pat', $('githubPatInput').value.trim());
+    localStorage.setItem('github_repo', $('githubRepoInput').value.trim());
+    pullFromGitHub();
+}
+
+// ============================================================
+// GITHUB SYNC
+// ============================================================
+const b64encode = s => btoa(unescape(encodeURIComponent(s)));
+const b64decode = s => decodeURIComponent(escape(atob(s)));
+function ghInfo() {
+    const token = localStorage.getItem('github_pat');
+    const repo = localStorage.getItem('github_repo');
+    if (!token || !repo) return null;
+    return { url: `https://api.github.com/repos/${repo}/contents/database.json`, headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' } };
+}
+function setSync(ok, text) {
+    const el = $('syncStatus');
+    el.textContent = `Sync: ${text}`;
+    el.style.color = ok ? '#38a169' : '#e53e3e';
+}
+
+async function pullFromGitHub() {
+    const gh = ghInfo();
+    if (!gh) { setSync(false, 'Offline'); renderAll(); return; }
+    try {
+        const res = await fetch(gh.url, { headers: gh.headers, cache: 'no-store' });
+        if (res.status === 200) {
+            const data = await res.json();
+            currentFileSha = data.sha;
+            const remote = JSON.parse(b64decode(data.content));
+            const migrated = migrateDb(remote);
+            saveDb(remote, migrated);
+            setSync(true, 'Connected');
+        } else if (res.status === 404) {
+            currentFileSha = '';
+            setSync(true, 'Connected (file will be created)');
         } else {
-            topicList.push({
-                id: Date.now(),
-                name: topicName,
-                priority: selectedPriority,
-                notes: []
+            setSync(false, `Error ${res.status}`);
+        }
+    } catch (err) {
+        console.error(err);
+        setSync(false, 'Offline');
+    }
+    renderAll();
+}
+
+let pushTimer = null, pushing = false, pushAgain = false;
+function queuePush() { clearTimeout(pushTimer); pushTimer = setTimeout(pushToGitHub, 800); }
+
+async function putDb(gh) {
+    const body = { message: 'Study tracker update', content: b64encode(JSON.stringify(loadDb(), null, 2)) };
+    if (currentFileSha) body.sha = currentFileSha;
+    const res = await fetch(gh.url, { method: 'PUT', headers: { ...gh.headers, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (res.ok) { currentFileSha = (await res.json()).content.sha; return true; }
+    return false;
+}
+async function pushToGitHub() {
+    const gh = ghInfo();
+    if (!gh) return;
+    if (pushing) { pushAgain = true; return; }
+    pushing = true;
+    try {
+        let ok = await putDb(gh);
+        if (!ok) {                       // sha out of date: refresh it and retry once
+            const r = await fetch(gh.url, { headers: gh.headers, cache: 'no-store' });
+            currentFileSha = r.ok ? (await r.json()).sha : '';
+            ok = await putDb(gh);
+        }
+        setSync(ok, ok ? 'Connected' : 'Push failed');
+    } catch (err) {
+        console.error(err);
+        setSync(false, 'Push failed');
+    } finally {
+        pushing = false;
+        if (pushAgain) { pushAgain = false; pushToGitHub(); }
+    }
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function getSettings() {
+    try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; }
+    catch { return { ...DEFAULT_SETTINGS }; }
+}
+function saveSettings(s) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
+function readSettingsForm() {
+    const s = {
+        ankiUrl: $('ankiUrlInput').value.trim() || DEFAULT_SETTINGS.ankiUrl,
+        root: $('rootSelect').value,
+        family: $('familySelect').value,
+        depth: parseInt($('depthSelect').value, 10) || 1,
+        days: parseInt($('daysSelect').value, 10) || 30,
+        minCards: Math.max(1, parseInt($('minCardsInput').value, 10) || DEFAULT_SETTINGS.minCards),
+        deck: $('deckInput').value.trim()
+    };
+    saveSettings(s);
+    return s;
+}
+function fillSettingsForm() {
+    const s = getSettings();
+    $('ankiUrlInput').value = s.ankiUrl;
+    $('depthSelect').value = String(s.depth);
+    $('daysSelect').value = String(s.days);
+    $('minCardsInput').value = s.minCards;
+    $('deckInput').value = s.deck;
+    setOptions($('rootSelect'), [s.root], s.root);
+    setOptions($('familySelect'), s.family ? [s.family] : ['(connect to load)'], s.family);
+}
+function setOptions(select, values, selected) {
+    select.innerHTML = values.map(v => `<option value="${escHtml(v)}">${escHtml(v)}</option>`).join('');
+    if (selected && values.includes(selected)) select.value = selected;
+}
+
+// ============================================================
+// ANKICONNECT
+// ============================================================
+async function anki(action, params = {}) {
+    // No Content-Type header -> "simple" request, avoids a CORS preflight
+    const res = await fetch(getSettings().ankiUrl, { method: 'POST', body: JSON.stringify({ action, version: 6, params }) });
+    const data = await res.json();
+    if (data.error) throw new Error(`${action}: ${data.error}`);
+    return data.result;
+}
+async function ankiMulti(actions) {
+    const results = await anki('multi', { actions: actions.map(a => ({ ...a, version: 6 })) });
+    return results.map(r => {
+        if (r && typeof r === 'object' && !Array.isArray(r) && 'result' in r) {
+            if (r.error) throw new Error(r.error);
+            return r.result;
+        }
+        return r;
+    });
+}
+function setAnkiStatus(ok, text) {
+    const el = $('ankiStatus');
+    el.textContent = `Anki: ${text}`;
+    el.style.color = ok ? '#38a169' : '#a0aec0';
+}
+function progress(msg, isErr = false) {
+    const el = $('ankiProgress');
+    el.textContent = msg;
+    el.classList.toggle('status-err', isErr);
+}
+function ankiErrorText(err) {
+    if (err instanceof TypeError) {
+        return "Couldn't reach Anki. Make sure Anki is open with AnkiConnect installed, you're on the same computer, and the browser is allowed to access your local network. See \"First-time setup\".";
+    }
+    return err.message;
+}
+
+// Anki search escaping for tag/deck names (handles _, *, quotes)
+function escSearch(s) { return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\*/g, '\\*').replace(/_/g, '\\_'); }
+const tagQuery = tag => `"tag:${escSearch(tag)}"`;
+const deckClause = deck => deck ? ` "deck:${escSearch(deck)}"` : '';
+const weakQuery = (path, s) => `${tagQuery(path)}${deckClause(s.deck)} -is:new -is:suspended (rated:${s.days}:1 OR prop:lapses>=3)`;
+
+async function connectAnki() {
+    readSettingsForm();
+    progress('Asking Anki for permission… check the Anki window for a popup.');
+    try {
+        const perm = await anki('requestPermission');
+        if (perm.permission !== 'granted') {
+            progress('Anki denied access. Click Connect again and choose Yes in the Anki popup.', true);
+            setAnkiStatus(false, 'access denied');
+            return false;
+        }
+        progress('Loading tags…');
+        ankiTags = await anki('getTags');
+        populateTagSelectors();
+        setAnkiStatus(true, `connected (${ankiTags.length.toLocaleString()} tags)`);
+        progress('Connected. Pick how to group subdivisions, then hit "Analyze my stats".');
+        renderNotebook();
+        return true;
+    } catch (err) {
+        console.error(err);
+        setAnkiStatus(false, 'not connected');
+        progress(ankiErrorText(err), true);
+        return false;
+    }
+}
+
+function populateTagSelectors() {
+    const s = getSettings();
+    const tops = [...new Set(ankiTags.map(t => t.split('::')[0]))];
+    let roots = tops.filter(t => /^#AK_/i.test(t));
+    if (!roots.length) roots = tops;
+    roots.sort();
+    const root = roots.find(r => r.toLowerCase() === s.root.toLowerCase())
+        || roots.find(r => /step1_v12/i.test(r)) || roots[0];
+    setOptions($('rootSelect'), roots, root);
+    populateFamilies();
+}
+function populateFamilies() {
+    if (!ankiTags) return;
+    const s = getSettings();
+    const root = $('rootSelect').value.toLowerCase();
+    const fams = [...new Set(ankiTags.map(t => t.split('::')).filter(p => p[0].toLowerCase() === root && p.length > 2).map(p => p[1]))].sort();
+    const fam = fams.find(f => f === s.family)
+        || fams.find(f => /systems/i.test(f))
+        || fams.find(f => /b&b|boards/i.test(f))
+        || fams[0];
+    setOptions($('familySelect'), fams.length ? fams : ['(no sub-tags found)'], fam);
+}
+$('rootSelect').addEventListener('change', () => { readSettingsForm(); populateFamilies(); readSettingsForm(); });
+
+// ============================================================
+// ANALYSIS
+// ============================================================
+const cleanSeg = s => s.replace(/^[#^!$]+/, '').replace(/^\d+[_\-.\s]+/, '').replace(/_/g, ' ').trim();
+const labelFrom = segs => segs.map(cleanSeg).filter(Boolean).join(' › ');
+
+function buildAreaPaths(s) {
+    const n = 2 + s.depth;
+    const root = s.root.toLowerCase(), fam = s.family.toLowerCase();
+    const seen = new Map();
+    ankiTags.forEach(t => {
+        const p = t.split('::');
+        if (p.length >= n && p[0].toLowerCase() === root && p[1].toLowerCase() === fam) {
+            const path = p.slice(0, n).join('::');
+            if (!seen.has(path.toLowerCase())) seen.set(path.toLowerCase(), path);
+        }
+    });
+    return [...seen.values()];
+}
+
+// Turns a resource tag (Bootcamp / AMBOSS) into something readable
+function parseResourceTag(tag, re) {
+    const segs = tag.split('::');
+    const i = segs.findIndex(x => re.test(x));
+    if (i < 0 || i === segs.length - 1) return null;
+    const after = segs.slice(i + 1);
+    const leaf = after[after.length - 1];
+    const looksLikeId = /^[A-Za-z0-9]{4,10}$/.test(leaf) && (/\d/.test(leaf) || (/[a-z]/.test(leaf) && /[A-Z]/.test(leaf)));
+    if (looksLikeId && after.length > 1) {
+        return { key: segs.slice(0, -1).join('::'), label: labelFrom(after.slice(0, -1)), id: leaf };
+    }
+    return { key: tag, label: labelFrom(after), id: null };
+}
+
+async function findResources(path, s) {
+    let noteIds = await anki('findNotes', { query: weakQuery(path, s) });
+    noteIds = noteIds.slice(0, MAX_NOTES_SCANNED_PER_AREA);
+    const bootcamp = new Map(), amboss = new Map();
+    for (const batch of chunk(noteIds, 100)) {
+        const infos = await anki('notesInfo', { notes: batch });
+        infos.forEach(info => {
+            const seenHere = new Set();
+            (info.tags || []).forEach(tag => {
+                for (const [re, map] of [[/^#?bootcamp$/i, bootcamp], [/^#?amboss$/i, amboss]]) {
+                    const r = parseResourceTag(tag, re);
+                    if (!r) continue;
+                    const k = r.key.toLowerCase();
+                    if (!map.has(k)) map.set(k, { tag: r.key, label: r.label, count: 0, ids: new Set() });
+                    const entry = map.get(k);
+                    if (!seenHere.has(k)) { entry.count++; seenHere.add(k); }
+                    if (r.id) entry.ids.add(r.id);
+                }
             });
-        }
-
-        db.queueArray = topicList;
-        localStorage.setItem('teach_program_db', JSON.stringify(db));
-        inputField.value = "";
-        window.pushToGitHubCloud(db);
-        displaySchedule();
-        window.loadNotebook(topicName);
-    }
-
-    window.moveTopic = function(index, direction) {
-        let db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
-        let topicList = db.queueArray || [];
-
-        const targetIdx = index + direction;
-        if (targetIdx < 0 || targetIdx >= topicList.length) return;
-
-        const temp = topicList[index];
-        topicList[index] = topicList[targetIdx];
-        topicList[targetIdx] = temp;
-
-        db.queueArray = topicList;
-        localStorage.setItem('teach_program_db', JSON.stringify(db));
-        window.pushToGitHubCloud(db);
-        displaySchedule();
-    }
-
-    window.loadTargetProfile = function(topicKey) {
-        document.getElementById('topicInput').value = topicKey;
-        window.loadNotebook(topicKey);
-    }
-
-    window.loadNotebook = function(topicName) {
-        window.activeNotebookTopic = topicName;
-        document.getElementById('activeNotebookTitle').innerText = `Active: ${topicName}`;
-        
-        const db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
-        const topicList = db.queueArray || [];
-        const topic = topicList.find(t => t.name.toLowerCase() === topicName.toLowerCase());
-        const container = document.getElementById('notesContainer');
-        container.innerHTML = "";
-
-        if (!topic || !topic.notes || topic.notes.length === 0) {
-            container.innerHTML = "<p style='color:#718096; font-size:0.9em; margin:0;'>No saved notes for this topic yet. Add one above!</p>";
-            return;
-        }
-
-        topic.notes.forEach(note => {
-            const div = document.createElement('div');
-            div.className = "note-item";
-            div.innerHTML = `
-                <span>${note.text}</span>
-                <span style="color:#e53e3e; cursor:pointer; font-weight:bold; margin-left:10px;" onclick="deleteNote('${topicName}', ${note.id})">✕</span>
-            `;
-            container.appendChild(div);
         });
     }
+    const top = map => [...map.values()].sort((a, b) => b.count - a.count).slice(0, 5)
+        .map(e => ({ tag: e.tag, label: e.label || 'Untitled', count: e.count, ids: [...e.ids] }));
+    return { bootcamp: top(bootcamp), amboss: top(amboss), weakNotes: noteIds.length };
+}
 
-    window.addNoteToActiveTopic = function() {
-        const topicName = window.activeNotebookTopic || document.getElementById('topicInput').value.trim();
-        const noteText = document.getElementById('newNoteInput').value.trim();
-        if (!topicName) { alert("Please select or type a topic name first."); return; }
-        if (!noteText) return;
+async function analyze() {
+    const btn = $('analyzeBtn');
+    btn.disabled = true;
+    try {
+        if (!ankiTags && !(await connectAnki())) return;
+        const s = readSettingsForm();
+        const paths = buildAreaPaths(s);
+        if (!paths.length) { progress(`No tags found under ${s.root}::${s.family} at that detail level. Try another grouping.`, true); return; }
 
-        let db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
-        let topicList = db.queueArray || [];
-        let topic = topicList.find(t => t.name.toLowerCase() === topicName.toLowerCase());
-
-        if (!topic) {
-            topic = { id: Date.now(), name: topicName, priority: "P2", notes: [] };
-            topicList.push(topic);
-        }
-
-        if (!topic.notes) topic.notes = [];
-        topic.notes.push({ id: Date.now(), text: noteText });
-
-        db.queueArray = topicList;
-        localStorage.setItem('teach_program_db', JSON.stringify(db));
-        document.getElementById('newNoteInput').value = "";
-        window.pushToGitHubCloud(db);
-        displaySchedule();
-        window.loadNotebook(topicName);
-    }
-
-    window.deleteNote = function(topicName, noteId) {
-        let db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
-        let topicList = db.queueArray || [];
-        let topic = topicList.find(t => t.name.toLowerCase() === topicName.toLowerCase());
-
-        if (topic && topic.notes) {
-            topic.notes = topic.notes.filter(n => n.id !== noteId);
-            db.queueArray = topicList;
-            localStorage.setItem('teach_program_db', JSON.stringify(db));
-            window.pushToGitHubCloud(db);
-            displaySchedule();
-            window.loadNotebook(topicName);
-        }
-    }
-
-    window.removeTopic = function(topicName) {
-        if(confirm(`Delete "${topicName}" and all associated notes?`)) {
-            let db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
-            let topicList = db.queueArray || [];
-
-            db.queueArray = topicList.filter(t => t.name.toLowerCase() !== topicName.toLowerCase());
-            localStorage.setItem('teach_program_db', JSON.stringify(db));
-
-            if (window.activeNotebookTopic === topicName) {
-                window.activeNotebookTopic = "";
-                document.getElementById('activeNotebookTitle').innerText = "(Select a topic above)";
-                document.getElementById('notesContainer').innerHTML = "<p style='color:#718096; font-size:0.9em; margin:0;'>Select a topic above to view or add notes.</p>";
-            }
-            window.pushToGitHubCloud(db);
-            displaySchedule();
-        }
-    }
-
-    window.displaySchedule = function() {
-        const db = JSON.parse(localStorage.getItem('teach_program_db')) || {};
-        const listContainer = document.getElementById('scheduleList');
-        listContainer.innerHTML = "";
-
-        const topicList = db.queueArray || [];
-        if (topicList.length === 0) {
-            listContainer.innerHTML = "<li style='color: #718096;'>Queue empty. Add a topic on the left!</li>";
-            return;
-        }
-
-        topicList.forEach((topic, idx) => {
-            let pColor = "#4a5568";
-            let pBg = "#edf2f7";
-            let pLabel = "P2 - Medium";
-
-            if (topic.priority === "P1") {
-                pColor = "#9b2c2c"; pBg = "#fed7d7"; pLabel = "P1 - High Priority";
-            } else if (topic.priority === "P3") {
-                pColor = "#22543d"; pBg = "#c6f6d5"; pLabel = "P3 - Low Priority";
-            }
-
-            const noteCount = topic.notes ? topic.notes.length : 0;
-
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <div style="flex: 1;">
-                    <strong style="cursor:pointer; color:#3182ce; text-decoration:underline;" onclick="loadTargetProfile('${topic.name}')">${topic.name}</strong><br>
-                    <span class="badge" style="background: ${pBg}; color: ${pColor};">${pLabel}</span>
-                    ${noteCount > 0 ? `<span class="badge" style="background: #ebf8ff; color: #2b6cb0; margin-left: 4px; cursor:pointer;" onclick="loadTargetProfile('${topic.name}')">📝 ${noteCount} Note(s)</span>` : ''}
-                    <div class="action-links"><span style="color:#e53e3e;" onclick="removeTopic('${topic.name}')">Delete Topic</span></div>
-                </div>
-                <div style="display: flex; gap: 4px;">
-                    <button class="btn-move" onclick="moveTopic(${idx}, -1)" ${idx === 0 ? 'disabled' : ''}>▲</button>
-                    <button class="btn-move" onclick="moveTopic(${idx}, 1)" ${idx === topicList.length - 1 ? 'disabled' : ''}>▼</button>
-                </div>
-            `;
-            listContainer.appendChild(li);
+        const dq = deckClause(s.deck);
+        const N = s.days;
+        const PER = 5;
+        const actions = [];
+        paths.forEach(p => {
+            const t = tagQuery(p) + dq + ' -is:suspended';
+            [
+                `${t} -is:new`,                              // active cards
+                `${t} rated:${N} -introduced:${N}`,          // established cards reviewed in window
+                `${t} rated:${N}:1 -introduced:${N}`,        // ...of which pressed Again at least once
+                `${t} -is:new prop:lapses>=3`,               // chronic strugglers
+                `${t} -is:new prop:ivl>=21`                  // mature
+            ].forEach(query => actions.push({ action: 'findCards', params: { query } }));
         });
+
+        const counts = [];
+        const batches = chunk(actions, 100);
+        for (let i = 0; i < batches.length; i++) {
+            progress(`Reading review stats… ${Math.round((i / batches.length) * 100)}%`);
+            const res = await ankiMulti(batches[i]);
+            res.forEach(r => counts.push(Array.isArray(r) ? r.length : 0));
+        }
+
+        let areas = paths.map((path, i) => {
+            const [total, reviewed, failed, struggling, mature] = counts.slice(i * PER, i * PER + PER);
+            const fail = reviewed >= 10 ? failed / reviewed : null;
+            const struggle = total ? struggling / total : 0;
+            const score = fail != null ? 0.7 * fail + 0.3 * struggle : struggle;
+            return {
+                path, label: labelFrom(path.split('::').slice(2)),
+                total, reviewed, failed, struggling, mature,
+                retention: fail != null ? 1 - fail : null,
+                struggle, matureFrac: total ? mature / total : 0,
+                score, lowData: fail == null
+            };
+        }).filter(a => a.total >= s.minCards);
+
+        if (!areas.length) { progress(`No areas have at least ${s.minCards} active cards yet. Lower the minimum or study a bit more first.`, true); return; }
+
+        // Areas with real recent data rank ahead of low-data ones at equal score
+        areas.sort((a, b) => (b.score - a.score) || (a.lowData - b.lowData));
+        const n = areas.length;
+        areas.forEach((a, i) => {
+            const r = i / n;
+            a.priority = r < 0.2 ? 'P1' : r < 0.5 ? 'P2' : 'P3';
+            if (a.retention != null && a.retention >= 0.92 && a.struggle < 0.05) a.priority = 'P3';
+        });
+
+        const top = areas.slice(0, TOP_AREAS_WITH_RESOURCES);
+        for (let i = 0; i < top.length; i++) {
+            progress(`Matching Bootcamp videos & AMBOSS topics… (${i + 1}/${top.length})`);
+            Object.assign(top[i], await findResources(top[i].path, s));
+        }
+
+        const db = loadDb();
+        db.ankiSnapshot = {
+            syncedAt: new Date().toISOString(),
+            settings: { root: s.root, family: s.family, depth: s.depth, days: s.days, deck: s.deck },
+            areas
+        };
+        saveDb(db);
+        progress(`Done — analyzed ${n} subdivisions.`);
+        renderAll();
+        if (!currentSelection()) selectNotebook('area:' + areas[0].path);
+    } catch (err) {
+        console.error(err);
+        progress(ankiErrorText(err), true);
+    } finally {
+        btn.disabled = false;
     }
+}
+
+// ============================================================
+// RENDERING — priority list
+// ============================================================
+const TOP_SHOWN = 8;
+function timeAgo(iso) {
+    const mins = Math.round((Date.now() - new Date(iso)) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins} min ago`;
+    const h = Math.round(mins / 60);
+    if (h < 24) return `${h} h ago`;
+    return `${Math.round(h / 24)} d ago`;
+}
+const prioLabel = { P1: 'P1 - High Priority', P2: 'P2 - Medium', P3: 'P3 - Low Priority' };
+const getSnap = () => loadDb().ankiSnapshot;
+const lastSeg = label => label.split(' › ').pop();
+
+function statLine(a, days) {
+    const ret = a.retention != null
+        ? `Retention <b>${pct(a.retention)}</b> (${a.reviewed} established cards reviewed in ${days}d)`
+        : `<i>Not enough recent reviews — ranked on lapses only</i>`;
+    return `${ret} · ${pct(a.struggle)} with 3+ lapses · ${a.total.toLocaleString()} active cards`;
+}
+
+function renderWeakAreas() {
+    const snap = getSnap();
+    const box = $('weakList');
+    if (!snap || !snap.areas || !snap.areas.length) {
+        currentAreas = [];
+        box.innerHTML = `<p class="muted">No Anki data yet. Open this page on the computer with Anki running and hit <b>Analyze my stats</b>.</p>`;
+        $('allAreasWrap').classList.add('hidden');
+        $('lastSynced').textContent = '';
+        return;
+    }
+    currentAreas = snap.areas;
+    const days = snap.settings.days;
+    $('lastSynced').textContent = `Synced ${timeAgo(snap.syncedAt)} · ${cleanSeg(snap.settings.family)} · last ${days}d`;
+    const maxScore = Math.max(...snap.areas.map(a => a.score), 0.01);
+
+    box.innerHTML = snap.areas.slice(0, TOP_SHOWN).map((a, i) => `
+        <div class="area ${a.priority} clickable" data-act="open" data-i="${i}">
+            <div class="area-head">
+                <div class="area-title"><span class="area-rank">#${i + 1}</span>${escHtml(a.label)}</div>
+                <span class="badge ${a.priority.toLowerCase()}">${prioLabel[a.priority]}</span>
+            </div>
+            <div class="area-stats">${statLine(a, days)}</div>
+            <div class="bar"><div style="width:${Math.round((a.score / maxScore) * 100)}%"></div></div>
+        </div>`).join('')
+        + `<p class="muted" style="margin:4px 0 0;">Click an area to open it in the AnKing Notebook.</p>`;
+
+    $('allAreasWrap').classList.remove('hidden');
+    $('allAreasTable').innerHTML = `
+        <tr><th>#</th><th>Subdivision</th><th class="num">Active</th><th class="num">Retention</th><th class="num">3+ lapses</th><th>Priority</th></tr>
+        ${snap.areas.map((a, i) => `
+            <tr>
+                <td>${i + 1}</td>
+                <td><span style="cursor:pointer; color:#3182ce;" data-act="open" data-i="${i}">${escHtml(a.label)}</span></td>
+                <td class="num">${a.total.toLocaleString()}</td>
+                <td class="num">${pct(a.retention)}</td>
+                <td class="num">${pct(a.struggle)}</td>
+                <td><span class="badge ${a.priority.toLowerCase()}">${a.priority}</span></td>
+            </tr>`).join('')}`;
+}
+
+// ============================================================
+// ANKING NOTEBOOK — one subdeck: stats, Bootcamp, AMBOSS, notes
+// ============================================================
+let selectedKey = '';   // "area:<tag path>" or "note:<older topic name>"
+try { selectedKey = localStorage.getItem('notebook_selected') || ''; } catch {}
+
+function renderNotebookSelect() {
+    const db = loadDb();
+    const areas = (db.ankiSnapshot && db.ankiSnapshot.areas) || [];
+    const labels = new Set(areas.map(a => a.label.toLowerCase()));
+    const older = Object.keys(db.notebooks || {}).filter(k => !labels.has(k.toLowerCase()));
+    const sel = $('areaSelect');
+    if (!areas.length && !older.length) {
+        sel.innerHTML = '<option value="">No subdecks yet</option>';
+        sel.disabled = true;
+        return;
+    }
+    sel.disabled = false;
+    let html = '<option value="">Choose a subdeck…</option>';
+    if (areas.length) html += `<optgroup label="Your subdecks (weakest first)">${areas.map((a, i) =>
+        `<option value="area:${escHtml(a.path)}">#${i + 1} ${escHtml(a.label)} — ${a.priority}</option>`).join('')}</optgroup>`;
+    if (older.length) html += `<optgroup label="Earlier notes">${older.map(k =>
+        `<option value="note:${escHtml(k)}">${escHtml(k)}</option>`).join('')}</optgroup>`;
+    sel.innerHTML = html;
+    sel.value = selectedKey;
+    if (sel.value !== selectedKey) { selectedKey = ''; sel.value = ''; }
+}
+
+function selectNotebook(key, scroll = false) {
+    selectedKey = key;
+    try { localStorage.setItem('notebook_selected', key); } catch {}
+    $('areaSelect').value = key;
+    renderNotebook();
+    if (scroll) $('notebookCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+$('areaSelect').addEventListener('change', e => selectNotebook(e.target.value));
+
+function currentSelection() {
+    if (selectedKey.startsWith('area:')) {
+        const path = selectedKey.slice(5);
+        const i = currentAreas.findIndex(a => a.path === path);
+        if (i >= 0) return { i, area: currentAreas[i], topic: currentAreas[i].label };
+    }
+    if (selectedKey.startsWith('note:')) return { i: -1, area: null, topic: selectedKey.slice(5) };
+    return null;
+}
+
+function resourcesHtml(a, i) {
+    if (!a.bootcamp) {
+        return `<div class="res-block"><div class="muted" id="resLoading">${ankiTags
+            ? 'Loading Bootcamp videos and AMBOSS topics from Anki…'
+            : 'Connect to Anki (AnKing Sync) to load Bootcamp videos and AMBOSS topics for this subdeck.'}</div></div>`;
+    }
+    const watched = loadDb().watched || {};
+    const bootcamp = a.bootcamp.map((b, j) => {
+        const done = !!watched[b.tag.toLowerCase()];
+        return `
+        <div class="res-item">
+            <label class="watch">
+                <input type="checkbox" data-watch="${escHtml(b.tag)}" ${done ? 'checked' : ''}>
+                <span class="${done ? 'done' : ''}">🎬 ${escHtml(b.label)}</span>
+                <span class="muted">· ${b.count} weak card${b.count === 1 ? '' : 's'}</span>
+            </label>
+            <span class="actions">
+                <button class="btn-small" data-act="browse-res" data-i="${i}" data-kind="bootcamp" data-j="${j}">Cards</button>
+                <button class="btn-small" data-act="unsuspend" data-i="${i}" data-kind="bootcamp" data-j="${j}">Unsuspend</button>
+            </span>
+        </div>`;
+    }).join('');
+    const amboss = a.amboss.map((b, j) => `
+        <div class="res-item">
+            <span>❓ ${escHtml(b.label)} <span class="muted">· ${b.count} weak card${b.count === 1 ? '' : 's'}${b.ids.length ? ` · ${b.ids.length} QID${b.ids.length === 1 ? '' : 's'}` : ''}</span></span>
+            <span class="actions">
+                ${b.ids.length ? `<button class="btn-small" data-act="copy-ids" data-i="${i}" data-j="${j}">Copy QIDs</button>` : ''}
+                <a class="btn-small" style="text-decoration:none; border-radius:4px;" href="${AMBOSS_SEARCH_URL(lastSeg(b.label))}" target="_blank" rel="noopener noreferrer">AMBOSS ↗</a>
+            </span>
+        </div>`).join('');
+
+    return `
+        <div class="res-block">
+            <div class="res-title">Bootcamp videos to rewatch</div>
+            ${bootcamp || `<div class="muted">No Bootcamp tags on your weak cards here. <a href="${BOOTCAMP_URL}" target="_blank" rel="noopener noreferrer">Search Bootcamp for “${escHtml(lastSeg(a.label))}” ↗</a></div>`}
+        </div>
+        <div class="res-block">
+            <div class="res-title">AMBOSS practice</div>
+            <button class="btn-primary" style="width:100%; margin-bottom:6px;" data-act="qbank" data-i="${i}">Start Qbank session from ${a.weakNotes || ''} weak cards</button>
+            <div class="hint" style="margin-bottom:6px;">Opens these cards in Anki's Browse window. Select all (Ctrl/Cmd+A), click <b>Start Qbank Session</b> (AMBOSS add-on), and pick unanswered + answered incorrectly.</div>
+            ${amboss}
+        </div>`;
+}
+
+function notesHtml(topic) {
+    const db = loadDb();
+    const notes = (db.notebooks || {})[notebookKey(db, topic)] || [];
+    return `
+        <div class="res-block">
+            <div class="res-title">My notes</div>
+            ${notes.map(n => `
+                <div class="note-item">
+                    <span>${escHtml(n.text)}</span>
+                    <span style="color:#e53e3e; cursor:pointer; font-weight:bold; margin-left:10px;" data-act="del-note" data-id="${n.id}">✕</span>
+                </div>`).join('') || '<p class="muted" style="margin:0 0 6px;">No notes for this subdeck yet.</p>'}
+            <textarea id="newNoteInput" rows="2" placeholder="Add a key concept, learning objective, or equation..."></textarea>
+            <button class="btn-primary" style="padding:8px; width:100%; margin-top:6px;" data-act="add-note">Add Note</button>
+        </div>`;
+}
+
+function renderNotebook() {
+    const box = $('areaDetail');
+    const sel = currentSelection();
+    if (!sel) {
+        box.innerHTML = currentAreas.length
+            ? '<p class="muted" style="margin:0;">Pick a subdeck above, or click an area in the priority list.</p>'
+            : '<p class="muted" style="margin:0;">Run <b>Analyze my stats</b> to load your subdecks.</p>';
+        return;
+    }
+    const { i, area: a, topic } = sel;
+    let html = '';
+    if (a) {
+        const days = getSnap().settings.days;
+        const maxScore = Math.max(...currentAreas.map(x => x.score), 0.01);
+        html += `
+            <div class="area-head">
+                <div class="area-title"><span class="area-rank">#${i + 1}</span>${escHtml(a.label)}</div>
+                <span class="badge ${a.priority.toLowerCase()}">${prioLabel[a.priority]}</span>
+            </div>
+            <div class="stat-grid">
+                <div class="stat"><div class="stat-v">${pct(a.retention)}</div><div class="stat-l">Retention (${days}d)</div></div>
+                <div class="stat"><div class="stat-v">${pct(a.struggle)}</div><div class="stat-l">3+ lapses</div></div>
+                <div class="stat"><div class="stat-v">${a.total.toLocaleString()}</div><div class="stat-l">Active cards</div></div>
+                <div class="stat"><div class="stat-v">${pct(a.matureFrac)}</div><div class="stat-l">Mature</div></div>
+            </div>
+            ${a.retention == null ? '<div class="muted" style="margin-bottom:6px;"><i>Not enough recent reviews for a retention figure — ranked on lapses only.</i></div>' : ''}
+            <div class="bar"><div style="width:${Math.round((a.score / maxScore) * 100)}%"></div></div>
+            ${resourcesHtml(a, i)}`;
+    } else {
+        html += `<div class="area-title" style="margin-bottom:6px;">${escHtml(topic)}</div>`;
+    }
+    html += notesHtml(topic);
+    box.innerHTML = html;
+    if (a && !a.bootcamp && ankiTags) loadResourcesFor(i);
+}
+
+// Fetch Bootcamp/AMBOSS suggestions on demand for subdecks outside the top few
+const loadingRes = new Set();
+async function loadResourcesFor(i) {
+    const a = currentAreas[i];
+    if (!a || loadingRes.has(a.path)) return;
+    loadingRes.add(a.path);
+    try {
+        const s = { ...getSettings(), ...getSnap().settings };
+        const r = await findResources(a.path, s);
+        const db = loadDb();
+        const area = db.ankiSnapshot && db.ankiSnapshot.areas.find(x => x.path === a.path);
+        if (!area) return;
+        Object.assign(area, r);
+        saveDb(db);
+        currentAreas = db.ankiSnapshot.areas;
+        renderNotebook();
+    } catch (err) {
+        console.error(err);
+        const el = $('resLoading');
+        if (el) el.textContent = ankiErrorText(err);
+    } finally {
+        loadingRes.delete(a.path);
+    }
+}
+
+// ---------- notes ----------
+function notebookKey(db, name) {
+    return Object.keys(db.notebooks || {}).find(k => k.toLowerCase() === name.toLowerCase()) || name;
+}
+function addNote() {
+    const sel = currentSelection();
+    const text = $('newNoteInput').value.trim();
+    if (!sel || !text) return;
+    const db = loadDb();
+    db.notebooks = db.notebooks || {};
+    const key = notebookKey(db, sel.topic);
+    db.notebooks[key] = [...(db.notebooks[key] || []), { id: Date.now(), text }];
+    saveDb(db);
+    renderNotebook();
+}
+function deleteNote(id) {
+    const sel = currentSelection();
+    if (!sel) return;
+    const db = loadDb();
+    const key = notebookKey(db, sel.topic);
+    if (!db.notebooks || !db.notebooks[key]) return;
+    db.notebooks[key] = db.notebooks[key].filter(n => n.id !== id);
+    if (!db.notebooks[key].length) delete db.notebooks[key];
+    saveDb(db);
+    if (!sel.area && !db.notebooks[key]) { selectedKey = ''; renderNotebookSelect(); }
+    renderNotebook();
+}
+
+// ============================================================
+// BUTTON HANDLERS (event delegation)
+// ============================================================
+async function ankiDo(fn) {
+    try { await fn(); }
+    catch (err) { console.error(err); alert(ankiErrorText(err)); }
+}
+
+document.addEventListener('click', e => {
+    const el = e.target.closest('[data-act]');
+    if (!el) return;
+    const a = currentAreas[+el.dataset.i];
+    const snapSettings = (getSnap() || {}).settings || getSettings();
+    const res = el.dataset.kind && a ? a[el.dataset.kind][+el.dataset.j] : null;
+
+    switch (el.dataset.act) {
+        case 'open':
+            selectNotebook('area:' + a.path, true);
+            break;
+        case 'qbank':
+            ankiDo(() => anki('guiBrowse', { query: weakQuery(a.path, snapSettings) }));
+            break;
+        case 'browse-res':
+            ankiDo(() => anki('guiBrowse', { query: tagQuery(res.tag) + deckClause(snapSettings.deck) }));
+            break;
+        case 'unsuspend':
+            ankiDo(async () => {
+                const cards = await anki('findCards', { query: `${tagQuery(res.tag)}${deckClause(snapSettings.deck)} is:suspended` });
+                if (!cards.length) { alert('All cards for this video are already unsuspended.'); return; }
+                if (!confirm(`Unsuspend ${cards.length} card(s) for “${res.label}”? Do this after you've watched the video.`)) return;
+                await anki('unsuspend', { cards });
+                alert(`Unsuspended ${cards.length} card(s).`);
+            });
+            break;
+        case 'copy-ids': {
+            const r = a.amboss[+el.dataset.j];
+            navigator.clipboard.writeText(r.ids.join(', ')).then(() => {
+                el.textContent = 'Copied!';
+                setTimeout(() => (el.textContent = 'Copy QIDs'), 1500);
+            });
+            break;
+        }
+        case 'add-note':
+            addNote();
+            break;
+        case 'del-note':
+            deleteNote(+el.dataset.id);
+            break;
+    }
+});
+
+// "Watched" checkboxes on Bootcamp videos
+document.addEventListener('change', e => {
+    const t = e.target;
+    if (!t.dataset || t.dataset.watch === undefined) return;
+    const db = loadDb();
+    db.watched = db.watched || {};
+    const k = t.dataset.watch.toLowerCase();
+    if (t.checked) db.watched[k] = true; else delete db.watched[k];
+    saveDb(db);
+    renderNotebook();
+});
+
+$('connectBtn').addEventListener('click', connectAnki);
+$('analyzeBtn').addEventListener('click', analyze);
+['familySelect', 'depthSelect', 'daysSelect', 'minCardsInput', 'deckInput', 'ankiUrlInput'].forEach(id => $(id).addEventListener('change', readSettingsForm));
+
+// ============================================================
+// INIT
+// ============================================================
+function renderAll() {
+    renderWeakAreas();
+    renderNotebookSelect();
+    renderNotebook();
+}
+(function init() {
+    const db = loadDb();
+    if (migrateDb(db)) saveDb(db, false);
+    fillSettingsForm();
+    renderAll();
+    pullFromGitHub();
+})();
 </script>
 </body>
 </html>
