@@ -1,8 +1,8 @@
 # Study Tracker
 
-A minimal, fast webpage to manage medical school lecture volume using science-based review schedules (**FSRS algorithm** calibrated to an optimal $85\%$ retention sweet spot). It includes a master schedule tracker and an **AI slide tester** that listens to you teach a slide from memory and tells you exactly what clinical points you missed.
+A minimal, fast webpage to manage anki - amboss - bootcamp integration (and uworld coming)
 
-Your progress saves automatically to a file on your GitHub account. This means you can access your study dashboard on your phone, tablet, or computer, and your queue will always stay perfectly in sync.
+Your progress saves automatically to a file on your GitHub account. This means you can access your study dashboard on your phone, tablet, or computer, and it will still sync.
 
 ---
 
