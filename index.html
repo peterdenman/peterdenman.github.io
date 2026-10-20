@@ -130,17 +130,6 @@
         .help ol { padding-left: 20px; font-size: 0.88em; line-height: 1.55; }
         code { background: #edf2f7; padding: 1px 4px; border-radius: 3px; font-size: 0.9em; }
 
-        .note-item {
-            background: #ebf8ff;
-            border-left: 3px solid #3182ce;
-            padding: 8px 12px;
-            margin-bottom: 8px;
-            border-radius: 4px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.9em;
-        }
     </style>
 </head>
 <body>
@@ -232,7 +221,7 @@
                     <ol>
                         <li>In Anki: <b>Tools → Add-ons → Get Add-ons</b>, enter code <code>2055492159</code> (AnkiConnect), then restart Anki.</li>
                         <li>Keep Anki open and use this page in Chrome, Edge or Firefox on the <b>same computer</b>.</li>
-                        <li>Click <b>Connect to Anki</b>. Anki shows a permission popup for this site; click <b>Yes</b>. If the browser asks to let the page access devices on your local network, allow it.</li>
+                        <li>Open this page with Anki running. The first time, Anki shows a permission popup for this site; click <b>Yes</b>. After that the page connects and syncs by itself every time you open it (and again if you come back after 15+ minutes). If the browser asks to let the page access devices on your local network, allow it.</li>
                         <li>Still blocked? In Anki open <b>Tools → Add-ons → AnkiConnect → Config</b> and add your site's address (e.g. <code>https://username.github.io</code>) to <code>webCorsOriginList</code>, then restart Anki.</li>
                         <li>For one-click AMBOSS practice, install the <a href="https://amboss.com/us/anki/qbank" target="_blank" rel="noopener noreferrer">AMBOSS Anki add-on</a>. The notebook's <b>Start Qbank session</b> button opens your weak cards in Anki's Browse window, where the add-on turns them into a matching Qbank session.</li>
                         <li>After each analysis, results sync to GitHub, so your phone shows the latest snapshot even without Anki.</li>
@@ -291,7 +280,7 @@ let currentAreas = [];        // areas in the current snapshot (for button handl
 let currentFileSha = '';
 
 // ============================================================
-// LOCAL DATABASE (same key as before, so old notes carry over)
+// LOCAL DATABASE
 // ============================================================
 function loadDb() {
     try { return JSON.parse(localStorage.getItem(DB_KEY)) || {}; } catch { return {}; }
@@ -299,18 +288,6 @@ function loadDb() {
 function saveDb(db, push = true) {
     localStorage.setItem(DB_KEY, JSON.stringify(db));
     if (push) queuePush();
-}
-// Moves notes from the old manual queue into the notebook (old queue data is left untouched)
-function migrateDb(db) {
-    db.notebooks = db.notebooks || {};
-    if (!db.notesMigrated && Array.isArray(db.queueArray)) {
-        db.queueArray.forEach(t => {
-            if (t.notes && t.notes.length) db.notebooks[t.name] = [...(db.notebooks[t.name] || []), ...t.notes];
-        });
-        db.notesMigrated = true;
-        return true;
-    }
-    return false;
 }
 
 // ============================================================
@@ -353,8 +330,7 @@ async function pullFromGitHub() {
             const data = await res.json();
             currentFileSha = data.sha;
             const remote = JSON.parse(b64decode(data.content));
-            const migrated = migrateDb(remote);
-            saveDb(remote, migrated);
+            saveDb(remote, false);
             setSync(true, 'Connected');
         } else if (res.status === 404) {
             currentFileSha = '';
@@ -495,9 +471,9 @@ const scopeClause = s => s.scope != null ? s.scope : (s.mode === 'decks' ? deckC
 const areaQuery = (a, s) => a.q || (tagQuery(a.path) + deckClause(s.deck));
 const weakQuery = (a, s) => `${areaQuery(a, s)} -is:new -is:suspended (rated:${s.days}:1 OR prop:lapses>=3)`;
 
-async function connectAnki() {
+async function connectAnki({ silent = false } = {}) {
     readSettingsForm();
-    progress('Asking Anki for permission… check the Anki window for a popup.');
+    progress(silent ? 'Connecting to Anki…' : 'Asking Anki for permission… check the Anki window for a popup.');
     try {
         const perm = await anki('requestPermission');
         if (perm.permission !== 'granted') {
@@ -515,8 +491,13 @@ async function connectAnki() {
         return true;
     } catch (err) {
         console.error(err);
-        setAnkiStatus(false, 'not connected');
-        progress(ankiErrorText(err), true);
+        if (silent) {                     // e.g. on your phone, or Anki is closed: just show the last snapshot
+            setAnkiStatus(false, getSnap() ? 'not reachable — showing last sync' : 'not reachable');
+            progress('');
+        } else {
+            setAnkiStatus(false, 'not connected');
+            progress(ankiErrorText(err), true);
+        }
         return false;
     }
 }
@@ -627,7 +608,10 @@ async function findResources(area, s) {
     return { bootcamp: top(bootcamp), amboss: top(amboss), weakNotes: noteIds.length };
 }
 
+let analyzing = false;
 async function analyze() {
+    if (analyzing) return;
+    analyzing = true;
     const btn = $('analyzeBtn');
     btn.disabled = true;
     try {
@@ -709,6 +693,7 @@ async function analyze() {
         progress(ankiErrorText(err), true);
     } finally {
         btn.disabled = false;
+        analyzing = false;
     }
 }
 
@@ -776,18 +761,16 @@ function renderWeakAreas() {
 }
 
 // ============================================================
-// ANKING NOTEBOOK — one subdeck: stats, Bootcamp, AMBOSS, notes
+// ANKING NOTEBOOK — one subdeck: stats, Bootcamp, AMBOSS
 // ============================================================
-let selectedKey = '';   // "area:<tag path>" or "note:<older topic name>"
+let selectedKey = '';   // "area:<path>"
 try { selectedKey = localStorage.getItem('notebook_selected') || ''; } catch {}
 
 function renderNotebookSelect() {
     const db = loadDb();
     const areas = (db.ankiSnapshot && db.ankiSnapshot.areas) || [];
-    const labels = new Set(areas.map(a => a.label.toLowerCase()));
-    const older = Object.keys(db.notebooks || {}).filter(k => !labels.has(k.toLowerCase()));
     const sel = $('areaSelect');
-    if (!areas.length && !older.length) {
+    if (!areas.length) {
         sel.innerHTML = '<option value="">No subdecks yet</option>';
         sel.disabled = true;
         return;
@@ -796,8 +779,6 @@ function renderNotebookSelect() {
     let html = '<option value="">Choose a subdeck…</option>';
     if (areas.length) html += `<optgroup label="Your subdecks (weakest first)">${areas.map((a, i) =>
         `<option value="area:${escHtml(a.path)}">#${i + 1} ${escHtml(a.label)} — ${a.priority}</option>`).join('')}</optgroup>`;
-    if (older.length) html += `<optgroup label="Earlier notes">${older.map(k =>
-        `<option value="note:${escHtml(k)}">${escHtml(k)}</option>`).join('')}</optgroup>`;
     sel.innerHTML = html;
     sel.value = selectedKey;
     if (sel.value !== selectedKey) { selectedKey = ''; sel.value = ''; }
@@ -818,7 +799,6 @@ function currentSelection() {
         const i = currentAreas.findIndex(a => a.path === path);
         if (i >= 0) return { i, area: currentAreas[i], topic: currentAreas[i].label };
     }
-    if (selectedKey.startsWith('note:')) return { i: -1, area: null, topic: selectedKey.slice(5) };
     return null;
 }
 
@@ -866,22 +846,6 @@ function resourcesHtml(a, i) {
         </div>`;
 }
 
-function notesHtml(topic) {
-    const db = loadDb();
-    const notes = (db.notebooks || {})[notebookKey(db, topic)] || [];
-    return `
-        <div class="res-block">
-            <div class="res-title">My notes</div>
-            ${notes.map(n => `
-                <div class="note-item">
-                    <span>${escHtml(n.text)}</span>
-                    <span style="color:#e53e3e; cursor:pointer; font-weight:bold; margin-left:10px;" data-act="del-note" data-id="${n.id}">✕</span>
-                </div>`).join('') || '<p class="muted" style="margin:0 0 6px;">No notes for this subdeck yet.</p>'}
-            <textarea id="newNoteInput" rows="2" placeholder="Add a key concept, learning objective, or equation..."></textarea>
-            <button class="btn-primary" style="padding:8px; width:100%; margin-top:6px;" data-act="add-note">Add Note</button>
-        </div>`;
-}
-
 function renderNotebook() {
     const box = $('areaDetail');
     const sel = currentSelection();
@@ -891,9 +855,9 @@ function renderNotebook() {
             : '<p class="muted" style="margin:0;">Run <b>Analyze my stats</b> to load your subdecks.</p>';
         return;
     }
-    const { i, area: a, topic } = sel;
+    const { i, area: a } = sel;
     let html = '';
-    if (a) {
+    {
         const days = getSnap().settings.days;
         const maxScore = Math.max(...currentAreas.map(x => x.score), 0.01);
         html += `
@@ -910,12 +874,9 @@ function renderNotebook() {
             ${a.retention == null ? '<div class="muted" style="margin-bottom:6px;"><i>Not enough recent reviews for a retention figure — ranked on lapses only.</i></div>' : ''}
             <div class="bar"><div style="width:${Math.round((a.score / maxScore) * 100)}%"></div></div>
             ${resourcesHtml(a, i)}`;
-    } else {
-        html += `<div class="area-title" style="margin-bottom:6px;">${escHtml(topic)}</div>`;
     }
-    html += notesHtml(topic);
     box.innerHTML = html;
-    if (a && !a.bootcamp && ankiTags) loadResourcesFor(i);
+    if (!a.bootcamp && ankiTags) loadResourcesFor(i);
 }
 
 // Fetch Bootcamp/AMBOSS suggestions on demand for subdecks outside the top few
@@ -941,34 +902,6 @@ async function loadResourcesFor(i) {
     } finally {
         loadingRes.delete(a.path);
     }
-}
-
-// ---------- notes ----------
-function notebookKey(db, name) {
-    return Object.keys(db.notebooks || {}).find(k => k.toLowerCase() === name.toLowerCase()) || name;
-}
-function addNote() {
-    const sel = currentSelection();
-    const text = $('newNoteInput').value.trim();
-    if (!sel || !text) return;
-    const db = loadDb();
-    db.notebooks = db.notebooks || {};
-    const key = notebookKey(db, sel.topic);
-    db.notebooks[key] = [...(db.notebooks[key] || []), { id: Date.now(), text }];
-    saveDb(db);
-    renderNotebook();
-}
-function deleteNote(id) {
-    const sel = currentSelection();
-    if (!sel) return;
-    const db = loadDb();
-    const key = notebookKey(db, sel.topic);
-    if (!db.notebooks || !db.notebooks[key]) return;
-    db.notebooks[key] = db.notebooks[key].filter(n => n.id !== id);
-    if (!db.notebooks[key].length) delete db.notebooks[key];
-    saveDb(db);
-    if (!sel.area && !db.notebooks[key]) { selectedKey = ''; renderNotebookSelect(); }
-    renderNotebook();
 }
 
 // ============================================================
@@ -1013,12 +946,6 @@ document.addEventListener('click', e => {
             });
             break;
         }
-        case 'add-note':
-            addNote();
-            break;
-        case 'del-note':
-            deleteNote(+el.dataset.id);
-            break;
     }
 });
 
@@ -1034,8 +961,8 @@ document.addEventListener('change', e => {
     renderNotebook();
 });
 
-$('connectBtn').addEventListener('click', connectAnki);
-$('analyzeBtn').addEventListener('click', analyze);
+$('connectBtn').addEventListener('click', () => connectAnki());
+$('analyzeBtn').addEventListener('click', () => analyze());
 ['familySelect', 'depthSelect', 'daysSelect', 'minCardsInput', 'deckInput', 'ankiUrlInput'].forEach(id => $(id).addEventListener('change', readSettingsForm));
 
 // ============================================================
@@ -1046,12 +973,25 @@ function renderAll() {
     renderNotebookSelect();
     renderNotebook();
 }
-(function init() {
-    const db = loadDb();
-    if (migrateDb(db)) saveDb(db, false);
+// Connect to Anki and re-analyze on its own whenever the page opens
+async function autoSync() {
+    if (analyzing) return;
+    if (await connectAnki({ silent: true })) await analyze();
+}
+// ...and again when you come back to the tab, if the last sync is getting old
+const RESYNC_AFTER_MINUTES = 15;
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    const snap = getSnap();
+    const ageMin = snap ? (Date.now() - new Date(snap.syncedAt)) / 60000 : Infinity;
+    if (ageMin >= RESYNC_AFTER_MINUTES) autoSync();
+});
+
+(async function init() {
     fillSettingsForm();
     renderAll();
-    pullFromGitHub();
+    await pullFromGitHub();   // load the GitHub copy first so a fresh sync isn't overwritten
+    autoSync();
 })();
 </script>
 </body>
