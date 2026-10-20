@@ -442,14 +442,7 @@
       "notes": []
     }
   ],
-  "notebooks": {
-    "Lower Limb Cases": [
-      {
-        "id": 1792286760225,
-        "text": "may not have sent claude"
-      }
-    ]
-  },
+  "notebooks": {},
   "notesMigrated": true,
   "ankiSnapshot": {
     "syncedAt": "2026-10-20T20:26:40.493Z",
