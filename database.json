@@ -441,5 +441,24 @@
       "priority": "P1",
       "notes": []
     }
-  ]
+  ],
+  "notebooks": {
+    "Joints": [
+      {
+        "id": 1792188304442,
+        "text": "table 16, 4305"
+      },
+      {
+        "id": 1792286755976,
+        "text": "may not have sent claude"
+      }
+    ],
+    "Lower Limb Cases": [
+      {
+        "id": 1792286760225,
+        "text": "may not have sent claude"
+      }
+    ]
+  },
+  "notesMigrated": true
 }
