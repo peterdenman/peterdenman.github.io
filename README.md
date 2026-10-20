@@ -51,7 +51,6 @@ To let the webpage write updates directly to your `database.json` file, it needs
 
 Open your live bookmarked webpage link and fill out the configuration inputs at the top right:
 
-* **Gemini API Key:** Your Google AI developer key for slide grading (configured for `gemini-2.5-flash`).
 * **GitHub Token:** The long `github_pat_...` key you just generated.
 * **username/repo:** Your GitHub username and repo name separated by a slash (for example: `peterdenman/med-school-tracker`).
 
