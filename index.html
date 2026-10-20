@@ -112,6 +112,16 @@
         .watch { display: flex; align-items: center; gap: 6px; cursor: pointer; flex-wrap: wrap; }
         .watch .done { text-decoration: line-through; color: #a0aec0; }
         .res-block { margin-top: 14px; }
+        .trend { font-weight: bold; font-size: 0.9em; margin-left: 4px; white-space: nowrap; }
+        .trend.up { color: #2f855a; }
+        .trend.down { color: #c53030; }
+        .trend.flat { color: #718096; }
+        .change-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 12px; }
+        @media (max-width: 480px) { .change-grid { grid-template-columns: 1fr; } }
+        .change-row { display: flex; justify-content: space-between; gap: 8px; font-size: 0.85em; padding: 4px 0; border-bottom: 1px solid #edf2f7; }
+        .check { display: flex; align-items: center; gap: 8px; font-size: 0.85em; font-weight: bold; color: #4a5568; cursor: pointer; }
+        .check input { width: auto; margin: 0; }
+        svg text { font-family: inherit; }
         .res-title { font-size: 0.8em; font-weight: bold; text-transform: uppercase; letter-spacing: 0.04em; color: #718096; margin-bottom: 4px; }
         .res-item {
             display: flex; justify-content: space-between; align-items: center; gap: 8px;
@@ -154,7 +164,10 @@
             <div class="card">
                 <h2 style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;">
                     <span>Priority: Weakest Areas</span>
-                    <span id="lastSynced" style="font-size:0.6em; color:#718096; font-weight:normal;"></span>
+                    <span style="display:flex; align-items:baseline; gap:8px;">
+                        <span id="lastSynced" style="font-size:0.6em; color:#718096; font-weight:normal;"></span>
+                        <button class="btn-small hidden" id="clearStatsBtn" style="font-size:12px;" title="Remove these stats from the homepage">Remove</button>
+                    </span>
                 </h2>
                 <p class="muted" style="margin-top:-4px;">
                     Ranked from your AnKing review history. Weakness = 70% recent fail rate on established cards + 30% share of cards with 3+ lapses.
@@ -209,6 +222,7 @@
                     <label class="field tag-only">Limit to deck (optional)
                         <input type="text" id="deckInput" placeholder="e.g. AnKing Step Deck">
                     </label>
+                    <label class="check full"><input type="checkbox" id="autoSyncInput"> Auto-sync when I open the page</label>
                 </div>
                 <div class="btn-group">
                     <button class="btn-primary" id="connectBtn">Connect to Anki</button>
@@ -242,6 +256,20 @@
                     <p class="muted" style="margin:0;">Run <b>Analyze my stats</b> to load your subdecks.</p>
                 </div>
             </div>
+
+            <!-- PROGRESS OVER TIME -->
+            <div class="card" id="historyCard">
+                <h2>Progress Over Time</h2>
+                <div class="input-group">
+                    <select id="historySourceSelect"></select>
+                </div>
+                <div id="historyChart"></div>
+                <div class="btn-group">
+                    <button class="btn-primary" id="importHistoryBtn">Import past history from Anki</button>
+                    <button class="btn-small hidden" id="deleteHistoryBtn">Delete this history</button>
+                </div>
+                <div id="historyStatus" class="status-msg"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -266,7 +294,8 @@ const DEFAULT_SETTINGS = {
     depth: 1,
     days: 30,
     minCards: 20,
-    deck: ''
+    deck: '',
+    autoSync: true
 };
 
 const $ = id => document.getElementById(id);
@@ -329,7 +358,14 @@ async function pullFromGitHub() {
         if (res.status === 200) {
             const data = await res.json();
             currentFileSha = data.sha;
-            const remote = JSON.parse(b64decode(data.content));
+            let text;
+            if (data.encoding === 'base64' && data.content) {
+                text = b64decode(data.content);
+            } else {                                   // files over 1 MB come back without content
+                const blob = await fetch(gh.url.replace(/contents\/database\.json$/, `git/blobs/${data.sha}`), { headers: gh.headers, cache: 'no-store' });
+                text = b64decode((await blob.json()).content);
+            }
+            const remote = JSON.parse(text);
             saveDb(remote, false);
             setSync(true, 'Connected');
         } else if (res.status === 404) {
@@ -349,7 +385,7 @@ let pushTimer = null, pushing = false, pushAgain = false;
 function queuePush() { clearTimeout(pushTimer); pushTimer = setTimeout(pushToGitHub, 800); }
 
 async function putDb(gh) {
-    const body = { message: 'Study tracker update', content: b64encode(JSON.stringify(loadDb(), null, 2)) };
+    const body = { message: 'Study tracker update', content: b64encode(JSON.stringify(loadDb())) };
     if (currentFileSha) body.sha = currentFileSha;
     const res = await fetch(gh.url, { method: 'PUT', headers: { ...gh.headers, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     if (res.ok) { currentFileSha = (await res.json()).content.sha; return true; }
@@ -395,7 +431,8 @@ function readSettingsForm() {
         depth: parseInt($('depthSelect').value, 10) || 1,
         days: parseInt($('daysSelect').value, 10) || 30,
         minCards: Math.max(1, parseInt($('minCardsInput').value, 10) || DEFAULT_SETTINGS.minCards),
-        deck: $('deckInput').value.trim()
+        deck: $('deckInput').value.trim(),
+        autoSync: $('autoSyncInput').checked
     };
     saveSettings(s);
     return s;
@@ -407,6 +444,7 @@ function fillSettingsForm() {
     $('daysSelect').value = String(s.days);
     $('minCardsInput').value = s.minCards;
     $('deckInput').value = s.deck;
+    $('autoSyncInput').checked = s.autoSync !== false;
     $('modeSelect').value = s.mode;
     setOptions($('deckRootSelect'), s.deckRoot ? [s.deckRoot] : ['(connect to load)'], s.deckRoot);
     setOptions($('rootSelect'), [s.root], s.root);
@@ -609,7 +647,7 @@ async function findResources(area, s) {
 }
 
 let analyzing = false;
-async function analyze() {
+async function analyze({ manual = false } = {}) {
     if (analyzing) return;
     analyzing = true;
     const btn = $('analyzeBtn');
@@ -647,6 +685,9 @@ async function analyze() {
             res.forEach(r => counts.push(Array.isArray(r) ? r.length : 0));
         }
 
+        const cardSnap = {};   // this week's [active, mature, 3+ lapses] per area, for history
+        base.forEach((b, i) => { const c = counts.slice(i * PER, i * PER + PER); cardSnap[b.path] = [c[0], c[4], c[3]]; });
+
         let areas = base.map(({ path, label, q }, i) => {
             const [total, reviewed, failed, struggling, mature] = counts.slice(i * PER, i * PER + PER);
             const fail = reviewed >= 10 ? failed / reviewed : null;
@@ -678,7 +719,22 @@ async function analyze() {
             Object.assign(top[i], await findResources(top[i], s));
         }
 
+        // Save this week's review numbers to the long-term history (never blocks the main sync)
+        let weekly = null;
+        try {
+            progress('Saving this week to your history…');
+            const thisWk = weekKey(Date.now()), prevWk = weekKey(Date.now() - 7 * 864e5);
+            weekly = { data: await collectReviews(base, b => `${b.q} rated:14`, weekStartMs(prevWk)), replace: [thisWk, prevWk], thisWk };
+        } catch (err) {
+            console.error('History update skipped', err);
+        }
+
         const db = loadDb();
+        if (weekly) {
+            const h = mergeHistory(db, s, base, weekly.data, weekly.replace);
+            h.cards[weekly.thisWk] = cardSnap;
+        }
+        if (manual) delete db.autoSyncPaused;
         db.ankiSnapshot = {
             syncedAt: new Date().toISOString(),
             settings: { mode: s.mode, deckRoot: s.deckRoot, root: s.root, family: s.family, depth: s.depth, days: s.days, deck: s.deck, scope: scopeClause(s) },
@@ -698,6 +754,271 @@ async function analyze() {
 }
 
 // ============================================================
+// HISTORY — weekly numbers per area, saved in database.json
+// ============================================================
+const HISTORY_WEEKS_KEPT = 260;   // ~5 years
+const MIN_WEEK_REVIEWS = 10;      // weeks with fewer reviews than this don't get a retention point
+
+function sourceId(s) {
+    return s.mode === 'decks'
+        ? `deck:${s.deckRoot}|d${s.depth}`
+        : `tag:${s.root}::${s.family}|d${s.depth}${s.deck ? '|' + s.deck : ''}`;
+}
+function sourceLabel(s) {
+    return s.mode === 'decks'
+        ? `${s.deckRoot} subdecks${s.depth > 1 ? ' (narrow)' : ''}`
+        : `${cleanSeg(s.family || '')} tags${s.depth > 1 ? ' (narrow)' : ''}${s.deck ? ' in ' + s.deck : ''}`;
+}
+// Weeks start on Monday, keyed by that date in local time (YYYY-MM-DD)
+function weekKey(ms) {
+    const d = new Date(ms);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+const weekStartMs = wk => new Date(wk + 'T00:00:00').getTime();
+const fmtWeek = wk => new Date(wk + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+// Counts review-card answers per week per area: { week: { path: [reviews, agains] } }
+async function collectReviews(areas, queryFor, sinceMs, onProgress) {
+    const idLists = [];
+    const findBatches = chunk(areas, 100);
+    for (let i = 0; i < findBatches.length; i++) {
+        onProgress && onProgress(i, findBatches.length, 'Finding cards…');
+        const res = await ankiMulti(findBatches[i].map(a => ({ action: 'findCards', params: { query: queryFor(a) } })));
+        idLists.push(...res.map(r => Array.isArray(r) ? r : []));
+    }
+    const unique = [...new Set(idLists.flat())];
+    const perCard = new Map();
+    const revBatches = chunk(unique, 500);
+    for (let i = 0; i < revBatches.length; i++) {
+        onProgress && onProgress(i, revBatches.length, 'Reading review history…');
+        const revs = await anki('getReviewsOfCards', { cards: revBatches[i] });
+        for (const [cid, list] of Object.entries(revs || {})) {
+            // type 1 = a normal review of an established card; ease 1 = "Again"
+            const kept = (list || []).filter(r => r.type === 1 && r.id >= sinceMs).map(r => [weekKey(r.id), r.ease === 1 ? 1 : 0]);
+            if (kept.length) perCard.set(String(cid), kept);
+        }
+    }
+    const out = {};
+    areas.forEach((a, ai) => idLists[ai].forEach(cid => {
+        (perCard.get(String(cid)) || []).forEach(([wk, again]) => {
+            const w = out[wk] = out[wk] || {};
+            const c = w[a.path] = w[a.path] || [0, 0];
+            c[0]++; c[1] += again;
+        });
+    }));
+    return out;
+}
+
+function mergeHistory(db, s, base, weekly, replaceWeeks) {
+    db.history = db.history || {};
+    const id = sourceId(s);
+    const h = db.history[id] = db.history[id] || { label: '', areas: {}, weeks: {}, cards: {} };
+    h.cards = h.cards || {};
+    h.label = sourceLabel(s);
+    base.forEach(b => { h.areas[b.path] = b.label; });
+    replaceWeeks.forEach(wk => { delete h.weeks[wk]; });
+    Object.entries(weekly).forEach(([wk, byArea]) => { h.weeks[wk] = { ...(h.weeks[wk] || {}), ...byArea }; });
+    for (const key of ['weeks', 'cards']) {
+        const ks = Object.keys(h[key]).sort();
+        ks.slice(0, Math.max(0, ks.length - HISTORY_WEEKS_KEPT)).forEach(k => delete h[key][k]);
+    }
+    return h;
+}
+
+const historyFor = settings => {
+    const hist = loadDb().history || {};
+    return settings ? hist[sourceId(settings)] : null;
+};
+
+// Continuous weekly series ending this week; v = retention (null when too few reviews)
+function weeklySeries(h, path, maxWeeks = 52) {
+    const keys = Object.keys(h.weeks || {}).sort();
+    if (!keys.length) return [];
+    const out = [];
+    const end = weekKey(Date.now());
+    const d = new Date(keys[0] + 'T00:00:00');
+    for (let guard = 0; guard < 2000; guard++) {
+        const wk = weekKey(d.getTime());
+        if (wk > end) break;
+        const w = h.weeks[wk] || {};
+        let c;
+        if (path) c = w[path];
+        else c = Object.values(w).reduce((acc, x) => [acc[0] + x[0], acc[1] + x[1]], [0, 0]);
+        const n = c ? c[0] : 0;
+        out.push({ wk, n, v: n >= MIN_WEEK_REVIEWS ? 1 - c[1] / n : null });
+        d.setDate(d.getDate() + 7);
+    }
+    return out.slice(-maxWeeks);
+}
+
+// Last full week vs about 4 weeks before it
+function retentionTrend(h, path) {
+    const ser = weeklySeries(h, path, 60).slice(0, -1);   // drop the current, unfinished week
+    let i = ser.length - 1;
+    while (i >= 0 && ser[i].v == null) i--;
+    if (i < 0) return null;
+    for (const back of [4, 5, 3, 6]) {
+        const j = i - back;
+        if (j >= 0 && ser[j].v != null) return { now: ser[i].v, then: ser[j].v, delta: ser[i].v - ser[j].v, weeks: back };
+    }
+    return null;
+}
+function trendBadge(t) {
+    if (!t) return '';
+    const d = Math.round(t.delta * 100);
+    if (Math.abs(d) < 2) return '<span class="trend flat">→ steady</span>';
+    return d > 0 ? `<span class="trend up">▲ ${d} pts</span>` : `<span class="trend down">▼ ${-d} pts</span>`;
+}
+
+// Small dependency-free line chart; points = [{ wk, v, n }]
+function lineChartSvg(points, { width = 560, height = 190, compact = false } = {}) {
+    const vals = points.map(p => p.v).filter(v => v != null);
+    if (!vals.length) return '';
+    let lo = Math.floor((Math.min(...vals) - 0.02) * 20) / 20, hi = Math.ceil((Math.max(...vals) + 0.02) * 20) / 20;
+    lo = Math.max(0, lo); hi = Math.min(1, hi); if (hi - lo < 0.1) lo = Math.max(0, hi - 0.1);
+    const pl = 38, pr = 8, pt = 8, pb = compact ? 16 : 22;
+    const W = width - pl - pr, H = height - pt - pb;
+    const x = i => pl + (points.length === 1 ? W / 2 : (i / (points.length - 1)) * W);
+    const y = v => pt + (1 - (v - lo) / (hi - lo)) * H;
+    const parts = [];
+    // review volume bars (light, in the background)
+    const maxN = Math.max(...points.map(p => p.n), 1);
+    const bw = Math.max(2, Math.min(14, W / points.length * 0.6));
+    points.forEach((p, i) => {
+        if (!p.n) return;
+        const bh = (p.n / maxN) * H * 0.35;
+        parts.push(`<rect x="${(x(i) - bw / 2).toFixed(1)}" y="${(pt + H - bh).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="#e2e8f0" rx="1"><title>${fmtWeek(p.wk)}: ${p.n} reviews</title></rect>`);
+    });
+    // gridlines + y labels
+    const step = (hi - lo) > 0.3 ? 0.1 : 0.05;
+    for (let t = Math.ceil(lo / step) * step; t <= hi + 1e-9; t += step) {
+        parts.push(`<line x1="${pl}" x2="${pl + W}" y1="${y(t).toFixed(1)}" y2="${y(t).toFixed(1)}" stroke="#edf2f7"/>`);
+        parts.push(`<text x="${pl - 6}" y="${(y(t) + 4).toFixed(1)}" font-size="11" fill="#a0aec0" text-anchor="end">${Math.round(t * 100)}%</text>`);
+    }
+    // line, broken where a week has too little data
+    let d = '', pen = false;
+    points.forEach((p, i) => {
+        if (p.v == null) { pen = false; return; }
+        d += `${pen ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.v).toFixed(1)} `;
+        pen = true;
+    });
+    parts.push(`<path d="${d}" fill="none" stroke="#3182ce" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`);
+    points.forEach((p, i) => {
+        if (p.v == null) return;
+        parts.push(`<circle cx="${x(i).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="${compact ? 2.5 : 3}" fill="#3182ce"><title>Week of ${fmtWeek(p.wk)}: ${pct(p.v)} retention (${p.n} reviews)</title></circle>`);
+    });
+    // x labels: first, middle, last
+    const idx = [...new Set([0, Math.floor((points.length - 1) / 2), points.length - 1])];
+    idx.forEach(i => parts.push(`<text x="${x(i).toFixed(1)}" y="${height - 4}" font-size="11" fill="#a0aec0" text-anchor="${i === 0 ? 'start' : i === points.length - 1 ? 'end' : 'middle'}">${fmtWeek(points[i].wk)}</text>`));
+    return `<svg viewBox="0 0 ${width} ${height}" width="100%" role="img" aria-label="Weekly retention chart">${parts.join('')}</svg>`;
+}
+
+// ---------- Progress Over Time card ----------
+let historySel = '';
+function renderHistory() {
+    const db = loadDb();
+    const hist = db.history || {};
+    const ids = Object.keys(hist);
+    const sel = $('historySourceSelect'), box = $('historyChart');
+    if (!ids.length) {
+        sel.innerHTML = '<option value="">No history yet</option>';
+        sel.disabled = true;
+        $('deleteHistoryBtn').classList.add('hidden');
+        box.innerHTML = '<p class="muted" style="margin-top:0;">Every sync saves this week’s numbers here. To fill in the past, open Anki and click <b>Import past history</b>.</p>';
+        return;
+    }
+    sel.disabled = false;
+    const snap = db.ankiSnapshot;
+    if (!ids.includes(historySel)) historySel = snap && ids.includes(sourceId(snap.settings)) ? sourceId(snap.settings) : ids[0];
+    sel.innerHTML = ids.map(id => `<option value="${escHtml(id)}">${escHtml(hist[id].label)}</option>`).join('');
+    sel.value = historySel;
+    $('deleteHistoryBtn').classList.remove('hidden');
+
+    const h = hist[historySel];
+    const pts = weeklySeries(h, null, 52);
+    const weeksWithData = pts.filter(p => p.v != null).length;
+    const totalReviews = Object.values(h.weeks).reduce((sum, w) => sum + Object.values(w).reduce((a, c) => a + c[0], 0), 0);
+    const overall = retentionTrend(h, null);
+    const changes = Object.keys(h.areas).map(path => ({ label: h.areas[path], t: retentionTrend(h, path) })).filter(x => x.t);
+    const row = x => `<div class="change-row"><span>${escHtml(x.label)}</span><span class="trend ${x.t.delta > 0 ? 'up' : 'down'}">${pct(x.t.then)} → ${pct(x.t.now)}</span></div>`;
+    const up = changes.filter(x => x.t.delta >= 0.02).sort((a, b) => b.t.delta - a.t.delta).slice(0, 4);
+    const down = changes.filter(x => x.t.delta <= -0.02).sort((a, b) => a.t.delta - b.t.delta).slice(0, 4);
+
+    box.innerHTML = `
+        <div class="muted" style="margin-bottom:6px;">
+            Weekly retention on established cards · ${weeksWithData} week${weeksWithData === 1 ? '' : 's'} with data · ${totalReviews.toLocaleString()} reviews saved
+            ${overall ? `<br>Overall: ${pct(overall.then)} ${overall.weeks} weeks ago → ${pct(overall.now)} last week ${trendBadge(overall)}` : ''}
+        </div>
+        ${lineChartSvg(pts) || '<p class="muted">Not enough reviews yet to chart.</p>'}
+        ${up.length || down.length ? `
+        <div class="change-grid">
+            <div><div class="res-title">Improving</div>${up.map(row).join('') || '<div class="muted">—</div>'}</div>
+            <div><div class="res-title">Slipping</div>${down.map(row).join('') || '<div class="muted">—</div>'}</div>
+        </div>` : ''}`;
+}
+
+async function importHistory() {
+    const btn = $('importHistoryBtn'), st = $('historyStatus');
+    btn.disabled = true;
+    st.classList.remove('status-err');
+    try {
+        if (!ankiTags && !(await connectAnki())) { st.textContent = "Couldn't reach Anki. Open Anki on this computer first."; return; }
+        const s = readSettingsForm();
+        const base = buildAreas(s);
+        if (!base.length) { st.textContent = 'No subdivisions found for the current AnKing Sync settings.'; return; }
+        if (!confirm(`Import your full review history for “${sourceLabel(s)}” (${base.length} subdivisions)?\n\nThis reads Anki's review log and can take a minute for big decks.`)) return;
+        const weekly = await collectReviews(base, b => `${b.q} -is:new`, 0,
+            (i, n, phase) => { st.textContent = `${phase} ${Math.round((i / n) * 100)}%`; });
+        const db = loadDb();
+        mergeHistory(db, s, base, weekly, Object.keys(weekly));
+        saveDb(db);
+        historySel = sourceId(s);
+        const weeks = Object.keys(weekly).length;
+        st.textContent = weeks ? `Imported ${weeks} week${weeks === 1 ? '' : 's'} of history for ${sourceLabel(s)}.` : 'No past reviews found for these settings.';
+        renderAll();
+    } catch (err) {
+        console.error(err);
+        st.textContent = ankiErrorText(err);
+        st.classList.add('status-err');
+    } finally {
+        btn.disabled = false;
+    }
+}
+function deleteHistory() {
+    const db = loadDb();
+    const h = (db.history || {})[historySel];
+    if (!h) return;
+    if (!confirm(`Delete all saved history for “${h.label}” from database.json? This can't be undone (you can re-import it from Anki).`)) return;
+    delete db.history[historySel];
+    saveDb(db);
+    historySel = '';
+    $('historyStatus').textContent = '';
+    renderAll();
+}
+$('historySourceSelect').addEventListener('change', e => { historySel = e.target.value; renderHistory(); });
+$('importHistoryBtn').addEventListener('click', importHistory);
+$('deleteHistoryBtn').addEventListener('click', deleteHistory);
+
+// ---------- Remove current stats from the homepage ----------
+function clearStats() {
+    const snap = getSnap();
+    if (!snap) return;
+    const name = snap.settings.mode === 'decks' ? snap.settings.deckRoot : cleanSeg(snap.settings.family || '');
+    if (!confirm(`Remove the ${name} stats from the homepage?\n\nYour saved history stays in database.json. Auto-sync pauses so they don't reload on their own; click "Analyze my stats" when you want stats back.`)) return;
+    const db = loadDb();
+    delete db.ankiSnapshot;
+    db.autoSyncPaused = true;
+    saveDb(db);
+    selectedKey = '';
+    try { localStorage.removeItem('notebook_selected'); } catch {}
+    renderAll();
+    progress('Stats removed. Auto-sync is paused: change the settings if you like, then click "Analyze my stats".');
+}
+$('clearStatsBtn').addEventListener('click', clearStats);
+
+// ============================================================
 // RENDERING — priority list
 // ============================================================
 const TOP_SHOWN = 8;
@@ -713,9 +1034,9 @@ const prioLabel = { P1: 'P1 - High Priority', P2: 'P2 - Medium', P3: 'P3 - Low P
 const getSnap = () => loadDb().ankiSnapshot;
 const lastSeg = label => label.split(' › ').pop();
 
-function statLine(a, days) {
+function statLine(a, days, h) {
     const ret = a.retention != null
-        ? `Retention <b>${pct(a.retention)}</b> (${a.reviewed} established cards reviewed in ${days}d)`
+        ? `Retention <b>${pct(a.retention)}</b>${h ? trendBadge(retentionTrend(h, a.path)) : ''} (${a.reviewed} established cards reviewed in ${days}d)`
         : `<i>Not enough recent reviews — ranked on lapses only</i>`;
     return `${ret} · ${pct(a.struggle)} with 3+ lapses · ${a.total.toLocaleString()} active cards`;
 }
@@ -728,10 +1049,13 @@ function renderWeakAreas() {
         box.innerHTML = `<p class="muted">No Anki data yet. Open this page on the computer with Anki running and hit <b>Analyze my stats</b>.</p>`;
         $('allAreasWrap').classList.add('hidden');
         $('lastSynced').textContent = '';
+        $('clearStatsBtn').classList.add('hidden');
         return;
     }
     currentAreas = snap.areas;
     const days = snap.settings.days;
+    const hist = historyFor(snap.settings);
+    $('clearStatsBtn').classList.remove('hidden');
     $('lastSynced').innerHTML = `Synced ${timeAgo(snap.syncedAt)} · ${escHtml(snap.settings.mode === 'decks' ? snap.settings.deckRoot : cleanSeg(snap.settings.family))} · last ${days}d`;
     const maxScore = Math.max(...snap.areas.map(a => a.score), 0.01);
 
@@ -741,7 +1065,7 @@ function renderWeakAreas() {
                 <div class="area-title"><span class="area-rank">#${i + 1}</span>${escHtml(a.label)}</div>
                 <span class="badge ${a.priority.toLowerCase()}">${prioLabel[a.priority]}</span>
             </div>
-            <div class="area-stats">${statLine(a, days)}</div>
+            <div class="area-stats">${statLine(a, days, hist)}</div>
             <div class="bar"><div style="width:${Math.round((a.score / maxScore) * 100)}%"></div></div>
         </div>`).join('')
         + `<p class="muted" style="margin:4px 0 0;">Click an area to open it in the AnKing Notebook.</p>`;
@@ -846,6 +1170,21 @@ function resourcesHtml(a, i) {
         </div>`;
 }
 
+function historyBlock(a) {
+    const h = historyFor(getSnap().settings);
+    const ser = h ? weeklySeries(h, a.path, 16) : [];
+    if (ser.filter(p => p.v != null).length < 2) {
+        return '<div class="muted" style="margin-top:10px;">Weekly history builds up here as you sync. <a href="#historyCard">Import past history</a> to fill it in now.</div>';
+    }
+    const t = retentionTrend(h, a.path);
+    return `
+        <div class="res-block">
+            <div class="res-title">Retention by week</div>
+            ${lineChartSvg(ser, { height: 130, compact: true })}
+            ${t ? `<div class="muted">${pct(t.then)} ${t.weeks} weeks ago → ${pct(t.now)} last week ${trendBadge(t)}</div>` : ''}
+        </div>`;
+}
+
 function renderNotebook() {
     const box = $('areaDetail');
     const sel = currentSelection();
@@ -873,6 +1212,7 @@ function renderNotebook() {
             </div>
             ${a.retention == null ? '<div class="muted" style="margin-bottom:6px;"><i>Not enough recent reviews for a retention figure — ranked on lapses only.</i></div>' : ''}
             <div class="bar"><div style="width:${Math.round((a.score / maxScore) * 100)}%"></div></div>
+            ${historyBlock(a)}
             ${resourcesHtml(a, i)}`;
     }
     box.innerHTML = html;
@@ -962,8 +1302,8 @@ document.addEventListener('change', e => {
 });
 
 $('connectBtn').addEventListener('click', () => connectAnki());
-$('analyzeBtn').addEventListener('click', () => analyze());
-['familySelect', 'depthSelect', 'daysSelect', 'minCardsInput', 'deckInput', 'ankiUrlInput'].forEach(id => $(id).addEventListener('change', readSettingsForm));
+$('analyzeBtn').addEventListener('click', () => analyze({ manual: true }));
+['familySelect', 'depthSelect', 'daysSelect', 'minCardsInput', 'deckInput', 'ankiUrlInput', 'autoSyncInput'].forEach(id => $(id).addEventListener('change', readSettingsForm));
 
 // ============================================================
 // INIT
@@ -972,11 +1312,17 @@ function renderAll() {
     renderWeakAreas();
     renderNotebookSelect();
     renderNotebook();
+    renderHistory();
 }
 // Connect to Anki and re-analyze on its own whenever the page opens
 async function autoSync() {
     if (analyzing) return;
-    if (await connectAnki({ silent: true })) await analyze();
+    const off = getSettings().autoSync === false, paused = !!loadDb().autoSyncPaused;
+    const connected = await connectAnki({ silent: true });
+    if (!connected) return;
+    if (off) { progress('Connected. Auto-sync is off; click "Analyze my stats" to refresh.'); return; }
+    if (paused) { progress('Connected. Auto-sync is paused since you removed the stats; click "Analyze my stats" to load them again.'); return; }
+    await analyze();
 }
 // ...and again when you come back to the tab, if the last sync is getting old
 const RESYNC_AFTER_MINUTES = 15;
