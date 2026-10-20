@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Focus Dashboard</title>
+    <title>Master Focus Dashboard</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -73,7 +73,7 @@
         .status-msg { margin-top: 10px; font-weight: bold; color: #4a5568; font-size: 0.9em; white-space: pre-wrap; }
         .status-err { color: #c53030; }
         .muted { color: #718096; font-size: 0.9em; }
-        .hidden { display: none; }
+        .hidden { display: none !important; }
         .badge {
             display: inline-block;
             padding: 2px 6px;
@@ -185,16 +185,25 @@
                     <label class="field full">AnkiConnect address
                         <input type="text" id="ankiUrlInput">
                     </label>
-                    <label class="field">Deck tag root
+                    <label class="field full">Analyze by
+                        <select id="modeSelect">
+                            <option value="tags">AnKing tags (e.g. ^Systems)</option>
+                            <option value="decks">Subdecks of a deck (e.g. HSF(Drew))</option>
+                        </select>
+                    </label>
+                    <label class="field full deck-only">Deck
+                        <select id="deckRootSelect"></select>
+                    </label>
+                    <label class="field tag-only">Deck tag root
                         <select id="rootSelect"></select>
                     </label>
-                    <label class="field">Group subdivisions by
+                    <label class="field tag-only">Group subdivisions by
                         <select id="familySelect"></select>
                     </label>
                     <label class="field">Detail level
                         <select id="depthSelect">
-                            <option value="1">Broad (e.g. Cardiology)</option>
-                            <option value="2">Narrow (e.g. Cardiology › Pathology)</option>
+                            <option value="1">Broad (1 level down)</option>
+                            <option value="2">Narrow (2 levels down)</option>
                         </select>
                     </label>
                     <label class="field">Look-back window
@@ -208,7 +217,7 @@
                     <label class="field">Ignore areas with fewer than
                         <input type="number" id="minCardsInput" min="1">
                     </label>
-                    <label class="field">Limit to deck (optional)
+                    <label class="field tag-only">Limit to deck (optional)
                         <input type="text" id="deckInput" placeholder="e.g. AnKing Step Deck">
                     </label>
                 </div>
@@ -261,6 +270,8 @@ const SETTINGS_KEY = 'anking_settings';
 
 const DEFAULT_SETTINGS = {
     ankiUrl: 'http://127.0.0.1:8765',
+    mode: 'tags',
+    deckRoot: '',
     root: '#AK_Step1_v12',
     family: '',
     depth: 1,
@@ -274,6 +285,7 @@ const escHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':
 const pct = x => x == null ? '—' : `${Math.round(x * 100)}%`;
 const chunk = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
 
+let ankiDecks = null;         // all deck names (only after connecting)
 let ankiTags = null;          // all tags from the collection (only after connecting)
 let currentAreas = [];        // areas in the current snapshot (for button handlers)
 let currentFileSha = '';
@@ -400,6 +412,8 @@ function saveSettings(s) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s))
 function readSettingsForm() {
     const s = {
         ankiUrl: $('ankiUrlInput').value.trim() || DEFAULT_SETTINGS.ankiUrl,
+        mode: $('modeSelect').value,
+        deckRoot: $('deckRootSelect').value,
         root: $('rootSelect').value,
         family: $('familySelect').value,
         depth: parseInt($('depthSelect').value, 10) || 1,
@@ -417,9 +431,18 @@ function fillSettingsForm() {
     $('daysSelect').value = String(s.days);
     $('minCardsInput').value = s.minCards;
     $('deckInput').value = s.deck;
+    $('modeSelect').value = s.mode;
+    setOptions($('deckRootSelect'), s.deckRoot ? [s.deckRoot] : ['(connect to load)'], s.deckRoot);
     setOptions($('rootSelect'), [s.root], s.root);
     setOptions($('familySelect'), s.family ? [s.family] : ['(connect to load)'], s.family);
+    applyModeVisibility();
 }
+function applyModeVisibility() {
+    const decks = $('modeSelect').value === 'decks';
+    document.querySelectorAll('.tag-only').forEach(el => el.classList.toggle('hidden', decks));
+    document.querySelectorAll('.deck-only').forEach(el => el.classList.toggle('hidden', !decks));
+}
+$('modeSelect').addEventListener('change', () => { applyModeVisibility(); readSettingsForm(); });
 function setOptions(select, values, selected) {
     select.innerHTML = values.map(v => `<option value="${escHtml(v)}">${escHtml(v)}</option>`).join('');
     if (selected && values.includes(selected)) select.value = selected;
@@ -466,7 +489,11 @@ function ankiErrorText(err) {
 function escSearch(s) { return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\*/g, '\\*').replace(/_/g, '\\_'); }
 const tagQuery = tag => `"tag:${escSearch(tag)}"`;
 const deckClause = deck => deck ? ` "deck:${escSearch(deck)}"` : '';
-const weakQuery = (path, s) => `${tagQuery(path)}${deckClause(s.deck)} -is:new -is:suspended (rated:${s.days}:1 OR prop:lapses>=3)`;
+// Where resource tags (Bootcamp/AMBOSS) are looked up: the analysed deck, or the optional deck limit
+const scopeClause = s => s.scope != null ? s.scope : (s.mode === 'decks' ? deckClause(s.deckRoot) : deckClause(s.deck));
+// Base search for one area (older snapshots only stored the tag path)
+const areaQuery = (a, s) => a.q || (tagQuery(a.path) + deckClause(s.deck));
+const weakQuery = (a, s) => `${areaQuery(a, s)} -is:new -is:suspended (rated:${s.days}:1 OR prop:lapses>=3)`;
 
 async function connectAnki() {
     readSettingsForm();
@@ -478,8 +505,9 @@ async function connectAnki() {
             setAnkiStatus(false, 'access denied');
             return false;
         }
-        progress('Loading tags…');
-        ankiTags = await anki('getTags');
+        progress('Loading decks and tags…');
+        [ankiDecks, ankiTags] = await Promise.all([anki('deckNames'), anki('getTags')]);
+        populateDeckSelect();
         populateTagSelectors();
         setAnkiStatus(true, `connected (${ankiTags.length.toLocaleString()} tags)`);
         progress('Connected. Pick how to group subdivisions, then hit "Analyze my stats".');
@@ -496,9 +524,8 @@ async function connectAnki() {
 function populateTagSelectors() {
     const s = getSettings();
     const tops = [...new Set(ankiTags.map(t => t.split('::')[0]))];
-    let roots = tops.filter(t => /^#AK_/i.test(t));
-    if (!roots.length) roots = tops;
-    roots.sort();
+    // AnKing roots first, then every other top-level tag (e.g. a classmate's deck)
+    const roots = [...tops.filter(t => /^#AK_/i.test(t)).sort(), ...tops.filter(t => !/^#AK_/i.test(t)).sort()];
     const root = roots.find(r => r.toLowerCase() === s.root.toLowerCase())
         || roots.find(r => /step1_v12/i.test(r)) || roots[0];
     setOptions($('rootSelect'), roots, root);
@@ -515,6 +542,13 @@ function populateFamilies() {
         || fams[0];
     setOptions($('familySelect'), fams.length ? fams : ['(no sub-tags found)'], fam);
 }
+function populateDeckSelect() {
+    const s = getSettings();
+    const decks = [...ankiDecks].sort((a, b) => a.localeCompare(b));
+    const pick = decks.find(d => d === s.deckRoot) || decks.find(d => /hsf/i.test(d)) || decks[0];
+    setOptions($('deckRootSelect'), decks, pick);
+}
+$('deckRootSelect').addEventListener('change', readSettingsForm);
 $('rootSelect').addEventListener('change', () => { readSettingsForm(); populateFamilies(); readSettingsForm(); });
 
 // ============================================================
@@ -523,7 +557,23 @@ $('rootSelect').addEventListener('change', () => { readSettingsForm(); populateF
 const cleanSeg = s => s.replace(/^[#^!$]+/, '').replace(/^\d+[_\-.\s]+/, '').replace(/_/g, ' ').trim();
 const labelFrom = segs => segs.map(cleanSeg).filter(Boolean).join(' › ');
 
-function buildAreaPaths(s) {
+function buildAreas(s) {
+    if (s.mode === 'decks') {
+        const base = s.deckRoot.split('::');
+        const n = base.length + s.depth;
+        const seen = new Map();
+        ankiDecks.forEach(d => {
+            const p = d.split('::');
+            if (p.length >= n && p.slice(0, base.length).join('::').toLowerCase() === s.deckRoot.toLowerCase()) {
+                const path = p.slice(0, n).join('::');
+                if (!seen.has(path.toLowerCase())) seen.set(path.toLowerCase(), path);
+            }
+        });
+        return [...seen.values()].map(path => ({ path, label: labelFrom(path.split('::').slice(base.length)), q: deckClause(path).trim() }));
+    }
+    return buildTagPaths(s).map(path => ({ path, label: labelFrom(path.split('::').slice(2)), q: tagQuery(path) + deckClause(s.deck) }));
+}
+function buildTagPaths(s) {
     const n = 2 + s.depth;
     const root = s.root.toLowerCase(), fam = s.family.toLowerCase();
     const seen = new Map();
@@ -551,8 +601,8 @@ function parseResourceTag(tag, re) {
     return { key: tag, label: labelFrom(after), id: null };
 }
 
-async function findResources(path, s) {
-    let noteIds = await anki('findNotes', { query: weakQuery(path, s) });
+async function findResources(area, s) {
+    let noteIds = await anki('findNotes', { query: weakQuery(area, s) });
     noteIds = noteIds.slice(0, MAX_NOTES_SCANNED_PER_AREA);
     const bootcamp = new Map(), amboss = new Map();
     for (const batch of chunk(noteIds, 100)) {
@@ -583,15 +633,19 @@ async function analyze() {
     try {
         if (!ankiTags && !(await connectAnki())) return;
         const s = readSettingsForm();
-        const paths = buildAreaPaths(s);
-        if (!paths.length) { progress(`No tags found under ${s.root}::${s.family} at that detail level. Try another grouping.`, true); return; }
+        const base = buildAreas(s);
+        if (!base.length) {
+            progress(s.mode === 'decks'
+                ? `“${s.deckRoot}” has no subdecks ${s.depth} level${s.depth > 1 ? 's' : ''} down. Try Broad, pick a different deck, or use AnKing tags with “Limit to deck” set to it.`
+                : `No tags found under ${s.root}::${s.family} at that detail level. Try another grouping.`, true);
+            return;
+        }
 
-        const dq = deckClause(s.deck);
         const N = s.days;
         const PER = 5;
         const actions = [];
-        paths.forEach(p => {
-            const t = tagQuery(p) + dq + ' -is:suspended';
+        base.forEach(b => {
+            const t = b.q + ' -is:suspended';
             [
                 `${t} -is:new`,                              // active cards
                 `${t} rated:${N} -introduced:${N}`,          // established cards reviewed in window
@@ -609,13 +663,13 @@ async function analyze() {
             res.forEach(r => counts.push(Array.isArray(r) ? r.length : 0));
         }
 
-        let areas = paths.map((path, i) => {
+        let areas = base.map(({ path, label, q }, i) => {
             const [total, reviewed, failed, struggling, mature] = counts.slice(i * PER, i * PER + PER);
             const fail = reviewed >= 10 ? failed / reviewed : null;
             const struggle = total ? struggling / total : 0;
             const score = fail != null ? 0.7 * fail + 0.3 * struggle : struggle;
             return {
-                path, label: labelFrom(path.split('::').slice(2)),
+                path, label, q,
                 total, reviewed, failed, struggling, mature,
                 retention: fail != null ? 1 - fail : null,
                 struggle, matureFrac: total ? mature / total : 0,
@@ -637,17 +691,17 @@ async function analyze() {
         const top = areas.slice(0, TOP_AREAS_WITH_RESOURCES);
         for (let i = 0; i < top.length; i++) {
             progress(`Matching Bootcamp videos & AMBOSS topics… (${i + 1}/${top.length})`);
-            Object.assign(top[i], await findResources(top[i].path, s));
+            Object.assign(top[i], await findResources(top[i], s));
         }
 
         const db = loadDb();
         db.ankiSnapshot = {
             syncedAt: new Date().toISOString(),
-            settings: { root: s.root, family: s.family, depth: s.depth, days: s.days, deck: s.deck },
+            settings: { mode: s.mode, deckRoot: s.deckRoot, root: s.root, family: s.family, depth: s.depth, days: s.days, deck: s.deck, scope: scopeClause(s) },
             areas
         };
         saveDb(db);
-        progress(`Done — analyzed ${n} subdivisions.`);
+        progress(`Done — analyzed ${n} subdivision${n === 1 ? '' : 's'}.`);
         renderAll();
         if (!currentSelection()) selectNotebook('area:' + areas[0].path);
     } catch (err) {
@@ -693,7 +747,7 @@ function renderWeakAreas() {
     }
     currentAreas = snap.areas;
     const days = snap.settings.days;
-    $('lastSynced').textContent = `Synced ${timeAgo(snap.syncedAt)} · ${cleanSeg(snap.settings.family)} · last ${days}d`;
+    $('lastSynced').innerHTML = `Synced ${timeAgo(snap.syncedAt)} · ${escHtml(snap.settings.mode === 'decks' ? snap.settings.deckRoot : cleanSeg(snap.settings.family))} · last ${days}d`;
     const maxScore = Math.max(...snap.areas.map(a => a.score), 0.01);
 
     box.innerHTML = snap.areas.slice(0, TOP_SHOWN).map((a, i) => `
@@ -872,7 +926,7 @@ async function loadResourcesFor(i) {
     loadingRes.add(a.path);
     try {
         const s = { ...getSettings(), ...getSnap().settings };
-        const r = await findResources(a.path, s);
+        const r = await findResources(a, s);
         const db = loadDb();
         const area = db.ankiSnapshot && db.ankiSnapshot.areas.find(x => x.path === a.path);
         if (!area) return;
@@ -937,14 +991,14 @@ document.addEventListener('click', e => {
             selectNotebook('area:' + a.path, true);
             break;
         case 'qbank':
-            ankiDo(() => anki('guiBrowse', { query: weakQuery(a.path, snapSettings) }));
+            ankiDo(() => anki('guiBrowse', { query: weakQuery(a, snapSettings) }));
             break;
         case 'browse-res':
-            ankiDo(() => anki('guiBrowse', { query: tagQuery(res.tag) + deckClause(snapSettings.deck) }));
+            ankiDo(() => anki('guiBrowse', { query: tagQuery(res.tag) + scopeClause(snapSettings) }));
             break;
         case 'unsuspend':
             ankiDo(async () => {
-                const cards = await anki('findCards', { query: `${tagQuery(res.tag)}${deckClause(snapSettings.deck)} is:suspended` });
+                const cards = await anki('findCards', { query: `${tagQuery(res.tag)}${scopeClause(snapSettings)} is:suspended` });
                 if (!cards.length) { alert('All cards for this video are already unsuspended.'); return; }
                 if (!confirm(`Unsuspend ${cards.length} card(s) for “${res.label}”? Do this after you've watched the video.`)) return;
                 await anki('unsuspend', { cards });
