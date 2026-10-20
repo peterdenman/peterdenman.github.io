@@ -640,7 +640,10 @@
         "matureFrac": 0.30405405405405406,
         "score": 0.02027027027027027,
         "lowData": true,
-        "priority": "P3"
+        "priority": "P3",
+        "bootcamp": [],
+        "amboss": [],
+        "weakNotes": 200
       },
       {
         "path": "HSF (Drew)::Exam 3::Radiology & Ultrasound",
