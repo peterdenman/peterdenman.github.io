@@ -188,7 +188,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 21 · PDF matching</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 21b · PDF matching</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -296,6 +296,7 @@
                 <div class="up-progress hidden" id="upProgress"></div>
                 <div id="upList"></div>
                 <div id="upStatus" class="status-msg"></div>
+                <button class="btn-primary" id="upPdfOpenBtn" style="width:100%; margin-top:8px;">📄 Find Bootcamp videos for a lecture PDF</button>
                 <details id="upAddWrap">
                     <summary class="add-summary">+ Add Bootcamp videos or cards</summary>
                     <div class="settings-grid">
@@ -1925,6 +1926,12 @@ function pdfCandidates() {
 }
 
 $('upPdfBtn').addEventListener('click', runPdfMatch);
+$('upPdfOpenBtn').addEventListener('click', () => {
+    $('upAddWrap').open = true;
+    $('upSource').value = 'pdf';
+    renderPicker();
+    $('upPdfWrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
 $('upPdfSort').addEventListener('change', renderPicker);
 
 // ============================================================
@@ -2019,6 +2026,7 @@ document.addEventListener('visibilitychange', () => {
 (async function init() {
     fillSettingsForm();
     renderAll();
+    renderPicker();
     await pullFromGitHub();   // load the GitHub copy first so a fresh sync isn't overwritten
     autoSync();
 })();
