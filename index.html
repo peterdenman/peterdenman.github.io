@@ -138,6 +138,9 @@
         .up-when.soon { color: #c05621; }
         .up-when.later { color: #2b6cb0; }
         .up-row .actions { display: flex; gap: 4px; flex-shrink: 0; }
+        .res-badge { display: inline-block; font-size: 0.72em; font-weight: bold; padding: 1px 5px; border-radius: 3px; margin-right: 4px; vertical-align: 1px; }
+        .res-badge.bootcamp { background: #e9d8fd; color: #553c9a; }
+        .res-badge.bnb { background: #bee3f8; color: #2a4365; }
         .btn-small.btn-go { background: #38a169; color: white; border-color: #38a169; }
         .btn-small.btn-go:disabled { background: #cbd5e0; color: #718096; border-color: #cbd5e0; }
         .up-done { margin-top: 4px; }
@@ -188,7 +191,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 21b · PDF matching</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 21c · Bootcamp + B&amp;B</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -296,13 +299,14 @@
                 <div class="up-progress hidden" id="upProgress"></div>
                 <div id="upList"></div>
                 <div id="upStatus" class="status-msg"></div>
-                <button class="btn-primary" id="upPdfOpenBtn" style="width:100%; margin-top:8px;">📄 Find Bootcamp videos for a lecture PDF</button>
+                <button class="btn-primary" id="upPdfOpenBtn" style="width:100%; margin-top:8px;">📄 Find Bootcamp &amp; B&amp;B videos for a lecture PDF</button>
                 <details id="upAddWrap">
-                    <summary class="add-summary">+ Add Bootcamp videos or cards</summary>
+                    <summary class="add-summary">+ Add videos or cards</summary>
                     <div class="settings-grid">
                         <label class="field">Source
                             <select id="upSource">
                                 <option value="bootcamp">Bootcamp videos</option>
+                                <option value="bnb">B&amp;B videos</option>
                                 <option value="pdf">Match my lecture PDF</option>
                                 <option value="tag">Any tag</option>
                                 <option value="deck">Subdeck</option>
@@ -325,7 +329,12 @@
                             </label>
                         </div>
                         <div class="btn-group" style="margin:0 0 10px;">
-                            <button class="btn-primary" id="upPdfBtn">Find matching Bootcamp videos</button>
+                            <button class="btn-primary" id="upPdfBtn">Find matching videos</button>
+                            <select id="upPdfRes" style="flex:0 0 auto; width:auto;" aria-label="Which videos to match">
+                                <option value="all">Bootcamp + B&amp;B</option>
+                                <option value="bootcamp">Bootcamp only</option>
+                                <option value="bnb">B&amp;B only</option>
+                            </select>
                             <select id="upPdfSort" style="flex:0 0 auto; width:auto;" aria-label="Sort matches">
                                 <option value="score">Best match first</option>
                                 <option value="page">Order in the PDF</option>
@@ -1338,9 +1347,23 @@ async function loadResourcesFor(i) {
 }
 
 // ============================================================
-// UPCOMING UNSUSPENDS — a semester queue of Bootcamp videos / cards
+// UPCOMING UNSUSPENDS — a semester queue of Bootcamp / B&B videos and cards
 // ============================================================
-const isBootcampSeg = x => /^#?bootcamp$/i.test(x);
+// Video resources AnKing tags card-by-card (one sub-tag per video)
+const VIDEO_RESOURCES = [
+    { id: 'bootcamp', name: 'Bootcamp', icon: '🎬', re: /^#?bootcamp$/i },
+    { id: 'bnb', name: 'B&B', icon: '📘', re: /^#?(b&b|bnb|b_and_b|boards[\s_-]*(&|and)[\s_-]*beyond)$/i }
+];
+// -> { res, i } for the first tag segment that names a video resource
+function resourceSeg(segs) {
+    for (let i = 0; i < segs.length; i++) {
+        const res = VIDEO_RESOURCES.find(r => r.re.test(segs[i]));
+        if (res) return { res, i };
+    }
+    return null;
+}
+const resourceOfKey = key => { const r = resourceSeg(String(key).split('::')); return r ? r.res : null; };
+const resBadge = res => res ? `<span class="res-badge ${res.id}">${escHtml(res.name)}</span>` : '';
 const dateKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const todayKey = () => dateKey(new Date());
 const addDays = (key, n) => { const d = new Date(key + 'T00:00:00'); d.setDate(d.getDate() + n); return dateKey(d); };
@@ -1348,26 +1371,27 @@ const daysBetween = (a, b) => Math.round((new Date(b + 'T00:00:00') - new Date(a
 const daysUntil = key => daysBetween(todayKey(), key);
 const itemQuery = it => it.kind === 'deck' ? deckClause(it.key).trim() : tagQuery(it.key);
 const itemUid = it => `${it.kind}:${it.key}`.toLowerCase();
-const itemIcon = it => it.kind === 'deck' ? '🗂️' : it.key.split('::').some(isBootcampSeg) ? '🎬' : '🏷️';
+const itemIcon = it => it.kind === 'deck' ? '🗂️' : (resourceOfKey(it.key) || { icon: '🏷️' }).icon;
 
-// Every Bootcamp video tag in the collection (the deepest tag under any #Bootcamp tag)
+// Every Bootcamp / B&B video tag in the collection (the deepest tag under #Bootcamp or #B&B)
 let bcIndex = null;
 function bootcampIndex() {
     if (bcIndex) return bcIndex;
-    const tags = (ankiTags || []).filter(t => t.split('::').some(isBootcampSeg));
+    const tags = (ankiTags || []).filter(t => resourceSeg(t.split('::')));
     const parents = new Set();
     tags.forEach(t => { const p = t.split('::'); for (let k = 1; k < p.length; k++) parents.add(p.slice(0, k).join('::').toLowerCase()); });
     const roots = new Set(), videos = [];
     tags.forEach(t => {
         if (parents.has(t.toLowerCase())) return;
         const segs = t.split('::');
-        const bi = segs.findIndex(isBootcampSeg);
+        const { res, i: bi } = resourceSeg(segs);
         const after = segs.slice(bi + 1);
         if (!after.length) return;
         const root = segs.slice(0, bi).join('::');
         roots.add(root);
         videos.push({
-            tag: t, root,
+            tag: t, root, res,
+            resRoot: segs.slice(0, bi + 1).join('::'),
             secKey: segs.slice(0, bi + 1 + Math.min(1, after.length - 1)).join('::'),
             subject: after.length > 1 ? cleanSeg(after[0]) : 'General',
             short: labelFrom(after.length > 1 ? after.slice(1) : after),
@@ -1378,7 +1402,7 @@ function bootcampIndex() {
     const sections = [], seen = new Map();
     videos.forEach(v => {
         if (!seen.has(v.secKey)) {
-            const sec = { key: v.secKey, label: v.subject + (roots.size > 1 ? ` (${cleanSeg(v.root.split('::').pop())})` : ''), count: 0 };
+            const sec = { key: v.secKey, res: v.res.id, label: v.subject + (roots.size > 1 ? ` (${cleanSeg(v.root.split('::').pop())})` : ''), count: 0 };
             seen.set(v.secKey, sec);
             sections.push(sec);
         }
@@ -1387,14 +1411,17 @@ function bootcampIndex() {
     bcIndex = { videos, sections };
     return bcIndex;
 }
+const isResourceSource = src => VIDEO_RESOURCES.some(r => r.id === src);
 
 // ---------- picker (Add videos or cards) ----------
 const countCache = new Map();   // Anki query -> { total, suspended }
 let pickerItems = [], pickerToken = 0;
 
 function populateUpSections() {
-    const { sections } = bootcampIndex();
+    const src = $('upSource').value;
+    const sections = bootcampIndex().sections.filter(sec => sec.res === src);
     const sel = $('upSection'), prev = sel.value;
+    sel.dataset.res = src;
     sel.innerHTML = sections.length
         ? sections.map(s => `<option value="${escHtml(s.key)}">${escHtml(s.label)} (${s.count})</option>`).join('')
         : '<option value="">—</option>';
@@ -1405,8 +1432,8 @@ function pickerCandidates() {
     const src = $('upSource').value;
     const norm = x => x.toLowerCase().replace(/[_:›\s]+/g, ' ').trim();
     const q = norm($('upSearch').value);
-    if (src === 'bootcamp') {
-        const { videos } = bootcampIndex();
+    if (isResourceSource(src)) {
+        const videos = bootcampIndex().videos.filter(v => v.res.id === src);
         const list = q ? videos.filter(v => norm(v.label).includes(q)) : videos.filter(v => v.secKey === $('upSection').value);
         return list.slice(0, 150).map(v => ({ kind: 'tag', key: v.tag, label: q ? v.label : v.short, full: v.label }));
     }
@@ -1430,17 +1457,19 @@ function countText(c) {
 
 function renderPicker() {
     const box = $('upPicker'), src = $('upSource').value;
-    $('upSectionWrap').classList.toggle('hidden', src !== 'bootcamp');
+    $('upSectionWrap').classList.toggle('hidden', !isResourceSource(src));
+    if (isResourceSource(src) && ankiTags && $('upSection').dataset.res !== src) populateUpSections();
     $('upSearchWrap').classList.toggle('hidden', src === 'pdf');
     $('upPdfWrap').classList.toggle('hidden', src !== 'pdf');
     pickerItems = [];
     const msg = html => { box.innerHTML = `<p class="muted" style="margin:6px;">${html}</p>`; updateAddBtn(); };
     if (!ankiTags) return msg('Open this page on the computer with Anki running to browse videos and cards.');
-    if ((src === 'bootcamp' || src === 'pdf') && !bootcampIndex().videos.length) {
-        return msg('No Bootcamp tags found in your collection. They come with the current AnKing Step deck (v12 via AnkiHub). You can still add any tag or subdeck from the Source menu.');
+    if ((isResourceSource(src) || src === 'pdf') && !bootcampIndex().videos.filter(v => src === 'pdf' || v.res.id === src).length) {
+        const name = src === 'pdf' ? 'Bootcamp or B&B' : VIDEO_RESOURCES.find(r => r.id === src).name;
+        return msg(`No ${escHtml(name)} tags found in your collection. They come with the current AnKing Step deck (v12 via AnkiHub). You can still add any tag or subdeck from the Source menu.`);
     }
     pickerItems = src === 'pdf' ? pdfCandidates() : pickerCandidates();
-    if (src === 'pdf' && !pdfMatches.length) return msg('Choose a lecture PDF (or paste text) and click <b>Find matching Bootcamp videos</b>. The page compares it with each video’s name and the text of its AnKing cards.');
+    if (src === 'pdf' && !pdfMatches.length) return msg('Choose a lecture PDF (or paste text) and click <b>Find matching videos</b>. The page compares it with each video’s name and the text of its AnKing cards.');
     if (!pickerItems.length) {
         return msg(src === 'tag' && $('upSearch').value.trim().length < 2 ? 'Type at least 2 letters to search your tags.' : 'Nothing matches.');
     }
@@ -1450,7 +1479,7 @@ function renderPicker() {
             const already = inList.has(itemUid(p));
             return `<label class="pick-row${already ? ' in-list' : ''}">
                 <input type="checkbox" data-pick="${k}" ${already ? 'disabled' : p.pre ? 'checked' : ''}>
-                <span class="pick-label">${escHtml(p.label)}${p.extra ? `<span class="pick-extra">${p.extra}</span>` : ''}</span>
+                <span class="pick-label">${p.badge || ''}${escHtml(p.label)}${p.extra ? `<span class="pick-extra">${p.extra}</span>` : ''}</span>
                 ${already ? '<span class="badge p3">in list</span>' : `<span class="muted" id="pc-${k}">${countText(countCache.get(itemQuery(p)))}</span>`}
             </label>`;
         }).join('');
@@ -1553,7 +1582,7 @@ function upRow(it, cls) {
     return `
     <div class="up-row ${cls}">
         <div class="up-main">
-            <div class="up-label">${itemIcon(it)} ${escHtml(it.label)}</div>
+            <div class="up-label">${itemIcon(it)} ${resBadge(it.kind === 'tag' ? resourceOfKey(it.key) : null)}${escHtml(it.label)}</div>
             <div class="up-meta">
                 ${cls === 'done'
                     ? `<span>${doneText} ${doneWhen}</span>`
@@ -1579,7 +1608,7 @@ function renderUpcoming() {
     $('upProgress').innerHTML = items.length ? `<div style="width:${Math.round((done.length / items.length) * 100)}%"></div>` : '';
     if (!items.length) {
         $('upAddWrap').open = true;
-        box.innerHTML = '<p class="muted" style="margin-top:0;">Plan your semester here. Add the Bootcamp videos (or any tag or subdeck) you’ll need to unsuspend and give each one a date. Due items rise to the top, and items tick themselves off once their cards are unsuspended in Anki.</p>';
+        box.innerHTML = '<p class="muted" style="margin-top:0;">Plan your semester here. Add the Bootcamp or B&amp;B videos (or any tag or subdeck) you’ll need to unsuspend and give each one a date. Due items rise to the top, and items tick themselves off once their cards are unsuspended in Anki.</p>';
         return;
     }
     const groups = [['due', 'Due now', []], ['soon', 'Next 7 days', []], ['later', 'Later', []], ['nodate', 'No date', []]];
@@ -1712,7 +1741,7 @@ $('upDate2').value = addDays(todayKey(), 28);
 updateSchedFields();
 
 // ============================================================
-// MATCH MY PDF — rank Bootcamp videos against a lecture PDF / pasted text
+// MATCH MY PDF — rank Bootcamp / B&B videos against a lecture PDF / pasted text
 // ============================================================
 const PDFJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
 const PDFJS_WORKER_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
@@ -1765,22 +1794,22 @@ function weighVector(counts, idf) {
 }
 const dotVec = (a, b) => { let s = 0; const [small, big] = a.size < b.size ? [a, b] : [b, a]; small.forEach((x, t) => { const y = big.get(t); if (y) s += x * y; }); return s; };
 
-// Builds (once per session) a text profile for every Bootcamp video from its tag name + its cards' text
+// Builds (once per session) a text profile for every video from its tag name + its cards' text
 let bcTextIndex = null;
 async function buildBootcampTextIndex(onStatus) {
     if (bcTextIndex) return bcTextIndex;
     const { videos } = bootcampIndex();
-    if (!videos.length) throw new Error('No Bootcamp tags found in your collection.');
+    if (!videos.length) throw new Error('No Bootcamp or B&B tags found in your collection.');
     const byTag = new Map(videos.map((v, i) => [v.tag.toLowerCase(), i]));
     const docs = videos.map(v => countTerms(termsOf(v.label), 5));   // the video's name counts extra
     let usedCards = false;
     try {
-        const roots = [...new Set(videos.map(v => { const s = v.tag.split('::'); return s.slice(0, s.findIndex(isBootcampSeg) + 1).join('::'); }))];
+        const roots = [...new Set(videos.map(v => v.resRoot))];
         const ids = new Set();
         for (const r of roots) (await anki('findNotes', { query: tagQuery(r) })).forEach(id => ids.add(id));
         const batches = chunk([...ids], 250);
         for (let b = 0; b < batches.length; b++) {
-            onStatus(`Reading Bootcamp card text from Anki… ${Math.round((b / batches.length) * 100)}% (one-time per visit)`);
+            onStatus(`Reading Bootcamp & B&B card text from Anki… ${Math.round((b / batches.length) * 100)}% (one-time per visit; B&B covers most of AnKing, so the first run can take a minute)`);
             const infos = await anki('notesInfo', { notes: batches[b] });
             infos.forEach(info => {
                 if (!info || !info.fields) return;
@@ -1866,11 +1895,13 @@ async function runPdfMatch() {
         const allCounts = new Map();
         pages.forEach(p => countTerms(termsOf(p), 1, allCounts));
         const docVec = weighVector(allCounts, idx.idf);
-        if (!docVec.size) { setSt('None of the words in this document appear in your Bootcamp videos.', true); return; }
+        if (!docVec.size) { setSt('None of the words in this document appear in your video cards.', true); return; }
 
         // Score each video against the whole document AND each page, so a topic covered on only a few slides still ranks
         const multiPage = pages.length > 1;
+        const want = $('upPdfRes').value;
         const scored = idx.vecs.map((vec, i) => {
+            if (want !== 'all' && idx.videos[i].res.id !== want) return null;
             const score = dotVec(docVec, vec);
             if (score <= 0.01) return null;
             const ps = multiPage ? pageVecs.map(pv => dotVec(pv, vec)) : [score];
@@ -1903,7 +1934,7 @@ async function runPdfMatch() {
         const nPre = pdfMatches.filter(m => m.pre).length;
         setSt(pdfMatches.length
             ? `Found ${pdfMatches.length} related video${pdfMatches.length === 1 ? '' : 's'} for ${pdfSourceName}. ${nPre} top match${nPre === 1 ? ' is' : 'es are'} ticked; review the list, then add them.${idx.usedCards ? '' : ' (Matched on video names only; card text could not be read.)'}`
-            : 'No related Bootcamp videos found.');
+            : 'No related videos found.');
         renderPicker();
     } catch (err) {
         console.error(err);
@@ -1921,11 +1952,12 @@ function pdfCandidates() {
         const extra = `<span class="match ${strength[0]}">${strength[1]} match</span>`
             + (m.pages.length ? ` · ${m.pages.length === 1 ? 'page' : 'pages'} ${pageRanges(m.pages)}` : '')
             + (m.words.length ? ` · <i>${escHtml(m.words.join(', '))}</i>` : '');
-        return { kind: 'tag', key: m.video.tag, label: m.video.label, full: m.video.label, extra, pre: m.pre, note: `from ${pdfSourceName}${m.pages.length ? ` p. ${pageRanges(m.pages)}` : ''}` };
+        return { kind: 'tag', key: m.video.tag, label: m.video.label, full: m.video.label, badge: resBadge(m.video.res), extra, pre: m.pre, note: `from ${pdfSourceName}${m.pages.length ? ` p. ${pageRanges(m.pages)}` : ''}` };
     });
 }
 
 $('upPdfBtn').addEventListener('click', runPdfMatch);
+$('upPdfRes').addEventListener('change', () => { if (pdfMatches.length) runPdfMatch(); });
 $('upPdfOpenBtn').addEventListener('click', () => {
     $('upAddWrap').open = true;
     $('upSource').value = 'pdf';
