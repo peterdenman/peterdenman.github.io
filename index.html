@@ -1548,7 +1548,7 @@ function renderUpcoming() {
     $('upProgress').innerHTML = items.length ? `<div style="width:${Math.round((done.length / items.length) * 100)}%"></div>` : '';
     if (!items.length) {
         $('upAddWrap').open = true;
-        box.innerHTML = '<p class="muted" style="margin-top:0;">Plan your semester here. Add the Bootcamp videos (or any tag or subdeck) you’ll need to unsuspend and give each one a date. Due items rise to the top, and items tick themselves off once their cards are unsuspended in Anki.</p>';
+        box.innerHTML = '<p class="muted" style="margin-top:0;">Add  Bootcamp videos here (or any tag or subdeck) </p>';
         return;
     }
     const groups = [['due', 'Due now', []], ['soon', 'Next 7 days', []], ['later', 'Later', []], ['nodate', 'No date', []]];
