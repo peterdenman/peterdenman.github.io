@@ -35,7 +35,7 @@
         }
         h2 { margin-top: 0; color: #1a202c; border-bottom: 1px solid #edf2f7; padding-bottom: 8px; }
         .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
-        input[type="text"], input[type="password"], input[type="number"], textarea, select {
+        input[type="text"], input[type="password"], input[type="number"], input[type="date"], textarea, select {
             width: 100%;
             padding: 10px;
             border: 1px solid #cbd5e0;
@@ -109,8 +109,6 @@
         .stat { background: #f7fafc; border-radius: 6px; padding: 8px; text-align: center; }
         .stat-v { font-size: 1.2em; font-weight: bold; color: #1a202c; }
         .stat-l { font-size: 0.72em; color: #718096; }
-        .watch { display: flex; align-items: center; gap: 6px; cursor: pointer; flex-wrap: wrap; }
-        .watch .done { text-decoration: line-through; color: #a0aec0; }
         .res-block { margin-top: 14px; }
         .trend { font-weight: bold; font-size: 0.9em; margin-left: 4px; white-space: nowrap; }
         .trend.up { color: #2f855a; }
@@ -122,6 +120,42 @@
         .check { display: flex; align-items: center; gap: 8px; font-size: 0.85em; font-weight: bold; color: #4a5568; cursor: pointer; }
         .check input { width: auto; margin: 0; }
         svg text { font-family: inherit; }
+        .up-progress { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin: -4px 0 12px; }
+        .up-progress > div { height: 100%; background: #38a169; }
+        .up-group { margin-bottom: 12px; }
+        .up-group-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+        .up-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: #f7fafc; border-left: 4px solid #cbd5e0; border-radius: 4px; padding: 8px 10px; margin-bottom: 6px; }
+        .up-row.due { border-left-color: #e53e3e; }
+        .up-row.soon { border-left-color: #dd6b20; }
+        .up-row.later { border-left-color: #3182ce; }
+        .up-row.done { opacity: 0.75; border-left-color: #38a169; }
+        .up-main { min-width: 0; }
+        .up-label { font-weight: bold; font-size: 0.92em; color: #1a202c; overflow-wrap: anywhere; }
+        .up-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 0.8em; margin-top: 4px; color: #4a5568; }
+        input.up-date { width: auto; padding: 2px 4px; font-size: 1em; }
+        .up-when { font-weight: bold; }
+        .up-when.due { color: #c53030; }
+        .up-when.soon { color: #c05621; }
+        .up-when.later { color: #2b6cb0; }
+        .up-row .actions { display: flex; gap: 4px; flex-shrink: 0; }
+        .btn-small.btn-go { background: #38a169; color: white; border-color: #38a169; }
+        .btn-small.btn-go:disabled { background: #cbd5e0; color: #718096; border-color: #cbd5e0; }
+        .up-done { margin-top: 4px; }
+        #upAddWrap { margin-top: 8px; }
+        #upAddWrap > summary.add-summary { list-style: none; display: block; text-align: center; padding: 10px; margin: 0 0 12px; background: #ebf8ff; color: #2b6cb0; border: 1px dashed #3182ce; border-radius: 6px; }
+        #upAddWrap > summary.add-summary::-webkit-details-marker { display: none; }
+        #upAddWrap[open] > summary.add-summary { background: #bee3f8; border-style: solid; }
+        .picker { max-height: 280px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px; padding: 4px; margin-bottom: 10px; background: white; }
+        .pick-row { display: flex; align-items: center; gap: 8px; padding: 5px 6px; font-size: 0.88em; cursor: pointer; border-radius: 3px; }
+        .pick-row:hover { background: #f7fafc; }
+        .pick-row input { width: auto; margin: 0; }
+        .pick-row .pick-label { flex: 1; }
+        .pick-row.in-list { color: #a0aec0; cursor: default; }
+        .pick-all { border-bottom: 1px solid #edf2f7; margin-bottom: 2px; }
+        @media (max-width: 480px) {
+            .up-row { flex-direction: column; align-items: stretch; }
+            .up-row .actions { justify-content: flex-end; }
+        }
         .res-title { font-size: 0.8em; font-weight: bold; text-transform: uppercase; letter-spacing: 0.04em; color: #718096; margin-bottom: 4px; }
         .res-item {
             display: flex; justify-content: space-between; align-items: center; gap: 8px;
@@ -246,6 +280,53 @@
 
         <!-- RIGHT PANEL -->
         <div>
+            <!-- UPCOMING UNSUSPENDS -->
+            <div class="card" id="upcomingCard">
+                <h2 style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;">
+                    <span>Upcoming Unsuspends</span>
+                    <span id="upSummary" style="font-size:0.6em; color:#718096; font-weight:normal;"></span>
+                </h2>
+                <div class="up-progress hidden" id="upProgress"></div>
+                <div id="upList"></div>
+                <div id="upStatus" class="status-msg"></div>
+                <details id="upAddWrap">
+                    <summary class="add-summary">+ Add Bootcamp videos or cards</summary>
+                    <div class="settings-grid">
+                        <label class="field">Source
+                            <select id="upSource">
+                                <option value="bootcamp">Bootcamp videos</option>
+                                <option value="tag">Any tag</option>
+                                <option value="deck">Subdeck</option>
+                            </select>
+                        </label>
+                        <label class="field" id="upSectionWrap">Section
+                            <select id="upSection"></select>
+                        </label>
+                        <label class="field full">Search
+                            <input type="text" id="upSearch" placeholder="e.g. heart failure">
+                        </label>
+                    </div>
+                    <div id="upPicker" class="picker"></div>
+                    <div class="settings-grid">
+                        <label class="field">Schedule
+                            <select id="upSchedMode">
+                                <option value="one">All on one date</option>
+                                <option value="spread">Spread between two dates</option>
+                                <option value="none">No date yet</option>
+                            </select>
+                        </label>
+                        <label class="field" id="upDate1Wrap"><span id="upDate1Label">Date</span>
+                            <input type="date" id="upDate1">
+                        </label>
+                        <label class="field hidden" id="upDate2Wrap">End
+                            <input type="date" id="upDate2">
+                        </label>
+                    </div>
+                    <button class="btn-success" id="upAddBtn" style="width:100%;" disabled>Add selected</button>
+                </details>
+                <label class="check" style="margin-top:12px;"><input type="checkbox" id="upAutoInput"> Auto-unsuspend items on their date when Anki is open</label>
+            </div>
+
             <!-- ANKING NOTEBOOK -->
             <div class="card" id="notebookCard">
                 <h2>AnKing Notebook</h2>
@@ -279,8 +360,7 @@
 // CONSTANTS — tweak these if a link doesn't land where you want
 // ============================================================
 const AMBOSS_SEARCH_URL = q => `https://next.amboss.com/us/search?q=${encodeURIComponent(q)}&v=overview`;
-const BOOTCAMP_URL = 'https://bootcamp.com/';
-const TOP_AREAS_WITH_RESOURCES = 8;   // how many weak areas get Bootcamp/AMBOSS suggestions
+const TOP_AREAS_WITH_RESOURCES = 8;   // how many weak areas get AMBOSS suggestions
 const MAX_NOTES_SCANNED_PER_AREA = 200;
 const DB_KEY = 'teach_program_db';
 const SETTINGS_KEY = 'anking_settings';
@@ -295,7 +375,8 @@ const DEFAULT_SETTINGS = {
     days: 30,
     minCards: 20,
     deck: '',
-    autoSync: true
+    autoSync: true,
+    autoUnsuspend: false
 };
 
 const $ = id => document.getElementById(id);
@@ -432,7 +513,8 @@ function readSettingsForm() {
         days: parseInt($('daysSelect').value, 10) || 30,
         minCards: Math.max(1, parseInt($('minCardsInput').value, 10) || DEFAULT_SETTINGS.minCards),
         deck: $('deckInput').value.trim(),
-        autoSync: $('autoSyncInput').checked
+        autoSync: $('autoSyncInput').checked,
+        autoUnsuspend: $('upAutoInput').checked
     };
     saveSettings(s);
     return s;
@@ -445,6 +527,7 @@ function fillSettingsForm() {
     $('minCardsInput').value = s.minCards;
     $('deckInput').value = s.deck;
     $('autoSyncInput').checked = s.autoSync !== false;
+    $('upAutoInput').checked = !!s.autoUnsuspend;
     $('modeSelect').value = s.mode;
     setOptions($('deckRootSelect'), s.deckRoot ? [s.deckRoot] : ['(connect to load)'], s.deckRoot);
     setOptions($('rootSelect'), [s.root], s.root);
@@ -523,6 +606,10 @@ async function connectAnki({ silent = false } = {}) {
         [ankiDecks, ankiTags] = await Promise.all([anki('deckNames'), anki('getTags')]);
         populateDeckSelect();
         populateTagSelectors();
+        bcIndex = null;
+        populateUpSections();
+        renderPicker();
+        refreshUpcoming();
         setAnkiStatus(true, `connected (${ankiTags.length.toLocaleString()} tags)`);
         progress('Connected. Pick how to group subdivisions, then hit "Analyze my stats".');
         renderNotebook();
@@ -623,13 +710,13 @@ function parseResourceTag(tag, re) {
 async function findResources(area, s) {
     let noteIds = await anki('findNotes', { query: weakQuery(area, s) });
     noteIds = noteIds.slice(0, MAX_NOTES_SCANNED_PER_AREA);
-    const bootcamp = new Map(), amboss = new Map();
+    const amboss = new Map();
     for (const batch of chunk(noteIds, 100)) {
         const infos = await anki('notesInfo', { notes: batch });
         infos.forEach(info => {
             const seenHere = new Set();
             (info.tags || []).forEach(tag => {
-                for (const [re, map] of [[/^#?bootcamp$/i, bootcamp], [/^#?amboss$/i, amboss]]) {
+                for (const [re, map] of [[/^#?amboss$/i, amboss]]) {
                     const r = parseResourceTag(tag, re);
                     if (!r) continue;
                     const k = r.key.toLowerCase();
@@ -643,7 +730,7 @@ async function findResources(area, s) {
     }
     const top = map => [...map.values()].sort((a, b) => b.count - a.count).slice(0, 5)
         .map(e => ({ tag: e.tag, label: e.label || 'Untitled', count: e.count, ids: [...e.ids] }));
-    return { bootcamp: top(bootcamp), amboss: top(amboss), weakNotes: noteIds.length };
+    return { amboss: top(amboss), weakNotes: noteIds.length };
 }
 
 let analyzing = false;
@@ -715,7 +802,7 @@ async function analyze({ manual = false } = {}) {
 
         const top = areas.slice(0, TOP_AREAS_WITH_RESOURCES);
         for (let i = 0; i < top.length; i++) {
-            progress(`Matching Bootcamp videos & AMBOSS topics… (${i + 1}/${top.length})`);
+            progress(`Matching AMBOSS topics… (${i + 1}/${top.length})`);
             Object.assign(top[i], await findResources(top[i], s));
         }
 
@@ -1085,7 +1172,7 @@ function renderWeakAreas() {
 }
 
 // ============================================================
-// ANKING NOTEBOOK — one subdeck: stats, Bootcamp, AMBOSS
+// ANKING NOTEBOOK — one subdeck: stats, history, AMBOSS
 // ============================================================
 let selectedKey = '';   // "area:<path>"
 try { selectedKey = localStorage.getItem('notebook_selected') || ''; } catch {}
@@ -1127,27 +1214,11 @@ function currentSelection() {
 }
 
 function resourcesHtml(a, i) {
-    if (!a.bootcamp) {
+    if (!a.amboss) {
         return `<div class="res-block"><div class="muted" id="resLoading">${ankiTags
-            ? 'Loading Bootcamp videos and AMBOSS topics from Anki…'
-            : 'Connect to Anki (AnKing Sync) to load Bootcamp videos and AMBOSS topics for this subdeck.'}</div></div>`;
+            ? 'Loading AMBOSS topics from Anki…'
+            : 'Connect to Anki (AnKing Sync) to load AMBOSS topics for this subdeck.'}</div></div>`;
     }
-    const watched = loadDb().watched || {};
-    const bootcamp = a.bootcamp.map((b, j) => {
-        const done = !!watched[b.tag.toLowerCase()];
-        return `
-        <div class="res-item">
-            <label class="watch">
-                <input type="checkbox" data-watch="${escHtml(b.tag)}" ${done ? 'checked' : ''}>
-                <span class="${done ? 'done' : ''}">🎬 ${escHtml(b.label)}</span>
-                <span class="muted">· ${b.count} weak card${b.count === 1 ? '' : 's'}</span>
-            </label>
-            <span class="actions">
-                <button class="btn-small" data-act="browse-res" data-i="${i}" data-kind="bootcamp" data-j="${j}">Cards</button>
-                <button class="btn-small" data-act="unsuspend" data-i="${i}" data-kind="bootcamp" data-j="${j}">Unsuspend</button>
-            </span>
-        </div>`;
-    }).join('');
     const amboss = a.amboss.map((b, j) => `
         <div class="res-item">
             <span>❓ ${escHtml(b.label)} <span class="muted">· ${b.count} weak card${b.count === 1 ? '' : 's'}${b.ids.length ? ` · ${b.ids.length} QID${b.ids.length === 1 ? '' : 's'}` : ''}</span></span>
@@ -1156,12 +1227,7 @@ function resourcesHtml(a, i) {
                 <a class="btn-small" style="text-decoration:none; border-radius:4px;" href="${AMBOSS_SEARCH_URL(lastSeg(b.label))}" target="_blank" rel="noopener noreferrer">AMBOSS ↗</a>
             </span>
         </div>`).join('');
-
     return `
-        <div class="res-block">
-            <div class="res-title">Bootcamp videos to rewatch</div>
-            ${bootcamp || `<div class="muted">No Bootcamp tags on your weak cards here. <a href="${BOOTCAMP_URL}" target="_blank" rel="noopener noreferrer">Search Bootcamp for “${escHtml(lastSeg(a.label))}” ↗</a></div>`}
-        </div>
         <div class="res-block">
             <div class="res-title">AMBOSS practice</div>
             <button class="btn-primary" style="width:100%; margin-bottom:6px;" data-act="qbank" data-i="${i}">Start Qbank session from ${a.weakNotes || ''} weak cards</button>
@@ -1216,10 +1282,10 @@ function renderNotebook() {
             ${resourcesHtml(a, i)}`;
     }
     box.innerHTML = html;
-    if (!a.bootcamp && ankiTags) loadResourcesFor(i);
+    if (!a.amboss && ankiTags) loadResourcesFor(i);
 }
 
-// Fetch Bootcamp/AMBOSS suggestions on demand for subdecks outside the top few
+// Fetch AMBOSS suggestions on demand for subdecks outside the top few
 const loadingRes = new Set();
 async function loadResourcesFor(i) {
     const a = currentAreas[i];
@@ -1245,6 +1311,376 @@ async function loadResourcesFor(i) {
 }
 
 // ============================================================
+// UPCOMING UNSUSPENDS — a semester queue of Bootcamp videos / cards
+// ============================================================
+const isBootcampSeg = x => /^#?bootcamp$/i.test(x);
+const dateKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const todayKey = () => dateKey(new Date());
+const addDays = (key, n) => { const d = new Date(key + 'T00:00:00'); d.setDate(d.getDate() + n); return dateKey(d); };
+const daysBetween = (a, b) => Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 864e5);
+const daysUntil = key => daysBetween(todayKey(), key);
+const itemQuery = it => it.kind === 'deck' ? deckClause(it.key).trim() : tagQuery(it.key);
+const itemUid = it => `${it.kind}:${it.key}`.toLowerCase();
+const itemIcon = it => it.kind === 'deck' ? '🗂️' : it.key.split('::').some(isBootcampSeg) ? '🎬' : '🏷️';
+
+// Every Bootcamp video tag in the collection (the deepest tag under any #Bootcamp tag)
+let bcIndex = null;
+function bootcampIndex() {
+    if (bcIndex) return bcIndex;
+    const tags = (ankiTags || []).filter(t => t.split('::').some(isBootcampSeg));
+    const parents = new Set();
+    tags.forEach(t => { const p = t.split('::'); for (let k = 1; k < p.length; k++) parents.add(p.slice(0, k).join('::').toLowerCase()); });
+    const roots = new Set(), videos = [];
+    tags.forEach(t => {
+        if (parents.has(t.toLowerCase())) return;
+        const segs = t.split('::');
+        const bi = segs.findIndex(isBootcampSeg);
+        const after = segs.slice(bi + 1);
+        if (!after.length) return;
+        const root = segs.slice(0, bi).join('::');
+        roots.add(root);
+        videos.push({
+            tag: t, root,
+            secKey: segs.slice(0, bi + 1 + Math.min(1, after.length - 1)).join('::'),
+            subject: after.length > 1 ? cleanSeg(after[0]) : 'General',
+            short: labelFrom(after.length > 1 ? after.slice(1) : after),
+            label: labelFrom(after)
+        });
+    });
+    videos.sort((a, b) => a.tag.localeCompare(b.tag, undefined, { numeric: true, sensitivity: 'base' }));
+    const sections = [], seen = new Map();
+    videos.forEach(v => {
+        if (!seen.has(v.secKey)) {
+            const sec = { key: v.secKey, label: v.subject + (roots.size > 1 ? ` (${cleanSeg(v.root.split('::').pop())})` : ''), count: 0 };
+            seen.set(v.secKey, sec);
+            sections.push(sec);
+        }
+        seen.get(v.secKey).count++;
+    });
+    bcIndex = { videos, sections };
+    return bcIndex;
+}
+
+// ---------- picker (Add videos or cards) ----------
+const countCache = new Map();   // Anki query -> { total, suspended }
+let pickerItems = [], pickerToken = 0;
+
+function populateUpSections() {
+    const { sections } = bootcampIndex();
+    const sel = $('upSection'), prev = sel.value;
+    sel.innerHTML = sections.length
+        ? sections.map(s => `<option value="${escHtml(s.key)}">${escHtml(s.label)} (${s.count})</option>`).join('')
+        : '<option value="">—</option>';
+    if (sections.some(s => s.key === prev)) sel.value = prev;
+}
+
+function pickerCandidates() {
+    const src = $('upSource').value;
+    const norm = x => x.toLowerCase().replace(/[_:›\s]+/g, ' ').trim();
+    const q = norm($('upSearch').value);
+    if (src === 'bootcamp') {
+        const { videos } = bootcampIndex();
+        const list = q ? videos.filter(v => norm(v.label).includes(q)) : videos.filter(v => v.secKey === $('upSection').value);
+        return list.slice(0, 150).map(v => ({ kind: 'tag', key: v.tag, label: q ? v.label : v.short, full: v.label }));
+    }
+    if (src === 'tag') {
+        if (q.length < 2) return [];
+        return ankiTags.filter(t => norm(t).includes(q))
+            .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+            .slice(0, 60).map(t => { const l = labelFrom(t.split('::')); return { kind: 'tag', key: t, label: l, full: l }; });
+    }
+    return ankiDecks.filter(d => !q || norm(d).includes(q))
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+        .slice(0, 60).map(d => { const l = d.split('::').join(' › '); return { kind: 'deck', key: d, label: l, full: l }; });
+}
+
+function countText(c) {
+    if (!c) return '…';
+    if (c.total === 0) return 'no cards';
+    if (c.suspended === 0) return 'all unsuspended';
+    return `${c.suspended}/${c.total} suspended`;
+}
+
+function renderPicker() {
+    const box = $('upPicker'), src = $('upSource').value;
+    $('upSectionWrap').classList.toggle('hidden', src !== 'bootcamp');
+    pickerItems = [];
+    const msg = html => { box.innerHTML = `<p class="muted" style="margin:6px;">${html}</p>`; updateAddBtn(); };
+    if (!ankiTags) return msg('Open this page on the computer with Anki running to browse videos and cards.');
+    if (src === 'bootcamp' && !bootcampIndex().videos.length) {
+        return msg('No Bootcamp tags found in your collection. They come with the current AnKing Step deck (v12 via AnkiHub). You can still add any tag or subdeck from the Source menu.');
+    }
+    pickerItems = pickerCandidates();
+    if (!pickerItems.length) {
+        return msg(src === 'tag' && $('upSearch').value.trim().length < 2 ? 'Type at least 2 letters to search your tags.' : 'Nothing matches.');
+    }
+    const inList = new Set((loadDb().upcoming || []).map(itemUid));
+    box.innerHTML = `<label class="pick-row pick-all"><input type="checkbox" id="upPickAll"> <b>Select all (${pickerItems.length})</b></label>`
+        + pickerItems.map((p, k) => {
+            const already = inList.has(itemUid(p));
+            return `<label class="pick-row${already ? ' in-list' : ''}">
+                <input type="checkbox" data-pick="${k}" ${already ? 'disabled' : ''}>
+                <span class="pick-label">${escHtml(p.label)}</span>
+                ${already ? '<span class="badge p3">in list</span>' : `<span class="muted" id="pc-${k}">${countText(countCache.get(itemQuery(p)))}</span>`}
+            </label>`;
+        }).join('');
+    updateAddBtn();
+    loadPickerCounts();
+}
+
+async function loadPickerCounts() {
+    const token = ++pickerToken;
+    const need = pickerItems.map((p, k) => [p, k]).filter(([p]) => !countCache.has(itemQuery(p)));
+    try {
+        for (const batch of chunk(need, 50)) {
+            const res = await ankiMulti(batch.flatMap(([p]) => [
+                { action: 'findCards', params: { query: itemQuery(p) } },
+                { action: 'findCards', params: { query: itemQuery(p) + ' is:suspended' } }
+            ]));
+            if (token !== pickerToken) return;
+            batch.forEach(([p, k], j) => {
+                const c = { total: (res[2 * j] || []).length, suspended: (res[2 * j + 1] || []).length };
+                countCache.set(itemQuery(p), c);
+                const el = $(`pc-${k}`);
+                if (el) el.textContent = countText(c);
+            });
+        }
+    } catch (err) { console.error(err); }
+}
+
+function updateAddBtn() {
+    const n = document.querySelectorAll('#upPicker [data-pick]:checked').length;
+    $('upAddBtn').disabled = !n;
+    $('upAddBtn').textContent = n ? `Add ${n} to Upcoming` : 'Add selected';
+}
+
+function updateSchedFields() {
+    const mode = $('upSchedMode').value;
+    $('upDate1Wrap').classList.toggle('hidden', mode === 'none');
+    $('upDate2Wrap').classList.toggle('hidden', mode !== 'spread');
+    $('upDate1Label').textContent = mode === 'spread' ? 'Start' : 'Date';
+}
+
+function addSelected() {
+    const ks = [...document.querySelectorAll('#upPicker [data-pick]:checked')].map(el => +el.dataset.pick);
+    if (!ks.length) return;
+    const mode = $('upSchedMode').value, d1 = $('upDate1').value, d2 = $('upDate2').value;
+    if (mode !== 'none' && !d1) { alert('Pick a date first.'); return; }
+    if (mode === 'spread' && (!d2 || d2 < d1)) { alert('Pick an end date on or after the start date.'); return; }
+    const span = mode === 'spread' ? daysBetween(d1, d2) : 0;
+    const db = loadDb();
+    db.upcoming = db.upcoming || [];
+    const existing = new Set(db.upcoming.map(itemUid));
+    let added = 0;
+    ks.forEach((k, idx) => {
+        const p = pickerItems[k];
+        if (!p || existing.has(itemUid(p))) return;
+        existing.add(itemUid(p));
+        const date = mode === 'none' ? null
+            : mode === 'one' || ks.length === 1 ? d1
+            : addDays(d1, Math.round(idx * span / (ks.length - 1)));
+        const c = countCache.get(itemQuery(p));
+        db.upcoming.push({
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+            kind: p.kind, key: p.key, label: p.full, date,
+            total: c ? c.total : null, suspended: c ? c.suspended : null,
+            checkedAt: c ? new Date().toISOString() : null,
+            addedAt: new Date().toISOString(), doneAt: null, doneBy: null
+        });
+        added++;
+    });
+    saveDb(db);
+    upMsg(`Added ${added} item${added === 1 ? '' : 's'} to your Upcoming list.`);
+    renderUpcoming();
+    renderPicker();
+    refreshUpcoming({ allowAuto: false });
+}
+
+// ---------- the list ----------
+let upDoneOpen = false, lastUnsuspend = null;
+
+function upMsg(text, undo = false) {
+    $('upStatus').innerHTML = escHtml(text)
+        + (undo && lastUnsuspend && lastUnsuspend.cards.length ? ' <button class="btn-small" data-act="up-undo">Undo</button>' : '');
+}
+
+function relDate(key) {
+    const d = daysUntil(key);
+    if (d < 0) return `Overdue ${-d}d`;
+    if (d === 0) return 'Today';
+    if (d === 1) return 'Tomorrow';
+    return new Date(key + 'T00:00:00').toLocaleDateString(undefined, d <= 7 ? { weekday: 'short', month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric' });
+}
+
+function upRow(it, cls) {
+    const connected = !!ankiTags;
+    const counts = it.total == null ? 'card count loads when Anki is open'
+        : it.total === 0 ? '⚠ no cards found for this tag'
+        : cls === 'done' ? `${it.total} card${it.total === 1 ? '' : 's'}`
+        : `${it.suspended} of ${it.total} cards suspended`;
+    const doneWhen = it.doneAt ? new Date(it.doneAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+    const doneText = { auto: 'Auto-unsuspended', anki: 'Unsuspended in Anki' }[it.doneBy] || 'Unsuspended';
+    return `
+    <div class="up-row ${cls}">
+        <div class="up-main">
+            <div class="up-label">${itemIcon(it)} ${escHtml(it.label)}</div>
+            <div class="up-meta">
+                ${cls === 'done'
+                    ? `<span>${doneText} ${doneWhen}</span>`
+                    : `<input type="date" class="up-date" data-up-date="${it.id}" value="${it.date || ''}" aria-label="Unsuspend date">${it.date ? `<span class="up-when ${cls}">${relDate(it.date)}</span>` : ''}`}
+                <span class="muted">· ${counts}</span>
+            </div>
+        </div>
+        <div class="actions">
+            ${cls !== 'done' ? `<button class="btn-small btn-go" data-act="up-unsuspend" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Unsuspend</button>` : ''}
+            <button class="btn-small" data-act="up-browse" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>
+            <button class="btn-small" data-act="up-remove" data-id="${it.id}" title="Remove from list">✕</button>
+        </div>
+    </div>`;
+}
+
+function renderUpcoming() {
+    const items = loadDb().upcoming || [];
+    const box = $('upList');
+    const open = items.filter(it => !it.doneAt), done = items.filter(it => it.doneAt);
+    $('upSummary').textContent = items.length ? `${done.length} of ${items.length} done` : '';
+    $('upProgress').classList.toggle('hidden', !items.length);
+    $('upProgress').innerHTML = items.length ? `<div style="width:${Math.round((done.length / items.length) * 100)}%"></div>` : '';
+    if (!items.length) {
+        $('upAddWrap').open = true;
+        box.innerHTML = '<p class="muted" style="margin-top:0;">Plan your semester here. Add the Bootcamp videos (or any tag or subdeck) you’ll need to unsuspend and give each one a date. Due items rise to the top, and items tick themselves off once their cards are unsuspended in Anki.</p>';
+        return;
+    }
+    const groups = [['due', 'Due now', []], ['soon', 'Next 7 days', []], ['later', 'Later', []], ['nodate', 'No date', []]];
+    open.forEach(it => {
+        const d = it.date ? daysUntil(it.date) : null;
+        groups[d == null ? 3 : d <= 0 ? 0 : d <= 7 ? 1 : 2][2].push(it);
+    });
+    let html = '';
+    groups.forEach(([cls, title, list]) => {
+        if (!list.length) return;
+        list.sort((a, b) => (a.date || '').localeCompare(b.date || '') || a.label.localeCompare(b.label, undefined, { numeric: true }));
+        const cards = list.reduce((sum, it) => sum + (it.suspended || 0), 0);
+        html += `
+        <div class="up-group">
+            <div class="up-group-head">
+                <span class="res-title" style="margin:0;">${title} · ${list.length}${cards ? ` · ~${cards.toLocaleString()} new cards` : ''}</span>
+                ${cls === 'due' && list.length > 1 ? `<button class="btn-small btn-go" data-act="up-unsuspend-due" ${ankiTags ? '' : 'disabled'}>Unsuspend all ${list.length}</button>` : ''}
+            </div>
+            ${list.map(it => upRow(it, cls)).join('')}
+        </div>`;
+    });
+    if (done.length) {
+        html += `<details class="up-done" id="upDoneDetails" ${upDoneOpen ? 'open' : ''}><summary>Done (${done.length})</summary>
+            ${[...done].sort((a, b) => b.doneAt.localeCompare(a.doneAt)).map(it => upRow(it, 'done')).join('')}</details>`;
+    }
+    box.innerHTML = html;
+    const det = $('upDoneDetails');
+    if (det) det.addEventListener('toggle', () => { upDoneOpen = det.open; });
+}
+
+async function unsuspendItems(ids, { auto = false } = {}) {
+    const items = (loadDb().upcoming || []).filter(it => ids.includes(it.id) && !it.doneAt);
+    if (!items.length) return;
+    const res = await ankiMulti(items.map(it => ({ action: 'findCards', params: { query: itemQuery(it) + ' is:suspended' } })));
+    const cards = [...new Set(res.flatMap(r => Array.isArray(r) ? r : []))];
+    if (cards.length) await anki('unsuspend', { cards });
+    const now = new Date().toISOString();
+    const db = loadDb();
+    (db.upcoming || []).forEach(it => {
+        if (items.some(x => x.id === it.id)) Object.assign(it, { doneAt: now, doneBy: auto ? 'auto' : 'page', suspended: 0, checkedAt: now });
+    });
+    saveDb(db);
+    countCache.clear();
+    lastUnsuspend = { cards, itemIds: items.map(it => it.id) };
+    renderUpcoming();
+    upMsg(`${auto ? 'Auto-unsuspended' : 'Unsuspended'} ${cards.length} card${cards.length === 1 ? '' : 's'} from ${items.length} item${items.length === 1 ? '' : 's'}.`, true);
+}
+
+async function undoUnsuspend() {
+    const u = lastUnsuspend;
+    if (!u) return;
+    if (u.cards.length) await anki('suspend', { cards: u.cards });
+    const db = loadDb();
+    (db.upcoming || []).forEach(it => { if (u.itemIds.includes(it.id)) Object.assign(it, { doneAt: null, doneBy: null }); });
+    saveDb(db);
+    lastUnsuspend = null;
+    countCache.clear();
+    upMsg('Undone. Those cards are suspended again.');
+    await refreshUpcoming({ allowAuto: false });
+}
+
+// Re-count every open item; tick off anything whose cards are all unsuspended; optionally auto-unsuspend due items
+let refreshingUp = false;
+async function refreshUpcoming({ allowAuto = true } = {}) {
+    if (!ankiTags || refreshingUp) { renderUpcoming(); return; }
+    refreshingUp = true;
+    try {
+        const open = (loadDb().upcoming || []).filter(it => !it.doneAt);
+        const results = new Map();
+        for (const batch of chunk(open, 50)) {
+            const res = await ankiMulti(batch.flatMap(it => [
+                { action: 'findCards', params: { query: itemQuery(it) } },
+                { action: 'findCards', params: { query: itemQuery(it) + ' is:suspended' } }
+            ]));
+            batch.forEach((it, j) => results.set(it.id, { total: (res[2 * j] || []).length, suspended: (res[2 * j + 1] || []).length }));
+        }
+        if (results.size) {
+            const now = new Date().toISOString();
+            const db = loadDb();
+            (db.upcoming || []).forEach(it => {
+                const r = results.get(it.id);
+                if (!r || it.doneAt) return;
+                Object.assign(it, r, { checkedAt: now });
+                countCache.set(itemQuery(it), r);
+                if (r.total > 0 && r.suspended === 0) Object.assign(it, { doneAt: now, doneBy: 'anki' });
+            });
+            saveDb(db);
+        }
+        renderUpcoming();
+        if (allowAuto && getSettings().autoUnsuspend) {
+            const due = (loadDb().upcoming || []).filter(it => !it.doneAt && it.date && daysUntil(it.date) <= 0).map(it => it.id);
+            if (due.length) await unsuspendItems(due, { auto: true });
+        }
+    } catch (err) {
+        console.error(err);
+    } finally {
+        refreshingUp = false;
+    }
+}
+
+// ---------- wiring ----------
+$('upSource').addEventListener('change', renderPicker);
+$('upSection').addEventListener('change', renderPicker);
+let upSearchTimer = null;
+$('upSearch').addEventListener('input', () => { clearTimeout(upSearchTimer); upSearchTimer = setTimeout(renderPicker, 200); });
+$('upSchedMode').addEventListener('change', updateSchedFields);
+$('upAddBtn').addEventListener('click', addSelected);
+$('upAutoInput').addEventListener('change', () => {
+    readSettingsForm();
+    if ($('upAutoInput').checked && ankiTags) refreshUpcoming();
+});
+document.addEventListener('change', e => {
+    const t = e.target;
+    if (t.id === 'upPickAll') {
+        document.querySelectorAll('#upPicker [data-pick]:not(:disabled)').forEach(cb => { cb.checked = t.checked; });
+        updateAddBtn();
+    } else if (t.dataset && t.dataset.pick !== undefined) {
+        updateAddBtn();
+    } else if (t.dataset && t.dataset.upDate) {
+        const db = loadDb();
+        const it = (db.upcoming || []).find(x => x.id === t.dataset.upDate);
+        if (!it) return;
+        it.date = t.value || null;
+        saveDb(db);
+        renderUpcoming();
+    }
+});
+$('upDate1').value = todayKey();
+$('upDate2').value = addDays(todayKey(), 28);
+updateSchedFields();
+
+// ============================================================
 // BUTTON HANDLERS (event delegation)
 // ============================================================
 async function ankiDo(fn) {
@@ -1257,7 +1693,6 @@ document.addEventListener('click', e => {
     if (!el) return;
     const a = currentAreas[+el.dataset.i];
     const snapSettings = (getSnap() || {}).settings || getSettings();
-    const res = el.dataset.kind && a ? a[el.dataset.kind][+el.dataset.j] : null;
 
     switch (el.dataset.act) {
         case 'open':
@@ -1266,17 +1701,29 @@ document.addEventListener('click', e => {
         case 'qbank':
             ankiDo(() => anki('guiBrowse', { query: weakQuery(a, snapSettings) }));
             break;
-        case 'browse-res':
-            ankiDo(() => anki('guiBrowse', { query: tagQuery(res.tag) + scopeClause(snapSettings) }));
+        case 'up-unsuspend':
+            ankiDo(() => unsuspendItems([el.dataset.id]));
             break;
-        case 'unsuspend':
-            ankiDo(async () => {
-                const cards = await anki('findCards', { query: `${tagQuery(res.tag)}${scopeClause(snapSettings)} is:suspended` });
-                if (!cards.length) { alert('All cards for this video are already unsuspended.'); return; }
-                if (!confirm(`Unsuspend ${cards.length} card(s) for “${res.label}”? Do this after you've watched the video.`)) return;
-                await anki('unsuspend', { cards });
-                alert(`Unsuspended ${cards.length} card(s).`);
-            });
+        case 'up-unsuspend-due': {
+            const due = (loadDb().upcoming || []).filter(it => !it.doneAt && it.date && daysUntil(it.date) <= 0);
+            if (due.length && confirm(`Unsuspend the cards for all ${due.length} items due now?`)) ankiDo(() => unsuspendItems(due.map(it => it.id)));
+            break;
+        }
+        case 'up-browse': {
+            const it = (loadDb().upcoming || []).find(x => x.id === el.dataset.id);
+            if (it) ankiDo(() => anki('guiBrowse', { query: itemQuery(it) }));
+            break;
+        }
+        case 'up-remove': {
+            const db = loadDb();
+            db.upcoming = (db.upcoming || []).filter(x => x.id !== el.dataset.id);
+            saveDb(db);
+            renderUpcoming();
+            renderPicker();
+            break;
+        }
+        case 'up-undo':
+            ankiDo(undoUnsuspend);
             break;
         case 'copy-ids': {
             const r = a.amboss[+el.dataset.j];
@@ -1287,18 +1734,6 @@ document.addEventListener('click', e => {
             break;
         }
     }
-});
-
-// "Watched" checkboxes on Bootcamp videos
-document.addEventListener('change', e => {
-    const t = e.target;
-    if (!t.dataset || t.dataset.watch === undefined) return;
-    const db = loadDb();
-    db.watched = db.watched || {};
-    const k = t.dataset.watch.toLowerCase();
-    if (t.checked) db.watched[k] = true; else delete db.watched[k];
-    saveDb(db);
-    renderNotebook();
 });
 
 $('connectBtn').addEventListener('click', () => connectAnki());
@@ -1313,6 +1748,7 @@ function renderAll() {
     renderNotebookSelect();
     renderNotebook();
     renderHistory();
+    renderUpcoming();
 }
 // Connect to Anki and re-analyze on its own whenever the page opens
 async function autoSync() {
