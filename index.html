@@ -129,6 +129,8 @@
         .up-row.soon { border-left-color: #dd6b20; }
         .up-row.later { border-left-color: #3182ce; }
         .up-row.done { opacity: 0.75; border-left-color: #38a169; }
+        .up-row.early { border-left-color: #38a169; background: #f0fff4; }
+        .done-badge { font-size: 0.78em; font-weight: bold; color: #276749; background: #c6f6d5; border-radius: 4px; padding: 4px 8px; white-space: nowrap; }
         .up-main { min-width: 0; }
         .up-label { font-weight: bold; font-size: 0.92em; color: #1a202c; overflow-wrap: anywhere; }
         .up-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 0.8em; margin-top: 4px; color: #4a5568; }
@@ -192,7 +194,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 22b · B&amp;B schedule import</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 22c · B&amp;B schedule import</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -1611,19 +1613,21 @@ function relDate(key) {
 
 function upRow(it, cls) {
     const connected = !!ankiTags;
+    const early = !!it.doneAt && cls !== 'done';   // unsuspended before its date: stays in its slot, marked done
     const counts = it.total == null ? 'card count loads when Anki is open'
         : it.total === 0 ? '⚠ no cards found for this tag'
-        : cls === 'done' ? `${it.total} card${it.total === 1 ? '' : 's'}`
+        : cls === 'done' || early ? `${it.total} card${it.total === 1 ? '' : 's'} active`
         : `${it.suspended} of ${it.total} cards suspended`;
     const doneWhen = it.doneAt ? new Date(it.doneAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
     const doneText = { auto: 'Auto-unsuspended', anki: 'Unsuspended in Anki' }[it.doneBy] || 'Unsuspended';
     return `
-    <div class="up-row ${cls}">
+    <div class="up-row ${cls}${early ? ' early' : ''}">
         <div class="up-main">
             <div class="up-label">${itemIcon(it)} ${resBadge(it.kind === 'tag' ? resourceOfKey(it.key) : null)}${escHtml(it.label)}</div>
             <div class="up-meta">
                 ${cls === 'done'
                     ? `<span>${doneText} ${doneWhen}</span>`
+                    : early ? `<span class="up-when ${cls}">${relDate(it.date)}</span><span class="muted">· ${doneText} ${doneWhen}</span>`
                     : `<input type="date" class="up-date" data-up-date="${it.id}" value="${it.date || ''}" aria-label="Unsuspend date">${it.date ? `<span class="up-when ${cls}">${relDate(it.date)}</span>` : ''}`}
                 <span class="muted">· ${counts}</span>
                 ${it.stuck && !it.doneAt ? `<span class="stuck">⚠ ${it.stuck} didn’t unsuspend; click Unsuspend to retry</span>` : ''}
@@ -1631,7 +1635,8 @@ function upRow(it, cls) {
             </div>
         </div>
         <div class="actions">
-            ${cls !== 'done' ? `<button class="btn-small btn-go" data-act="up-unsuspend" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Unsuspend</button>` : ''}
+            ${early ? '<span class="done-badge">✓ Already unsuspended</span>'
+                : cls !== 'done' ? `<button class="btn-small btn-go" data-act="up-unsuspend" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Unsuspend</button>` : ''}
             ${safeUrl(it.url) ? `<a class="btn-small" href="${escHtml(it.url)}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; border-radius:4px;">▶ Watch</a>` : ''}
             <button class="btn-small" data-act="up-browse" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>
             <button class="btn-small" data-act="up-remove" data-id="${it.id}" title="Remove from list">✕</button>
@@ -1642,10 +1647,12 @@ function upRow(it, cls) {
 function renderUpcoming() {
     const items = loadDb().upcoming || [];
     const box = $('upList');
-    const open = items.filter(it => !it.doneAt), done = items.filter(it => it.doneAt);
-    $('upSummary').textContent = items.length ? `${done.length} of ${items.length} done` : '';
+    const isEarly = it => it.doneAt && it.date && daysUntil(it.date) > 0;
+    const open = items.filter(it => !it.doneAt || isEarly(it)), done = items.filter(it => it.doneAt && !isEarly(it));
+    const nDone = items.filter(it => it.doneAt).length;
+    $('upSummary').textContent = items.length ? `${nDone} of ${items.length} done` : '';
     $('upProgress').classList.toggle('hidden', !items.length);
-    $('upProgress').innerHTML = items.length ? `<div style="width:${Math.round((done.length / items.length) * 100)}%"></div>` : '';
+    $('upProgress').innerHTML = items.length ? `<div style="width:${Math.round((nDone / items.length) * 100)}%"></div>` : '';
     if (!items.length) {
         $('upAddWrap').open = true;
         box.innerHTML = '<p class="muted" style="margin-top:0;">Plan your semester here. Add the Bootcamp or B&amp;B videos (or any tag or subdeck) you’ll need to unsuspend and give each one a date. Due items rise to the top, and items tick themselves off once their cards are unsuspended in Anki.</p>';
@@ -1660,12 +1667,14 @@ function renderUpcoming() {
     groups.forEach(([cls, title, list]) => {
         if (!list.length) return;
         list.sort((a, b) => (a.date || '').localeCompare(b.date || '') || a.label.localeCompare(b.label, undefined, { numeric: true }));
-        const cards = list.reduce((sum, it) => sum + (it.suspended || 0), 0);
+        const pending = list.filter(it => !it.doneAt);
+        const cards = pending.reduce((sum, it) => sum + (it.suspended || 0), 0);
+        const early = list.length - pending.length;
         html += `
         <div class="up-group">
             <div class="up-group-head">
-                <span class="res-title" style="margin:0;">${title} · ${list.length}${cards ? ` · ~${cards.toLocaleString()} new cards` : ''}</span>
-                ${cls === 'due' && list.length > 1 ? `<button class="btn-small btn-go" data-act="up-unsuspend-due" ${ankiTags ? '' : 'disabled'}>Unsuspend all ${list.length}</button>` : ''}
+                <span class="res-title" style="margin:0;">${title} · ${list.length}${cards ? ` · ~${cards.toLocaleString()} new cards` : ''}${early ? ` · ${early} already unsuspended` : ''}</span>
+                ${cls === 'due' && pending.length > 1 ? `<button class="btn-small btn-go" data-act="up-unsuspend-due" ${ankiTags ? '' : 'disabled'}>Unsuspend all ${pending.length}</button>` : ''}
             </div>
             ${list.map(it => upRow(it, cls)).join('')}
         </div>`;
@@ -1711,7 +1720,7 @@ async function unsuspendItems(ids, { auto = false } = {}) {
         if (k < 0) return;
         const total = all[k].length, left = after[k].length;
         Object.assign(it, { total, suspended: left, checkedAt: now, stuck: left || 0 });
-        if (left === 0 && total > 0) { Object.assign(it, { doneAt: now, doneBy: auto ? 'auto' : 'page' }); done++; }
+        if (left === 0 && total > 0) { Object.assign(it, { doneAt: now, doneBy: before[k].length ? (auto ? 'auto' : 'page') : 'anki' }); done++; }
     });
     saveDb(db);
     countCache.clear();
@@ -1722,6 +1731,11 @@ async function unsuspendItems(ids, { auto = false } = {}) {
     const already = totalCards - toUnsuspend.length;
     const left = stillSuspended.size;
     const what = items.length === 1 ? `“${items[0].label}”` : `${items.length} items`;
+    if (!toUnsuspend.length && totalCards) {
+        lastUnsuspend = null;
+        upMsg(`${items.length === 1 ? what + ' was' : 'These were'} already unsuspended: all ${totalCards} card${totalCards === 1 ? ' is' : 's are'} active.`);
+        return;
+    }
     let text = `${auto ? 'Auto-unsuspended' : 'Unsuspended'} ${changed.length} card${changed.length === 1 ? '' : 's'} for ${what}`;
     if (already > 0) text += ` (${already} ${already === 1 ? 'was' : 'were'} already active)`;
     text += left
@@ -2362,8 +2376,16 @@ async function autoSync() {
 }
 // ...and again when you come back to the tab, if the last sync is getting old
 const RESYNC_AFTER_MINUTES = 15;
+let lastUpRefresh = 0;
+function refreshOnReturn() {
+    if (!ankiTags || Date.now() - lastUpRefresh < 20000) return;
+    lastUpRefresh = Date.now();
+    refreshUpcoming();
+}
+window.addEventListener('focus', refreshOnReturn);
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
+    refreshOnReturn();
     const snap = getSnap();
     const ageMin = snap ? (Date.now() - new Date(snap.syncedAt)) / 60000 : Infinity;
     if (ageMin >= RESYNC_AFTER_MINUTES) autoSync();
