@@ -134,6 +134,7 @@
         .up-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 0.8em; margin-top: 4px; color: #4a5568; }
         input.up-date { width: auto; padding: 2px 4px; font-size: 1em; }
         .up-when { font-weight: bold; }
+        .stuck { color: #c53030; font-weight: bold; }
         .up-when.due { color: #c53030; }
         .up-when.soon { color: #c05621; }
         .up-when.later { color: #2b6cb0; }
@@ -191,7 +192,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 21c · Bootcamp + B&amp;B</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 22b · B&amp;B schedule import</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -299,7 +300,10 @@
                 <div class="up-progress hidden" id="upProgress"></div>
                 <div id="upList"></div>
                 <div id="upStatus" class="status-msg"></div>
-                <button class="btn-primary" id="upPdfOpenBtn" style="width:100%; margin-top:8px;">📄 Find Bootcamp &amp; B&amp;B videos for a lecture PDF</button>
+                <div class="btn-group" style="margin-top:8px; flex-wrap:wrap;">
+                    <button class="btn-primary" id="upXlsxOpenBtn">📅 Import B&amp;B schedule (.xlsx)</button>
+                    <button class="btn-primary" id="upPdfOpenBtn">📄 Match a lecture PDF</button>
+                </div>
                 <details id="upAddWrap">
                     <summary class="add-summary">+ Add videos or cards</summary>
                     <div class="settings-grid">
@@ -307,6 +311,7 @@
                             <select id="upSource">
                                 <option value="bootcamp">Bootcamp videos</option>
                                 <option value="bnb">B&amp;B videos</option>
+                                <option value="xlsx">Import schedule (.xlsx)</option>
                                 <option value="pdf">Match my lecture PDF</option>
                                 <option value="tag">Any tag</option>
                                 <option value="deck">Subdeck</option>
@@ -318,6 +323,12 @@
                         <label class="field full" id="upSearchWrap">Search
                             <input type="text" id="upSearch" placeholder="e.g. heart failure">
                         </label>
+                    </div>
+                    <div id="upXlsxWrap" class="hidden">
+                        <label class="field full" style="margin-bottom:8px;">Schedule spreadsheet (.xlsx) with B&amp;B video links
+                            <input type="file" id="upXlsxInput" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+                        </label>
+                        <div id="upXlsxStatus" class="status-msg" style="margin:0 0 10px;"></div>
                     </div>
                     <div id="upPdfWrap" class="hidden">
                         <div class="settings-grid">
@@ -349,10 +360,19 @@
                                 <option value="one">All on one date</option>
                                 <option value="spread">Spread between two dates</option>
                                 <option value="none">No date yet</option>
+                                <option value="sheet" disabled>Lecture dates from the schedule</option>
                             </select>
                         </label>
                         <label class="field" id="upDate1Wrap"><span id="upDate1Label">Date</span>
                             <input type="date" id="upDate1">
+                        </label>
+                        <label class="field hidden" id="upOffsetWrap">Unsuspend
+                            <select id="upOffset">
+                                <option value="-1">1 day before the lecture</option>
+                                <option value="0" selected>On the lecture day</option>
+                                <option value="1">1 day after</option>
+                                <option value="2">2 days after</option>
+                            </select>
                         </label>
                         <label class="field hidden" id="upDate2Wrap">End
                             <input type="date" id="upDate2">
@@ -1459,8 +1479,9 @@ function renderPicker() {
     const box = $('upPicker'), src = $('upSource').value;
     $('upSectionWrap').classList.toggle('hidden', !isResourceSource(src));
     if (isResourceSource(src) && ankiTags && $('upSection').dataset.res !== src) populateUpSections();
-    $('upSearchWrap').classList.toggle('hidden', src === 'pdf');
+    $('upSearchWrap').classList.toggle('hidden', src === 'pdf' || src === 'xlsx');
     $('upPdfWrap').classList.toggle('hidden', src !== 'pdf');
+    $('upXlsxWrap').classList.toggle('hidden', src !== 'xlsx');
     pickerItems = [];
     const msg = html => { box.innerHTML = `<p class="muted" style="margin:6px;">${html}</p>`; updateAddBtn(); };
     if (!ankiTags) return msg('Open this page on the computer with Anki running to browse videos and cards.');
@@ -1468,7 +1489,10 @@ function renderPicker() {
         const name = src === 'pdf' ? 'Bootcamp or B&B' : VIDEO_RESOURCES.find(r => r.id === src).name;
         return msg(`No ${escHtml(name)} tags found in your collection. They come with the current AnKing Step deck (v12 via AnkiHub). You can still add any tag or subdeck from the Source menu.`);
     }
-    pickerItems = src === 'pdf' ? pdfCandidates() : pickerCandidates();
+    if (src === 'xlsx') {
+        pickerItems = schedCandidates();
+        if (!schedRows.length) return msg('Choose your schedule spreadsheet above. The page reads each lecture day’s B&amp;B video links and matches them to your AnKing B&amp;B tags, so each video gets its lecture’s date.');
+    } else pickerItems = src === 'pdf' ? pdfCandidates() : pickerCandidates();
     if (src === 'pdf' && !pdfMatches.length) return msg('Choose a lecture PDF (or paste text) and click <b>Find matching videos</b>. The page compares it with each video’s name and the text of its AnKing cards.');
     if (!pickerItems.length) {
         return msg(src === 'tag' && $('upSearch').value.trim().length < 2 ? 'Type at least 2 letters to search your tags.' : 'Nothing matches.');
@@ -1476,11 +1500,12 @@ function renderPicker() {
     const inList = new Set((loadDb().upcoming || []).map(itemUid));
     box.innerHTML = `<label class="pick-row pick-all"><input type="checkbox" id="upPickAll"> <b>Select all (${pickerItems.length})</b></label>`
         + pickerItems.map((p, k) => {
-            const already = inList.has(itemUid(p));
-            return `<label class="pick-row${already ? ' in-list' : ''}">
-                <input type="checkbox" data-pick="${k}" ${already ? 'disabled' : p.pre ? 'checked' : ''}>
+            const already = p.kind !== 'none' && inList.has(itemUid(p));
+            const side = p.disabled ? (p.after || '') : already ? '<span class="badge p3">in list</span>' : `<span class="muted" id="pc-${k}">${countText(countCache.get(itemQuery(p)))}</span>`;
+            return `<label class="pick-row${already || p.disabled ? ' in-list' : ''}">
+                <input type="checkbox" data-pick="${k}" ${already || p.disabled ? 'disabled' : p.pre ? 'checked' : ''}>
                 <span class="pick-label">${p.badge || ''}${escHtml(p.label)}${p.extra ? `<span class="pick-extra">${p.extra}</span>` : ''}</span>
-                ${already ? '<span class="badge p3">in list</span>' : `<span class="muted" id="pc-${k}">${countText(countCache.get(itemQuery(p)))}</span>`}
+                ${side}
             </label>`;
         }).join('');
     updateAddBtn();
@@ -1489,7 +1514,7 @@ function renderPicker() {
 
 async function loadPickerCounts() {
     const token = ++pickerToken;
-    const need = pickerItems.map((p, k) => [p, k]).filter(([p]) => !countCache.has(itemQuery(p)));
+    const need = pickerItems.map((p, k) => [p, k]).filter(([p]) => p.kind !== 'none' && !countCache.has(itemQuery(p)));
     try {
         for (const batch of chunk(need, 50)) {
             const res = await ankiMulti(batch.flatMap(([p]) => [
@@ -1513,9 +1538,20 @@ function updateAddBtn() {
     $('upAddBtn').textContent = n ? `Add ${n} to Upcoming` : 'Add selected';
 }
 
+// Switching sources: the "lecture dates" option only makes sense for an imported schedule
+function onSourceChange() {
+    const xlsx = $('upSource').value === 'xlsx';
+    const opt = $('upSchedMode').querySelector('option[value="sheet"]');
+    opt.disabled = !xlsx;
+    if (xlsx && schedRows.length) $('upSchedMode').value = 'sheet';
+    if (!xlsx && $('upSchedMode').value === 'sheet') $('upSchedMode').value = 'one';
+    updateSchedFields();
+    renderPicker();
+}
 function updateSchedFields() {
     const mode = $('upSchedMode').value;
-    $('upDate1Wrap').classList.toggle('hidden', mode === 'none');
+    $('upOffsetWrap').classList.toggle('hidden', mode !== 'sheet');
+    $('upDate1Wrap').classList.toggle('hidden', mode === 'none' || mode === 'sheet');
     $('upDate2Wrap').classList.toggle('hidden', mode !== 'spread');
     $('upDate1Label').textContent = mode === 'spread' ? 'Start' : 'Date';
 }
@@ -1524,7 +1560,8 @@ function addSelected() {
     const ks = [...document.querySelectorAll('#upPicker [data-pick]:checked')].map(el => +el.dataset.pick);
     if (!ks.length) return;
     const mode = $('upSchedMode').value, d1 = $('upDate1').value, d2 = $('upDate2').value;
-    if (mode !== 'none' && !d1) { alert('Pick a date first.'); return; }
+    if (mode !== 'none' && mode !== 'sheet' && !d1) { alert('Pick a date first.'); return; }
+    const offset = parseInt($('upOffset').value, 10) || 0;
     if (mode === 'spread' && (!d2 || d2 < d1)) { alert('Pick an end date on or after the start date.'); return; }
     const span = mode === 'spread' ? daysBetween(d1, d2) : 0;
     const db = loadDb();
@@ -1533,15 +1570,16 @@ function addSelected() {
     let added = 0;
     ks.forEach((k, idx) => {
         const p = pickerItems[k];
-        if (!p || existing.has(itemUid(p))) return;
+        if (!p || p.kind === 'none' || existing.has(itemUid(p))) return;
         existing.add(itemUid(p));
         const date = mode === 'none' ? null
+            : mode === 'sheet' ? (p.date ? addDays(p.date, offset) : null)
             : mode === 'one' || ks.length === 1 ? d1
             : addDays(d1, Math.round(idx * span / (ks.length - 1)));
         const c = countCache.get(itemQuery(p));
         db.upcoming.push({
             id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
-            kind: p.kind, key: p.key, label: p.full, date, note: p.note || null,
+            kind: p.kind, key: p.key, label: p.full, date, note: p.note || null, url: p.url || null,
             total: c ? c.total : null, suspended: c ? c.suspended : null,
             checkedAt: c ? new Date().toISOString() : null,
             addedAt: new Date().toISOString(), doneAt: null, doneBy: null
@@ -1588,11 +1626,13 @@ function upRow(it, cls) {
                     ? `<span>${doneText} ${doneWhen}</span>`
                     : `<input type="date" class="up-date" data-up-date="${it.id}" value="${it.date || ''}" aria-label="Unsuspend date">${it.date ? `<span class="up-when ${cls}">${relDate(it.date)}</span>` : ''}`}
                 <span class="muted">· ${counts}</span>
+                ${it.stuck && !it.doneAt ? `<span class="stuck">⚠ ${it.stuck} didn’t unsuspend; click Unsuspend to retry</span>` : ''}
                 ${it.note ? `<span class="muted">· ${escHtml(it.note)}</span>` : ''}
             </div>
         </div>
         <div class="actions">
             ${cls !== 'done' ? `<button class="btn-small btn-go" data-act="up-unsuspend" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Unsuspend</button>` : ''}
+            ${safeUrl(it.url) ? `<a class="btn-small" href="${escHtml(it.url)}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; border-radius:4px;">▶ Watch</a>` : ''}
             <button class="btn-small" data-act="up-browse" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>
             <button class="btn-small" data-act="up-remove" data-id="${it.id}" title="Remove from list">✕</button>
         </div>
@@ -1639,22 +1679,55 @@ function renderUpcoming() {
     if (det) det.addEventListener('toggle', () => { upDoneOpen = det.open; });
 }
 
+// Card ids for each item's search, in one round trip
+async function cardsPerItem(items, extra = '') {
+    const res = await ankiMulti(items.map(it => ({ action: 'findCards', params: { query: itemQuery(it) + extra } })));
+    return res.map(r => Array.isArray(r) ? r : []);
+}
+
 async function unsuspendItems(ids, { auto = false } = {}) {
     const items = (loadDb().upcoming || []).filter(it => ids.includes(it.id) && !it.doneAt);
     if (!items.length) return;
-    const res = await ankiMulti(items.map(it => ({ action: 'findCards', params: { query: itemQuery(it) + ' is:suspended' } })));
-    const cards = [...new Set(res.flatMap(r => Array.isArray(r) ? r : []))];
-    if (cards.length) await anki('unsuspend', { cards });
+    const all = await cardsPerItem(items);
+    const before = await cardsPerItem(items, ' is:suspended');
+    const toUnsuspend = [...new Set(before.flat())];
+    for (const batch of chunk(toUnsuspend, 200)) await anki('unsuspend', { cards: batch });
+
+    // Check Anki again; retry anything still suspended one card at a time
+    let after = await cardsPerItem(items, ' is:suspended');
+    const stuck = [...new Set(after.flat())];
+    if (stuck.length) {
+        for (const id of stuck) { try { await anki('unsuspend', { cards: [id] }); } catch (e) { console.error(e); } }
+        after = await cardsPerItem(items, ' is:suspended');
+    }
+    const stillSuspended = new Set(after.flat());
+    const changed = toUnsuspend.filter(id => !stillSuspended.has(id));
+
     const now = new Date().toISOString();
     const db = loadDb();
+    let done = 0;
     (db.upcoming || []).forEach(it => {
-        if (items.some(x => x.id === it.id)) Object.assign(it, { doneAt: now, doneBy: auto ? 'auto' : 'page', suspended: 0, checkedAt: now });
+        const k = items.findIndex(x => x.id === it.id);
+        if (k < 0) return;
+        const total = all[k].length, left = after[k].length;
+        Object.assign(it, { total, suspended: left, checkedAt: now, stuck: left || 0 });
+        if (left === 0 && total > 0) { Object.assign(it, { doneAt: now, doneBy: auto ? 'auto' : 'page' }); done++; }
     });
     saveDb(db);
     countCache.clear();
-    lastUnsuspend = { cards, itemIds: items.map(it => it.id) };
+    lastUnsuspend = { cards: changed, itemIds: items.map(it => it.id) };
     renderUpcoming();
-    upMsg(`${auto ? 'Auto-unsuspended' : 'Unsuspended'} ${cards.length} card${cards.length === 1 ? '' : 's'} from ${items.length} item${items.length === 1 ? '' : 's'}.`, true);
+
+    const totalCards = new Set(all.flat()).size;
+    const already = totalCards - toUnsuspend.length;
+    const left = stillSuspended.size;
+    const what = items.length === 1 ? `“${items[0].label}”` : `${items.length} items`;
+    let text = `${auto ? 'Auto-unsuspended' : 'Unsuspended'} ${changed.length} card${changed.length === 1 ? '' : 's'} for ${what}`;
+    if (already > 0) text += ` (${already} ${already === 1 ? 'was' : 'were'} already active)`;
+    text += left
+        ? `. ⚠ ${left} card${left === 1 ? ' is' : 's are'} still suspended; click Cards to check ${left === 1 ? 'it' : 'them'} in Anki.`
+        : `. All ${totalCards} card${totalCards === 1 ? ' is' : 's are'} now active.`;
+    upMsg(text, true);
 }
 
 async function undoUnsuspend() {
@@ -1662,7 +1735,7 @@ async function undoUnsuspend() {
     if (!u) return;
     if (u.cards.length) await anki('suspend', { cards: u.cards });
     const db = loadDb();
-    (db.upcoming || []).forEach(it => { if (u.itemIds.includes(it.id)) Object.assign(it, { doneAt: null, doneBy: null }); });
+    (db.upcoming || []).forEach(it => { if (u.itemIds.includes(it.id)) Object.assign(it, { doneAt: null, doneBy: null, stuck: 0 }); });
     saveDb(db);
     lastUnsuspend = null;
     countCache.clear();
@@ -1692,6 +1765,7 @@ async function refreshUpcoming({ allowAuto = true } = {}) {
                 const r = results.get(it.id);
                 if (!r || it.doneAt) return;
                 Object.assign(it, r, { checkedAt: now });
+                if (!r.suspended) it.stuck = 0;
                 countCache.set(itemQuery(it), r);
                 if (r.total > 0 && r.suspended === 0) Object.assign(it, { doneAt: now, doneBy: 'anki' });
             });
@@ -1710,7 +1784,7 @@ async function refreshUpcoming({ allowAuto = true } = {}) {
 }
 
 // ---------- wiring ----------
-$('upSource').addEventListener('change', renderPicker);
+$('upSource').addEventListener('change', onSourceChange);
 $('upSection').addEventListener('change', renderPicker);
 let upSearchTimer = null;
 $('upSearch').addEventListener('input', () => { clearTimeout(upSearchTimer); upSearchTimer = setTimeout(renderPicker, 200); });
@@ -1961,10 +2035,242 @@ $('upPdfRes').addEventListener('change', () => { if (pdfMatches.length) runPdfMa
 $('upPdfOpenBtn').addEventListener('click', () => {
     $('upAddWrap').open = true;
     $('upSource').value = 'pdf';
-    renderPicker();
+    onSourceChange();
     $('upPdfWrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 $('upPdfSort').addEventListener('change', renderPicker);
+
+// ============================================================
+// IMPORT SCHEDULE (.xlsx) — lecture calendar with B&B video links -> AnKing B&B tags
+// ============================================================
+// Minimal .xlsx reader: an .xlsx is a zip of XML files, which the browser can unpack itself
+async function openZip(buf) {
+    const dv = new DataView(buf), u8 = new Uint8Array(buf), dec = new TextDecoder();
+    let eocd = -1;
+    for (let i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 65557); i--) {
+        if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    }
+    if (eocd < 0) throw new Error("That doesn't look like an .xlsx file.");
+    const entries = new Map();
+    let p = dv.getUint32(eocd + 16, true);
+    for (let n = dv.getUint16(eocd + 10, true); n > 0 && dv.getUint32(p, true) === 0x02014b50; n--) {
+        const nlen = dv.getUint16(p + 28, true);
+        entries.set(dec.decode(u8.subarray(p + 46, p + 46 + nlen)), {
+            method: dv.getUint16(p + 10, true), size: dv.getUint32(p + 20, true), off: dv.getUint32(p + 42, true)
+        });
+        p += 46 + nlen + dv.getUint16(p + 30, true) + dv.getUint16(p + 32, true);
+    }
+    return async name => {
+        const e = entries.get(name);
+        if (!e) return null;
+        const start = e.off + 30 + dv.getUint16(e.off + 26, true) + dv.getUint16(e.off + 28, true);
+        const data = u8.subarray(start, start + e.size);
+        if (e.method === 0) return dec.decode(data);
+        if (e.method !== 8) throw new Error('This .xlsx file uses a compression the page can’t read. Re-save it from Excel or Google Sheets.');
+        return new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+    };
+}
+function cellRef(ref) {
+    const m = /^([A-Z]+)(\d+)$/.exec(ref || '');
+    if (!m) return null;
+    let col = 0;
+    for (const ch of m[1]) col = col * 26 + ch.charCodeAt(0) - 64;
+    return { row: +m[2], col };
+}
+async function readXlsx(file) {
+    const read = await openZip(await file.arrayBuffer());
+    const xml = s => s ? new DOMParser().parseFromString(s, 'application/xml') : null;
+    const relTarget = (doc, id) => {
+        const r = doc && [...doc.getElementsByTagName('Relationship')].find(x => x.getAttribute('Id') === id);
+        return r ? r.getAttribute('Target') : null;
+    };
+    const ss = xml(await read('xl/sharedStrings.xml'));
+    const strings = ss ? [...ss.getElementsByTagName('si')].map(si => [...si.getElementsByTagName('t')].map(t => t.textContent).join('')) : [];
+    const wb = xml(await read('xl/workbook.xml'));
+    if (!wb) throw new Error("That doesn't look like an .xlsx file.");
+    const wbRels = xml(await read('xl/_rels/workbook.xml.rels'));
+    const sheets = [];
+    for (const sh of wb.getElementsByTagName('sheet')) {
+        const target = relTarget(wbRels, sh.getAttribute('r:id'));
+        if (!target) continue;
+        const path = target.replace(/^\/?(xl\/)?/, 'xl/');
+        const doc = xml(await read(path));
+        if (!doc) continue;
+        const rels = xml(await read(path.replace(/([^/]+)$/, '_rels/$1.rels')));
+        const cells = new Map();   // "row:col" -> { v, link }
+        for (const c of doc.getElementsByTagName('c')) {
+            const at = cellRef(c.getAttribute('r'));
+            if (!at) continue;
+            const t = c.getAttribute('t'), vEl = c.getElementsByTagName('v')[0];
+            let v = null;
+            if (t === 's') v = vEl ? strings[+vEl.textContent] ?? null : null;
+            else if (t === 'inlineStr') v = [...c.getElementsByTagName('t')].map(x => x.textContent).join('');
+            else if (vEl) v = (t === 'str' || t === 'e') ? vEl.textContent : t === 'b' ? vEl.textContent === '1' : Number(vEl.textContent);
+            if (v !== null && v !== '') cells.set(`${at.row}:${at.col}`, { v, link: null });
+        }
+        for (const h of doc.getElementsByTagName('hyperlink')) {
+            const at = cellRef((h.getAttribute('ref') || '').split(':')[0]);
+            const link = relTarget(rels, h.getAttribute('r:id'));
+            if (!at || !link) continue;
+            const key = `${at.row}:${at.col}`;
+            cells.set(key, { v: (cells.get(key) || {}).v ?? null, link });
+        }
+        sheets.push({ name: sh.getAttribute('name'), cells });
+    }
+    return sheets;
+}
+
+// Reads a weekly calendar: a row of dates on top, lecture names under one set of dated columns,
+// video links under another set with the same dates. Undated link columns (e.g. "Multiple Sessions") are kept without a date.
+function parseSchedule(sheets) {
+    const out = [], skipped = [];
+    const isDateNum = v => typeof v === 'number' && v > 36000 && v < 60000;
+    // Excel stores dates as days since 1899-12-30; read them in UTC so time zones / daylight saving can't shift the day
+    const serialKey = v => { const d = new Date(Date.UTC(1899, 11, 30) + Math.round(v) * 864e5); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`; };
+    const isLabel = t => typeof t === 'string' && t.trim().length >= 2 && !/https?:\/\//i.test(t) && !/^[\s.^v]+$/i.test(t) && !/^\d+$/.test(t.trim());
+    sheets.forEach(({ name, cells }) => {
+        const rows = new Map();
+        cells.forEach((cell, key) => {
+            const [r, c] = key.split(':').map(Number);
+            if (!rows.has(r)) rows.set(r, new Map());
+            rows.get(r).set(c, cell);
+        });
+        const rowNums = [...rows.keys()].sort((a, b) => a - b);
+        const headers = rowNums.filter(r => [...rows.get(r).values()].filter(c => isDateNum(c.v)).length >= 3);
+        const text = (r, c) => { const x = rows.get(r) && rows.get(r).get(c); return x && typeof x.v === 'string' ? x.v : ''; };
+        rowNums.forEach(r => {
+            const header = [...headers].reverse().find(h => h < r);
+            rows.get(r).forEach((cell, col) => {
+                const raw = `${cell.v ?? ''} ${cell.link || ''}`;
+                const urls = [...new Set((raw.match(/https?:\/\/[^\s"'<>]+/gi) || []).map(u => u.replace(/[),.;]+$/, '')))];
+                if (!urls.length) return;
+                const hdr = header ? rows.get(header) : null;
+                const dc = hdr && hdr.get(col);
+                const date = dc && isDateNum(dc.v) ? serialKey(dc.v) : null;
+                let lecture = '';
+                if (date) {
+                    // the lecture column is another column in the same header row with the same date
+                    const lecCol = [...hdr.entries()].filter(([c2, x]) => c2 !== col && isDateNum(x.v) && serialKey(x.v) === date).map(([c2]) => c2).sort((a, b) => a - b)[0];
+                    if (lecCol) for (let rr = r; rr > header; rr--) { if (isLabel(text(rr, lecCol))) { lecture = text(rr, lecCol); break; } }
+                } else {
+                    for (let c2 = col - 1; c2 >= Math.max(1, col - 2); c2--) {
+                        const t = text(r, c2);
+                        if (/https?:\/\//i.test(t)) break;
+                        if (isLabel(t)) { lecture = t; break; }
+                    }
+                    if (!lecture) for (let rr = r - 1; rr > (header || 0); rr--) { if (isLabel(text(rr, col))) { lecture = text(rr, col); break; } }
+                }
+                urls.forEach(u => {
+                    let path;
+                    try { path = new URL(u).pathname.split('/').filter(Boolean); } catch { return; }
+                    if (!path.includes('video')) { skipped.push(u); return; }
+                    out.push({ url: u.split('?')[0], slug: decodeURIComponent(path[path.length - 1]).toLowerCase(), date, lecture: lecture.trim().replace(/\s+/g, ' '), sheet: name });
+                });
+            });
+        });
+    });
+    return { entries: out, skipped };
+}
+
+// Match a video link's name ("acid-base-principles") to an AnKing B&B tag ("…::02_Acid-Base_Principles")
+const MATCH_STOP = new Set(['the', 'and', 'of', 'a', 'an', 'in', 'to', 'for', 'video', 'videos', 'part']);
+const normName = s => cleanSeg(s).toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+const nameTokens = s => s.split('-').filter(w => w && !MATCH_STOP.has(w)).map(stemWord);
+function videoTagIndex(resId) {
+    return (ankiTags || []).map(tag => {
+        const segs = tag.split('::'), r = resourceSeg(segs);
+        if (!r || r.res.id !== resId || segs.length <= r.i + 1) return null;
+        const norm = normName(segs[segs.length - 1]);
+        return { tag, norm, tokens: nameTokens(norm), depth: segs.length, label: labelFrom(segs.slice(r.i + 1)), res: r.res };
+    }).filter(Boolean);
+}
+function matchVideoSlug(slug, idx) {
+    const exact = idx.filter(e => e.norm === slug).sort((a, b) => b.depth - a.depth);
+    if (exact.length) return { ...exact[0], how: 'exact' };
+    const st = new Set(nameTokens(slug));
+    if (!st.size) return null;
+    let best = null;
+    idx.forEach(e => {
+        const et = new Set(e.tokens);
+        const inter = [...st].filter(w => et.has(w)).length;
+        if (!inter) return;
+        const score = 0.6 * inter / new Set([...st, ...et]).size + 0.4 * inter / Math.min(st.size, et.size);
+        if (!best || score > best.score || (score === best.score && e.depth > best.e.depth)) best = { e, score };
+    });
+    return best && best.score >= 0.6 ? { ...best.e, how: 'close' } : null;
+}
+const slugTitle = slug => slug.split('-').filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+const safeUrl = u => /^https?:\/\//i.test(u || '') ? u : '';
+
+let schedRows = [], schedName = '';
+async function importSchedule() {
+    const st = $('upXlsxStatus');
+    const setSt = (t, err = false) => { st.textContent = t; st.classList.toggle('status-err', err); };
+    const file = $('upXlsxInput').files[0];
+    if (!file) return;
+    try {
+        setSt('Reading your schedule…');
+        const { entries, skipped } = parseSchedule(await readXlsx(file));
+        if (!entries.length) { setSt('No video links found in that spreadsheet.', true); schedRows = []; renderPicker(); return; }
+        schedName = file.name.replace(/\.xlsx$/i, '');
+        if (!ankiTags) { setSt(`Found ${entries.length} video links. Open this page with Anki running to match them to your AnKing cards.`, true); schedRows = []; renderPicker(); return; }
+        const idx = videoTagIndex('bnb');
+        // one row per AnKing tag (a video can appear twice in the schedule; keep its first date)
+        const byKey = new Map();
+        entries.forEach(e => {
+            const m = idx.length ? matchVideoSlug(e.slug, idx) : null;
+            const key = m ? 'tag:' + m.tag.toLowerCase() : 'none:' + e.slug;
+            const prev = byKey.get(key);
+            if (prev) {
+                if (e.lecture && !prev.lectures.includes(e.lecture)) prev.lectures.push(e.lecture);
+                if (e.date && (!prev.date || e.date < prev.date)) prev.date = e.date;
+                return;
+            }
+            byKey.set(key, { ...e, match: m, lectures: e.lecture ? [e.lecture] : [] });
+        });
+        schedRows = [...byKey.values()].sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999') || a.url.localeCompare(b.url));
+        const matched = schedRows.filter(r => r.match), close = matched.filter(r => r.match.how === 'close').length;
+        const missing = schedRows.length - matched.length;
+        setSt(`${schedName}: ${schedRows.length} videos. ${matched.length} matched to your AnKing B&B tags${close ? ` (${close} by a close name)` : ''}${missing ? `, ${missing} not found; use Find on those` : ''}.`
+            + (skipped.length ? ` ${skipped.length} topic-page link${skipped.length === 1 ? '' : 's'} skipped.` : '')
+            + (idx.length ? '' : ' No B&B tags found in your collection.'));
+        $('upSchedMode').value = 'sheet';
+        updateSchedFields();
+        renderPicker();
+    } catch (err) {
+        console.error(err);
+        setSt(err.message || "Couldn't read that file.", true);
+    }
+}
+
+function schedCandidates() {
+    return schedRows.map(r => {
+        const when = r.date ? new Date(r.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : 'No date';
+        const lec = r.lectures.length ? escHtml(r.lectures.join(' / ')) : '';
+        const link = safeUrl(r.url) ? ` · <a href="${escHtml(r.url)}" target="_blank" rel="noopener noreferrer">video ↗</a>` : '';
+        if (!r.match) {
+            return {
+                kind: 'none', key: r.slug, label: slugTitle(r.slug), disabled: true,
+                extra: `<b>${when}</b>${lec ? ` · ${lec}` : ''}${link} · <span class="stuck">not found in your AnKing tags</span>`,
+                after: `<button class="btn-small" data-act="up-find" data-q="${escHtml(r.slug.replace(/-/g, ' '))}">Find</button>`
+            };
+        }
+        return {
+            kind: 'tag', key: r.match.tag, label: r.match.label, full: r.match.label, badge: resBadge(r.match.res),
+            date: r.date, url: safeUrl(r.url), pre: true,
+            note: r.lectures.length ? `${r.lectures.join(' / ')} lecture` : (schedName ? `from ${schedName}` : null),
+            extra: `<b>${when}</b>${lec ? ` · ${lec}` : ''}${link}${r.match.how === 'close' ? ` · <span class="match good">close name match (${escHtml(slugTitle(r.slug))})</span>` : ''}`
+        };
+    });
+}
+
+$('upXlsxInput').addEventListener('change', importSchedule);
+$('upXlsxOpenBtn').addEventListener('click', () => {
+    $('upAddWrap').open = true;
+    $('upSource').value = 'xlsx';
+    onSourceChange();
+    $('upXlsxWrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
 
 // ============================================================
 // BUTTON HANDLERS (event delegation)
@@ -2008,6 +2314,14 @@ document.addEventListener('click', e => {
             renderPicker();
             break;
         }
+        case 'up-find':
+            e.preventDefault();
+            $('upSource').value = 'bnb';
+            onSourceChange();
+            $('upSearch').value = el.dataset.q || '';
+            renderPicker();
+            $('upSearch').focus();
+            break;
         case 'up-undo':
             ankiDo(undoUnsuspend);
             break;
