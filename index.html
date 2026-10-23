@@ -232,7 +232,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 22f · Leeches tab</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 23b · Re-suspend</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -694,21 +694,46 @@ function setOptions(select, values, selected) {
 // ============================================================
 // ANKICONNECT
 // ============================================================
-async function anki(action, params = {}) {
+// Anki can only do one thing at a time, so every request waits its turn (never several at once),
+// and if Anki says it's busy (e.g. syncing with AnkiWeb or AnkiHub) the request waits and tries again.
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const isAnkiBusy = err => /collection operation is active|operation (is )?in progress|database is locked|busy/i.test((err && err.message) || '');
+let ankiQueue = Promise.resolve();
+function ankiQueued(fn) {
+    const p = ankiQueue.then(fn, fn);
+    ankiQueue = p.catch(() => {});
+    return p;
+}
+async function ankiRetrying(fn) {
+    const waits = [300, 600, 1000, 1500, 2500, 4000];   // about 10 seconds in total
+    for (let i = 0; ; i++) {
+        try { return await ankiQueued(fn); }
+        catch (err) {
+            if (!isAnkiBusy(err) || i >= waits.length) throw err;
+            await sleep(waits[i]);                           // wait outside the queue so other requests aren't held up
+        }
+    }
+}
+async function ankiRaw(action, params) {
     // No Content-Type header -> "simple" request, avoids a CORS preflight
     const res = await fetch(getSettings().ankiUrl, { method: 'POST', body: JSON.stringify({ action, version: 6, params }) });
     const data = await res.json();
     if (data.error) throw new Error(`${action}: ${data.error}`);
     return data.result;
 }
-async function ankiMulti(actions) {
-    const results = await anki('multi', { actions: actions.map(a => ({ ...a, version: 6 })) });
-    return results.map(r => {
-        if (r && typeof r === 'object' && !Array.isArray(r) && 'result' in r) {
-            if (r.error) throw new Error(r.error);
-            return r.result;
-        }
-        return r;
+function anki(action, params = {}) {
+    return ankiRetrying(() => ankiRaw(action, params));
+}
+function ankiMulti(actions) {
+    return ankiRetrying(async () => {
+        const results = await ankiRaw('multi', { actions: actions.map(a => ({ ...a, version: 6 })) });
+        return results.map(r => {
+            if (r && typeof r === 'object' && !Array.isArray(r) && 'result' in r) {
+                if (r.error) throw new Error(r.error);
+                return r.result;
+            }
+            return r;
+        });
     });
 }
 function setAnkiStatus(ok, text) {
@@ -726,6 +751,9 @@ function progress(msg, isErr = false) {
 function ankiErrorText(err) {
     if (err instanceof TypeError) {
         return "Couldn't reach Anki. Make sure Anki is open with AnkiConnect installed, you're on the same computer, and the browser is allowed to access your local network. See \"First-time setup\".";
+    }
+    if (isAnkiBusy(err)) {
+        return 'Anki is busy with another task (often syncing with AnkiWeb or AnkiHub, or a window like Check Database is open). Wait until it finishes, then try again.';
     }
     return err.message;
 }
@@ -1732,6 +1760,7 @@ function upRow(it, cls) {
                 : cls !== 'done' ? `<button class="btn-small btn-go" data-act="up-unsuspend" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Unsuspend</button>` : ''}
             ${safeUrl(it.url) ? `<a class="btn-small" href="${escHtml(it.url)}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; border-radius:4px;">Watch</a>` : ''}
             <button class="btn-small" data-act="up-browse" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>
+            ${it.doneAt ? `<button class="btn-small" data-act="up-resuspend" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'} title="Suspend this video’s cards again">Re-suspend</button>` : ''}
             <button class="btn-small" data-act="up-remove" data-id="${it.id}" title="Remove from list">✕</button>
         </div>
     </div>`;
@@ -1837,6 +1866,45 @@ async function unsuspendItems(ids, { auto = false } = {}) {
         ? `. ${left} card${left === 1 ? ' is' : 's are'} still suspended; click Cards to check ${left === 1 ? 'it' : 'them'} in Anki.`
         : `. All ${totalCards} card${totalCards === 1 ? ' is' : 's are'} now active.`;
     upMsg(text, true);
+}
+
+// Suspend a video's cards again and put it back on the schedule.
+// Cards shared with other videos you've already unsuspended stay active, so those videos aren't affected.
+async function resuspendItem(id) {
+    const db0 = loadDb();
+    const it = (db0.upcoming || []).find(x => x.id === id);
+    if (!it) return;
+    const others = (db0.upcoming || []).filter(x => x.id !== id && x.doneAt);
+    const [active] = await cardsPerItem([it], ' -is:suspended');
+    const keep = new Set();
+    if (others.length) (await cardsPerItem(others)).forEach(list => list.forEach(c => keep.add(c)));
+    const toSuspend = active.filter(c => !keep.has(c));
+    const kept = active.length - toSuspend.length;
+    if (active.length && !toSuspend.length) {
+        upMsg(`All of “${it.label}”’s active cards also belong to other videos you’ve unsuspended, so nothing was suspended.`);
+        return;
+    }
+    if (toSuspend.length && !confirm(`Re-suspend ${toSuspend.length} card${toSuspend.length === 1 ? '' : 's'} for “${it.label}”?\n\nThey leave your reviews until you unsuspend them again; their review history is kept.`
+        + (kept ? `\n\n${kept} card${kept === 1 ? '' : 's'} also belong${kept === 1 ? 's' : ''} to other videos you’ve unsuspended and will stay active.` : ''))) return;
+    for (const batch of chunk(toSuspend, 200)) await anki('suspend', { cards: batch });
+    const [all] = await cardsPerItem([it]);
+    const [susp] = await cardsPerItem([it], ' is:suspended');
+    const now = new Date().toISOString();
+    const db = loadDb();
+    const item = (db.upcoming || []).find(x => x.id === id);
+    if (!item) return;
+    let moved = '';
+    if (getSettings().autoUnsuspend && item.date && daysUntil(item.date) <= 0) {
+        item.date = addDays(todayKey(), 1);    // otherwise auto-unsuspend would bring it straight back
+        moved = ' Moved to tomorrow so auto-unsuspend doesn’t bring it straight back; change the date if you like.';
+    }
+    Object.assign(item, { doneAt: null, doneBy: null, fu: null, stuck: 0, total: all.length, suspended: susp.length, checkedAt: now });
+    saveDb(db);
+    countCache.clear();
+    lastUnsuspend = null;
+    renderUpcoming();
+    upMsg(`Re-suspended ${toSuspend.length} card${toSuspend.length === 1 ? '' : 's'} for “${item.label}”.`
+        + (kept ? ` ${kept} stayed active because ${kept === 1 ? 'it belongs' : 'they belong'} to other videos you’ve unsuspended.` : '') + moved);
 }
 
 async function undoUnsuspend() {
@@ -2467,7 +2535,8 @@ function renderToday() {
             detail: overdue + [it.note ? escHtml(it.note) : '', d ? `Unsuspended${it.total ? ` · ${it.total} cards active` : ''}` : it.suspended != null ? `${it.suspended} card${it.suspended === 1 ? '' : 's'} to unsuspend after watching` : ''].filter(Boolean).join(' · '),
             done: d,
             actions: (safeUrl(it.url) ? `<a class="btn-small" href="${escHtml(it.url)}" target="_blank" rel="noopener noreferrer">Watch</a>` : '')
-                + (d ? '' : `<button class="btn-small btn-go" data-act="up-unsuspend" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Unsuspend</button>`)
+                + (d ? `<button class="btn-small" data-act="up-resuspend" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Re-suspend</button>`
+                     : `<button class="btn-small btn-go" data-act="up-unsuspend" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Unsuspend</button>`)
         }));
     });
     const more = watch.length - 6;
@@ -2685,7 +2754,8 @@ function renderLeeches() {
                 </div>
                 <div class="actions">
                     <button class="btn-small" data-act="leech-open" data-ids="${c.id}" ${dis}>Open</button>
-                    ${c.suspended ? `<button class="btn-small btn-go" data-act="leech-unsuspend" data-ids="${c.id}" ${dis}>Unsuspend</button>` : ''}
+                    ${c.suspended ? `<button class="btn-small btn-go" data-act="leech-unsuspend" data-ids="${c.id}" ${dis}>Unsuspend</button>`
+                                  : `<button class="btn-small" data-act="leech-suspend" data-ids="${c.id}" ${dis} title="Take it out of your reviews until you fix it">Suspend</button>`}
                     <button class="btn-small" data-act="leech-reset" data-ids="${c.id}" ${dis} title="Reset to a new card and unsuspend it">Reset</button>
                 </div>
             </div>`).join('')}
@@ -2700,8 +2770,9 @@ async function leechAction(act, ids) {
     if (act === 'leech-reset' && !confirm(`Reset ${cards.length === 1 ? 'this card' : `${cards.length} cards`} to new? ${cards.length === 1 ? 'It loses' : 'They lose'} ${cards.length === 1 ? 'its' : 'their'} review history and come back as new cards. Do this after rewriting a card you never really learned.`)) return;
     if (act === 'leech-reset') { await anki('forgetCards', { cards }); await anki('unsuspend', { cards }); }
     if (act === 'leech-unsuspend') await anki('unsuspend', { cards });
+    if (act === 'leech-suspend') await anki('suspend', { cards });
     await loadLeeches();
-    $('leechStatus').textContent = `${act === 'leech-reset' ? 'Reset and unsuspended' : 'Unsuspended'} ${cards.length} card${cards.length === 1 ? '' : 's'}.`;
+    $('leechStatus').textContent = `${{ 'leech-reset': 'Reset and unsuspended', 'leech-suspend': 'Suspended' }[act] || 'Unsuspended'} ${cards.length} card${cards.length === 1 ? '' : 's'}.`;
 }
 
 // New leeches since you last opened the Leeches tab (for the Today panel)
@@ -2774,6 +2845,9 @@ document.addEventListener('click', e => {
             if (it) ankiDo(() => anki('guiBrowse', { query: itemQuery(it) }));
             break;
         }
+        case 'up-resuspend':
+            ankiDo(() => resuspendItem(el.dataset.id));
+            break;
         case 'up-remove': {
             const db = loadDb();
             db.upcoming = (db.upcoming || []).filter(x => x.id !== el.dataset.id);
@@ -2793,6 +2867,7 @@ document.addEventListener('click', e => {
         case 'leech-open':
         case 'leech-unsuspend':
         case 'leech-reset':
+        case 'leech-suspend':
             ankiDo(() => leechAction(el.dataset.act, el.dataset.ids));
             break;
         case 'open-leeches':
