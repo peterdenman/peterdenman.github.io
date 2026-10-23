@@ -233,7 +233,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 23c · Related videos</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 23d · Back to basics</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -377,8 +377,6 @@
                     </div>
                     <button class="btn-success" id="upAddBtn" style="width:100%;" disabled>Add selected</button>
                 </details>
-                <label class="check" style="margin-top:12px;"><input type="checkbox" id="upRelatedInput"> Include related videos (the rest of each video’s B&amp;B category)</label>
-                <label class="check" style="margin-top:6px;"><input type="checkbox" id="upAutoInput"> Auto-unsuspend items on their date when Anki is open</label>
             </div>
 
         </div>
@@ -487,7 +485,7 @@
                     <button class="btn-small" id="leechRefreshBtn" style="font-size:12px;">Refresh</button>
                 </span>
             </h2>
-            <p class="muted" style="margin-top:-4px;">Cards Anki has tagged as leeches because you kept forgetting them (8 lapses by default, and Anki usually suspends them). Leeches cost far more time than they're worth, so fix the card before bringing it back: reword it, add an image or mnemonic, or split it into smaller cards. Then unsuspend it, or reset it if you never really learned it.</p>
+            <p class="muted" style="margin-top:-4px;">Cards Anki has tagged as leeches because you kept forgetting them (8 lapses by default, and Anki usually suspends them). Leeches cost far more time than they're worth, so fix the card before bringing it back: open it in Anki, reword it, add an image or mnemonic, or split it into smaller cards, then unsuspend it there.</p>
             <div class="settings-grid" style="grid-template-columns: minmax(0, 260px);">
                 <label class="field">Show
                     <select id="leechFilter">
@@ -523,9 +521,7 @@ const DEFAULT_SETTINGS = {
     days: 30,
     minCards: 20,
     deck: '',
-    autoSync: true,
-    autoUnsuspend: false,
-    relatedDefault: true
+    autoSync: true
 };
 
 const $ = id => document.getElementById(id);
@@ -662,9 +658,7 @@ function readSettingsForm() {
         days: parseInt($('daysSelect').value, 10) || 30,
         minCards: Math.max(1, parseInt($('minCardsInput').value, 10) || DEFAULT_SETTINGS.minCards),
         deck: $('deckInput').value.trim(),
-        autoSync: $('autoSyncInput').checked,
-        autoUnsuspend: $('upAutoInput').checked,
-        relatedDefault: $('upRelatedInput').checked
+        autoSync: $('autoSyncInput').checked
     };
     saveSettings(s);
     return s;
@@ -677,8 +671,6 @@ function fillSettingsForm() {
     $('minCardsInput').value = s.minCards;
     $('deckInput').value = s.deck;
     $('autoSyncInput').checked = s.autoSync !== false;
-    $('upAutoInput').checked = !!s.autoUnsuspend;
-    $('upRelatedInput').checked = s.relatedDefault !== false;
     $('modeSelect').value = s.mode;
     setOptions($('deckRootSelect'), s.deckRoot ? [s.deckRoot] : ['(connect to load)'], s.deckRoot);
     setOptions($('rootSelect'), [s.root], s.root);
@@ -1518,35 +1510,7 @@ const todayKey = () => dateKey(new Date());
 const addDays = (key, n) => { const d = new Date(key + 'T00:00:00'); d.setDate(d.getDate() + n); return dateKey(d); };
 const daysBetween = (a, b) => Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 864e5);
 const daysUntil = key => daysBetween(todayKey(), key);
-// A video's category is its parent tag, e.g. …::#B&B::01_Biochem::03_Enzymes for …::03_Enzymes::02_Enzyme_Inhibitors.
-// Only when there is a real category level between the subject and the video.
-function videoCategory(key) {
-    const segs = String(key).split('::'), r = resourceSeg(segs);
-    if (!r || segs.length - (r.i + 1) < 3) return null;
-    return segs.slice(0, -1).join('::');
-}
-const itemScopeTag = it => (it.withRelated && videoCategory(it.key)) || it.key;
-const itemQuery = it => it.kind === 'deck' ? deckClause(it.key).trim() : tagQuery(itemScopeTag(it));
-// The other videos in the same category: names plus B&B link names ("enzyme-inhibitors")
-function relatedInfo(key) {
-    const cat = videoCategory(key);
-    if (!cat || !ankiTags) return null;
-    const pre = cat.toLowerCase() + '::';
-    const vids = bootcampIndex().videos.filter(v => v.tag.toLowerCase().startsWith(pre) && v.tag.toLowerCase() !== key.toLowerCase());
-    if (!vids.length) return null;
-    const segs = cat.split('::');
-    return {
-        cat: cleanSeg(segs[segs.length - 1]),
-        videos: vids.map(v => { const leaf = v.tag.split('::').pop(); return { name: cleanSeg(leaf), slug: normName(leaf) }; })
-    };
-}
-function relatedLinks(it) {
-    if (!it.rel || !it.rel.videos.length) return '';
-    const base = /boardsbeyond\.com\/video\//i.test(it.url || '') ? safeUrl(it.url).split('?')[0].replace(/[^/]+$/, '') : '';
-    return it.rel.videos.map(v => base
-        ? `<a href="${escHtml(base + encodeURIComponent(v.slug))}" target="_blank" rel="noopener noreferrer">${escHtml(v.name)}</a>`
-        : escHtml(v.name)).join(', ');
-}
+const itemQuery = it => it.kind === 'deck' ? deckClause(it.key).trim() : tagQuery(it.key);
 const itemUid = it => `${it.kind}:${it.key}`.toLowerCase();
 
 // Every Bootcamp / B&B video tag in the collection (the deepest tag under #Bootcamp or #B&B)
@@ -1732,12 +1696,10 @@ function addSelected() {
             : mode === 'sheet' ? (p.date ? addDays(p.date, offset) : null)
             : mode === 'one' || ks.length === 1 ? d1
             : addDays(d1, Math.round(idx * span / (ks.length - 1)));
-        const c = getSettings().relatedDefault !== false && videoCategory(p.key) ? null : countCache.get(itemQuery(p));
+        const c = countCache.get(itemQuery(p));
         db.upcoming.push({
             id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
             kind: p.kind, key: p.key, label: p.full, date, note: p.note || null, url: p.url || null,
-            withRelated: p.kind === 'tag' && getSettings().relatedDefault !== false && !!videoCategory(p.key),
-            rel: p.kind === 'tag' ? relatedInfo(p.key) : null,
             total: c ? c.total : null, suspended: c ? c.suspended : null,
             checkedAt: c ? new Date().toISOString() : null,
             addedAt: new Date().toISOString(), doneAt: null, doneBy: null
@@ -1748,15 +1710,14 @@ function addSelected() {
     upMsg(`Added ${added} item${added === 1 ? '' : 's'} to your Upcoming list.`);
     renderUpcoming();
     renderPicker();
-    refreshUpcoming({ allowAuto: false });
+    refreshUpcoming();
 }
 
 // ---------- the list ----------
-let upDoneOpen = false, lastUnsuspend = null;
+let upDoneOpen = false;
 
-function upMsg(text, undo = false) {
-    $('upStatus').innerHTML = escHtml(text)
-        + (undo && lastUnsuspend && lastUnsuspend.cards.length ? ' <button class="btn-small" data-act="up-undo">Undo</button>' : '');
+function upMsg(text) {
+    $('upStatus').textContent = text;
 }
 
 function relDate(key) {
@@ -1773,7 +1734,7 @@ function upRow(it, cls) {
     const counts = it.total == null ? 'card count loads when Anki is open'
         : it.total === 0 ? 'no cards found for this tag'
         : cls === 'done' || early ? `${it.total} card${it.total === 1 ? '' : 's'} active`
-        : `${it.suspended} of ${it.total} cards suspended`;
+        : `${it.suspended} of ${it.total} cards still suspended`;
     const doneWhen = it.doneAt ? new Date(it.doneAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
     const doneText = { auto: 'Auto-unsuspended', anki: 'Unsuspended in Anki' }[it.doneBy] || 'Unsuspended';
     return `
@@ -1786,17 +1747,13 @@ function upRow(it, cls) {
                     : early ? `<span class="up-when ${cls}">${relDate(it.date)}</span><span class="muted">· ${doneText} ${doneWhen}</span>`
                     : `<input type="date" class="up-date" data-up-date="${it.id}" value="${it.date || ''}" aria-label="Unsuspend date">${it.date ? `<span class="up-when ${cls}">${relDate(it.date)}</span>` : ''}`}
                 <span class="muted">· ${counts}</span>
-                ${it.rel && it.rel.videos.length ? `<span class="muted">· ${it.withRelated ? 'with' : 'related'}: ${relatedLinks(it)}</span><button class="link-btn" data-act="up-related" data-id="${it.id}">${it.withRelated ? 'just this video' : `include ${it.rel.videos.length === 1 ? 'it' : 'them'}`}</button>` : ''}
-                ${it.stuck && !it.doneAt ? `<span class="stuck">${it.stuck} didn’t unsuspend; click Unsuspend to retry</span>` : ''}
                 ${it.note ? `<span class="muted">· ${escHtml(it.note)}</span>` : ''}
             </div>
         </div>
         <div class="actions">
-            ${early ? '<span class="done-badge">Already unsuspended</span>'
-                : cls !== 'done' ? `<button class="btn-small btn-go" data-act="up-unsuspend" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Unsuspend</button>` : ''}
+            ${early ? '<span class="done-badge">Already unsuspended</span>' : ''}
             ${safeUrl(it.url) ? `<a class="btn-small" href="${escHtml(it.url)}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; border-radius:4px;">Watch</a>` : ''}
             <button class="btn-small" data-act="up-browse" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>
-            ${it.doneAt ? `<button class="btn-small" data-act="up-resuspend" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'} title="Suspend this video’s cards again">Re-suspend</button>` : ''}
             <button class="btn-small" data-act="up-remove" data-id="${it.id}" title="Remove from list">✕</button>
         </div>
     </div>`;
@@ -1814,7 +1771,7 @@ function renderUpcoming() {
     if (!items.length) {
         $('upAddWrap').open = true;
         renderToday();
-        box.innerHTML = '<p class="muted" style="margin-top:0;">Plan your semester here. Add the Bootcamp or B&amp;B videos (or any tag or subdeck) you’ll need to unsuspend and give each one a date. Due items rise to the top, and items tick themselves off once their cards are unsuspended in Anki.</p>';
+        box.innerHTML = '<p class="muted" style="margin-top:0;">Plan your semester here. Add the Bootcamp or B&amp;B videos (or any tag or subdeck) you’ll need to unsuspend and give each one a date. Due items rise to the top, and each one ticks itself off once you unsuspend its cards in Anki.</p>';
         return;
     }
     const groups = [['due', 'Due now', []], ['soon', 'Next 7 days', []], ['later', 'Later', []], ['nodate', 'No date', []]];
@@ -1833,7 +1790,6 @@ function renderUpcoming() {
         <div class="up-group">
             <div class="up-group-head">
                 <span class="res-title" style="margin:0;">${title} · ${list.length}${cards ? ` · ~${cards.toLocaleString()} new cards` : ''}${early ? ` · ${early} already unsuspended` : ''}</span>
-                ${cls === 'due' && pending.length > 1 ? `<button class="btn-small btn-go" data-act="up-unsuspend-due" ${ankiTags ? '' : 'disabled'}>Unsuspend all ${pending.length}</button>` : ''}
             </div>
             ${list.map(it => upRow(it, cls)).join('')}
         </div>`;
@@ -1848,117 +1804,9 @@ function renderUpcoming() {
     renderToday();
 }
 
-// Card ids for each item's search, in one round trip
-async function cardsPerItem(items, extra = '') {
-    const res = await ankiMulti(items.map(it => ({ action: 'findCards', params: { query: itemQuery(it) + extra } })));
-    return res.map(r => Array.isArray(r) ? r : []);
-}
-
-async function unsuspendItems(ids, { auto = false } = {}) {
-    const items = (loadDb().upcoming || []).filter(it => ids.includes(it.id) && !it.doneAt);
-    if (!items.length) return;
-    const all = await cardsPerItem(items);
-    const before = await cardsPerItem(items, ' is:suspended');
-    const toUnsuspend = [...new Set(before.flat())];
-    for (const batch of chunk(toUnsuspend, 200)) await anki('unsuspend', { cards: batch });
-
-    // Check Anki again; retry anything still suspended one card at a time
-    let after = await cardsPerItem(items, ' is:suspended');
-    const stuck = [...new Set(after.flat())];
-    if (stuck.length) {
-        for (const id of stuck) { try { await anki('unsuspend', { cards: [id] }); } catch (e) { console.error(e); } }
-        after = await cardsPerItem(items, ' is:suspended');
-    }
-    const stillSuspended = new Set(after.flat());
-    const changed = toUnsuspend.filter(id => !stillSuspended.has(id));
-
-    const now = new Date().toISOString();
-    const db = loadDb();
-    let done = 0;
-    (db.upcoming || []).forEach(it => {
-        const k = items.findIndex(x => x.id === it.id);
-        if (k < 0) return;
-        const total = all[k].length, left = after[k].length;
-        Object.assign(it, { total, suspended: left, checkedAt: now, stuck: left || 0 });
-        if (left === 0 && total > 0) { Object.assign(it, { doneAt: now, doneBy: before[k].length ? (auto ? 'auto' : 'page') : 'anki' }); done++; }
-    });
-    saveDb(db);
-    countCache.clear();
-    lastUnsuspend = { cards: changed, itemIds: items.map(it => it.id) };
-    renderUpcoming();
-
-    const totalCards = new Set(all.flat()).size;
-    const already = totalCards - toUnsuspend.length;
-    const left = stillSuspended.size;
-    const what = items.length === 1 ? `“${items[0].label}”` : `${items.length} items`;
-    if (!toUnsuspend.length && totalCards) {
-        lastUnsuspend = null;
-        upMsg(`${items.length === 1 ? what + ' was' : 'These were'} already unsuspended: all ${totalCards} card${totalCards === 1 ? ' is' : 's are'} active.`);
-        return;
-    }
-    let text = `${auto ? 'Auto-unsuspended' : 'Unsuspended'} ${changed.length} card${changed.length === 1 ? '' : 's'} for ${what}`;
-    if (already > 0) text += ` (${already} ${already === 1 ? 'was' : 'were'} already active)`;
-    text += left
-        ? `. ${left} card${left === 1 ? ' is' : 's are'} still suspended; click Cards to check ${left === 1 ? 'it' : 'them'} in Anki.`
-        : `. All ${totalCards} card${totalCards === 1 ? ' is' : 's are'} now active.`;
-    upMsg(text, true);
-}
-
-// Suspend a video's cards again and put it back on the schedule.
-// Cards shared with other videos you've already unsuspended stay active, so those videos aren't affected.
-async function resuspendItem(id) {
-    const db0 = loadDb();
-    const it = (db0.upcoming || []).find(x => x.id === id);
-    if (!it) return;
-    const others = (db0.upcoming || []).filter(x => x.id !== id && x.doneAt);
-    const [active] = await cardsPerItem([it], ' -is:suspended');
-    const keep = new Set();
-    if (others.length) (await cardsPerItem(others)).forEach(list => list.forEach(c => keep.add(c)));
-    const toSuspend = active.filter(c => !keep.has(c));
-    const kept = active.length - toSuspend.length;
-    if (active.length && !toSuspend.length) {
-        upMsg(`All of “${it.label}”’s active cards also belong to other videos you’ve unsuspended, so nothing was suspended.`);
-        return;
-    }
-    if (toSuspend.length && !confirm(`Re-suspend ${toSuspend.length} card${toSuspend.length === 1 ? '' : 's'} for “${it.label}”?\n\nThey leave your reviews until you unsuspend them again; their review history is kept.`
-        + (kept ? `\n\n${kept} card${kept === 1 ? '' : 's'} also belong${kept === 1 ? 's' : ''} to other videos you’ve unsuspended and will stay active.` : ''))) return;
-    for (const batch of chunk(toSuspend, 200)) await anki('suspend', { cards: batch });
-    const [all] = await cardsPerItem([it]);
-    const [susp] = await cardsPerItem([it], ' is:suspended');
-    const now = new Date().toISOString();
-    const db = loadDb();
-    const item = (db.upcoming || []).find(x => x.id === id);
-    if (!item) return;
-    let moved = '';
-    if (getSettings().autoUnsuspend && item.date && daysUntil(item.date) <= 0) {
-        item.date = addDays(todayKey(), 1);    // otherwise auto-unsuspend would bring it straight back
-        moved = ' Moved to tomorrow so auto-unsuspend doesn’t bring it straight back; change the date if you like.';
-    }
-    Object.assign(item, { doneAt: null, doneBy: null, fu: null, stuck: 0, total: all.length, suspended: susp.length, checkedAt: now });
-    saveDb(db);
-    countCache.clear();
-    lastUnsuspend = null;
-    renderUpcoming();
-    upMsg(`Re-suspended ${toSuspend.length} card${toSuspend.length === 1 ? '' : 's'} for “${item.label}”.`
-        + (kept ? ` ${kept} stayed active because ${kept === 1 ? 'it belongs' : 'they belong'} to other videos you’ve unsuspended.` : '') + moved);
-}
-
-async function undoUnsuspend() {
-    const u = lastUnsuspend;
-    if (!u) return;
-    if (u.cards.length) await anki('suspend', { cards: u.cards });
-    const db = loadDb();
-    (db.upcoming || []).forEach(it => { if (u.itemIds.includes(it.id)) Object.assign(it, { doneAt: null, doneBy: null, stuck: 0, fu: null }); });
-    saveDb(db);
-    lastUnsuspend = null;
-    countCache.clear();
-    upMsg('Undone. Those cards are suspended again.');
-    await refreshUpcoming({ allowAuto: false });
-}
-
-// Re-count every open item; tick off anything whose cards are all unsuspended; optionally auto-unsuspend due items
+// Re-count every open item and tick off anything whose cards you've unsuspended in Anki
 let refreshingUp = false;
-async function refreshUpcoming({ allowAuto = true } = {}) {
+async function refreshUpcoming() {
     if (!ankiTags || refreshingUp) { renderUpcoming(); return; }
     refreshingUp = true;
     try {
@@ -1974,22 +1822,16 @@ async function refreshUpcoming({ allowAuto = true } = {}) {
         {
             const now = new Date().toISOString();
             const db = loadDb();
-            (db.upcoming || []).forEach(it => { if (it.kind === 'tag') it.rel = relatedInfo(it.key); });
             (db.upcoming || []).forEach(it => {
                 const r = results.get(it.id);
                 if (!r || it.doneAt) return;
                 Object.assign(it, r, { checkedAt: now });
-                if (!r.suspended) it.stuck = 0;
                 countCache.set(itemQuery(it), r);
                 if (r.total > 0 && r.suspended === 0) Object.assign(it, { doneAt: now, doneBy: 'anki' });
             });
             saveDb(db);
         }
         renderUpcoming();
-        if (allowAuto && getSettings().autoUnsuspend) {
-            const due = (loadDb().upcoming || []).filter(it => !it.doneAt && it.date && daysUntil(it.date) <= 0).map(it => it.id);
-            if (due.length) await unsuspendItems(due, { auto: true });
-        }
     } catch (err) {
         console.error(err);
     } finally {
@@ -2004,42 +1846,6 @@ let upSearchTimer = null;
 $('upSearch').addEventListener('input', () => { clearTimeout(upSearchTimer); upSearchTimer = setTimeout(renderPicker, 200); });
 $('upSchedMode').addEventListener('change', updateSchedFields);
 $('upAddBtn').addEventListener('click', addSelected);
-// Recount items (including done ones) after their scope changes; reopen or close them to match Anki
-async function recountItems(ids) {
-    const items = (loadDb().upcoming || []).filter(it => ids.includes(it.id));
-    if (!items.length || !ankiTags) { renderUpcoming(); return; }
-    const all = await cardsPerItem(items), susp = await cardsPerItem(items, ' is:suspended');
-    const now = new Date().toISOString();
-    const db = loadDb();
-    (db.upcoming || []).forEach(it => {
-        const k = items.findIndex(x => x.id === it.id);
-        if (k < 0) return;
-        Object.assign(it, { total: all[k].length, suspended: susp[k].length, checkedAt: now });
-        if (it.doneAt && susp[k].length) Object.assign(it, { doneAt: null, doneBy: null, fu: null });
-        else if (!it.doneAt && all[k].length && !susp[k].length) Object.assign(it, { doneAt: now, doneBy: 'anki' });
-    });
-    saveDb(db);
-    countCache.clear();
-    renderUpcoming();
-}
-async function setRelated(ids, on) {
-    const db = loadDb();
-    (db.upcoming || []).forEach(it => { if (ids.includes(it.id) && it.kind === 'tag' && videoCategory(it.key)) it.withRelated = on; });
-    saveDb(db);
-    await recountItems(ids);
-}
-$('upRelatedInput').addEventListener('change', () => {
-    readSettingsForm();
-    const on = $('upRelatedInput').checked;
-    const ids = (loadDb().upcoming || []).filter(it => it.kind === 'tag' && videoCategory(it.key) && !!it.withRelated !== on).map(it => it.id);
-    if (ids.length && confirm(`${on ? 'Include' : 'Stop including'} related videos for the ${ids.length} video${ids.length === 1 ? '' : 's'} already in your list too?`)) {
-        ankiDo(() => setRelated(ids, on));
-    }
-});
-$('upAutoInput').addEventListener('change', () => {
-    readSettingsForm();
-    if ($('upAutoInput').checked && ankiTags) refreshUpcoming();
-});
 document.addEventListener('change', e => {
     const t = e.target;
     if (t.id === 'upPickAll') {
@@ -2601,11 +2407,10 @@ function renderToday() {
         rows.push(todayRow({
             kicker: 'Watch',
             title: escHtml(it.label),
-            detail: overdue + [it.note ? escHtml(it.note) : '', it.withRelated && it.rel ? `also watch: ${relatedLinks(it)}` : '', d ? `Unsuspended${it.total ? ` · ${it.total} cards active` : ''}` : it.suspended != null ? `${it.suspended} card${it.suspended === 1 ? '' : 's'} to unsuspend after watching` : ''].filter(Boolean).join(' · '),
+            detail: overdue + [it.note ? escHtml(it.note) : '', d ? `Unsuspended${it.total ? ` · ${it.total} cards active` : ''}` : it.suspended != null ? `${it.suspended} card${it.suspended === 1 ? '' : 's'} to unsuspend in Anki after watching` : ''].filter(Boolean).join(' · '),
             done: d,
             actions: (safeUrl(it.url) ? `<a class="btn-small" href="${escHtml(it.url)}" target="_blank" rel="noopener noreferrer">Watch</a>` : '')
-                + (d ? `<button class="btn-small" data-act="up-resuspend" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Re-suspend</button>`
-                     : `<button class="btn-small btn-go" data-act="up-unsuspend" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Unsuspend</button>`)
+                + `<button class="btn-small" data-act="up-browse" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>`
         }));
     });
     const more = watch.length - 6;
@@ -2805,14 +2610,12 @@ function renderLeeches() {
     const dis = connected ? '' : 'disabled title="Open Anki on this computer"';
     box.innerHTML = ordered.map(([area, list]) => {
         const ids = list.map(c => c.id).join(',');
-        const susp = list.filter(c => c.suspended).map(c => c.id).join(',');
         return `
         <div class="leech-group">
             <div class="up-group-head">
                 <span class="res-title" style="margin:0;">${escHtml(area)} · ${list.length}</span>
                 <span class="actions" style="display:flex; gap:4px;">
                     <button class="btn-small" data-act="leech-open" data-ids="${ids}" ${dis}>Open all in Anki</button>
-                    ${susp ? `<button class="btn-small btn-go" data-act="leech-unsuspend" data-ids="${susp}" ${dis}>Unsuspend all</button>` : ''}
                 </span>
             </div>
             ${list.map(c => `
@@ -2823,9 +2626,6 @@ function renderLeeches() {
                 </div>
                 <div class="actions">
                     <button class="btn-small" data-act="leech-open" data-ids="${c.id}" ${dis}>Open</button>
-                    ${c.suspended ? `<button class="btn-small btn-go" data-act="leech-unsuspend" data-ids="${c.id}" ${dis}>Unsuspend</button>`
-                                  : `<button class="btn-small" data-act="leech-suspend" data-ids="${c.id}" ${dis} title="Take it out of your reviews until you fix it">Suspend</button>`}
-                    <button class="btn-small" data-act="leech-reset" data-ids="${c.id}" ${dis} title="Reset to a new card and unsuspend it">Reset</button>
                 </div>
             </div>`).join('')}
         </div>`;
@@ -2834,14 +2634,7 @@ function renderLeeches() {
 
 async function leechAction(act, ids) {
     const cards = ids.split(',').map(Number).filter(Boolean);
-    if (!cards.length) return;
-    if (act === 'leech-open') return anki('guiBrowse', { query: `cid:${cards.join(',')}` });
-    if (act === 'leech-reset' && !confirm(`Reset ${cards.length === 1 ? 'this card' : `${cards.length} cards`} to new? ${cards.length === 1 ? 'It loses' : 'They lose'} ${cards.length === 1 ? 'its' : 'their'} review history and come back as new cards. Do this after rewriting a card you never really learned.`)) return;
-    if (act === 'leech-reset') { await anki('forgetCards', { cards }); await anki('unsuspend', { cards }); }
-    if (act === 'leech-unsuspend') await anki('unsuspend', { cards });
-    if (act === 'leech-suspend') await anki('suspend', { cards });
-    await loadLeeches();
-    $('leechStatus').textContent = `${{ 'leech-reset': 'Reset and unsuspended', 'leech-suspend': 'Suspended' }[act] || 'Unsuspended'} ${cards.length} card${cards.length === 1 ? '' : 's'}.`;
+    if (cards.length) return anki('guiBrowse', { query: `cid:${cards.join(',')}` });
 }
 
 // New leeches since you last opened the Leeches tab (for the Today panel)
@@ -2901,27 +2694,11 @@ document.addEventListener('click', e => {
         case 'qbank':
             ankiDo(() => anki('guiBrowse', { query: weakQuery(a, snapSettings) }));
             break;
-        case 'up-unsuspend':
-            ankiDo(() => unsuspendItems([el.dataset.id]));
-            break;
-        case 'up-unsuspend-due': {
-            const due = (loadDb().upcoming || []).filter(it => !it.doneAt && it.date && daysUntil(it.date) <= 0);
-            if (due.length && confirm(`Unsuspend the cards for all ${due.length} items due now?`)) ankiDo(() => unsuspendItems(due.map(it => it.id)));
-            break;
-        }
         case 'up-browse': {
             const it = (loadDb().upcoming || []).find(x => x.id === el.dataset.id);
             if (it) ankiDo(() => anki('guiBrowse', { query: itemQuery(it) }));
             break;
         }
-        case 'up-related': {
-            const it = (loadDb().upcoming || []).find(x => x.id === el.dataset.id);
-            if (it) ankiDo(() => setRelated([it.id], !it.withRelated));
-            break;
-        }
-        case 'up-resuspend':
-            ankiDo(() => resuspendItem(el.dataset.id));
-            break;
         case 'up-remove': {
             const db = loadDb();
             db.upcoming = (db.upcoming || []).filter(x => x.id !== el.dataset.id);
@@ -2939,9 +2716,6 @@ document.addEventListener('click', e => {
             $('upSearch').focus();
             break;
         case 'leech-open':
-        case 'leech-unsuspend':
-        case 'leech-reset':
-        case 'leech-suspend':
             ankiDo(() => leechAction(el.dataset.act, el.dataset.ids));
             break;
         case 'open-leeches':
@@ -2956,9 +2730,6 @@ document.addEventListener('click', e => {
             break;
         case 'today-amboss-new':
             openNewVideoCards();
-            break;
-        case 'up-undo':
-            ankiDo(undoUnsuspend);
             break;
         case 'copy-ids': {
             const r = a.amboss[+el.dataset.j];
