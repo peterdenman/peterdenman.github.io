@@ -110,6 +110,45 @@
         .stat-v { font-size: 1.2em; font-weight: bold; color: #1a202c; }
         .stat-l { font-size: 0.72em; color: #718096; }
         .res-block { margin-top: 14px; }
+        .tabs { display: flex; gap: 4px; margin: -10px 0 18px; border-bottom: 1px solid #e2e8f0; }
+        .tab { flex: 0 0 auto; background: none; color: #718096; border-radius: 0; padding: 8px 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+        .tab.active { color: #1a202c; border-bottom-color: #3182ce; }
+        .leech-group { margin-bottom: 16px; }
+        .leech-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid #edf2f7; }
+        .leech-main { min-width: 0; flex: 1; }
+        .leech-text { font-size: 0.92em; color: #2d3748; line-height: 1.45; overflow-wrap: anywhere; }
+        .leech-text b { color: #1a202c; background: #fefcbf; padding: 0 2px; border-radius: 2px; }
+        .leech-row .actions { display: flex; gap: 4px; flex-shrink: 0; }
+        @media (max-width: 600px) {
+            .leech-row { flex-direction: column; }
+            .leech-row .actions { align-self: flex-end; }
+        }
+        .card > h2 { flex-wrap: wrap; row-gap: 4px; }
+        .tools { margin-top: 4px; }
+        details.tool { padding: 0; }
+        details.tool > summary.tool-summary { list-style: none; cursor: pointer; padding: 14px 20px; font-weight: bold; color: #4a5568; margin: 0; }
+        details.tool > summary.tool-summary::-webkit-details-marker { display: none; }
+        details.tool > summary.tool-summary::before { content: '+'; display: inline-block; width: 18px; color: #a0aec0; }
+        details.tool[open] > summary.tool-summary::before { content: '–'; }
+        .tool-sub { font-weight: normal; color: #a0aec0; font-size: 0.85em; margin-left: 6px; }
+        .tool-body { padding: 0 20px 20px; }
+        .today-date { font-size: 0.55em; font-weight: normal; color: #718096; margin-left: 8px; }
+        .today-row { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid #edf2f7; }
+        .today-row:last-of-type { border-bottom: none; }
+        .today-row input[type="checkbox"] { width: auto; margin: 3px 0 0; flex-shrink: 0; }
+        .today-main { flex: 1; min-width: 0; }
+        .today-kicker { display: inline-block; min-width: 158px; font-size: 0.72em; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; color: #a0aec0; }
+        .today-title { font-weight: 600; color: #1a202c; }
+        .today-row.done .today-title { text-decoration: line-through; color: #a0aec0; }
+        .today-detail { font-size: 0.84em; color: #718096; margin-top: 3px; }
+        .today-actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .today-actions .btn-small { text-decoration: none; border-radius: 4px; }
+        .today-foot { font-size: 0.82em; color: #718096; margin-top: 8px; line-height: 1.6; }
+        @media (max-width: 600px) {
+            .today-row { flex-wrap: wrap; }
+            .today-kicker { display: block; min-width: 0; }
+            .today-actions { width: 100%; justify-content: flex-end; }
+        }
         .trend { font-weight: bold; font-size: 0.9em; margin-left: 4px; white-space: nowrap; }
         .trend.up { color: #2f855a; }
         .trend.down { color: #c53030; }
@@ -142,8 +181,7 @@
         .up-when.later { color: #2b6cb0; }
         .up-row .actions { display: flex; gap: 4px; flex-shrink: 0; }
         .res-badge { display: inline-block; font-size: 0.72em; font-weight: bold; padding: 1px 5px; border-radius: 3px; margin-right: 4px; vertical-align: 1px; }
-        .res-badge.bootcamp { background: #e9d8fd; color: #553c9a; }
-        .res-badge.bnb { background: #bee3f8; color: #2a4365; }
+        .res-badge.bootcamp, .res-badge.bnb { background: #edf2f7; color: #4a5568; }
         .btn-small.btn-go { background: #38a169; color: white; border-color: #38a169; }
         .btn-small.btn-go:disabled { background: #cbd5e0; color: #718096; border-color: #cbd5e0; }
         .up-done { margin-top: 4px; }
@@ -194,7 +232,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 22c · B&amp;B schedule import</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 22f · Leeches tab</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -203,6 +241,22 @@
             <input type="text" id="githubRepoInput" placeholder="username/repo">
         </div>
     </header>
+
+    <nav class="tabs" aria-label="Views">
+        <button class="tab active" data-view="dashboard">Dashboard</button>
+        <button class="tab" data-view="leeches">Leeches</button>
+    </nav>
+
+    <div id="viewDashboard">
+
+    <!-- TODAY -->
+    <div class="card" id="todayCard">
+        <h2 style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;">
+            <span>Today <span id="todayDate" class="today-date"></span></span>
+            <span id="todaySummary" style="font-size:0.6em; color:#718096; font-weight:normal;"></span>
+        </h2>
+        <div id="todayList"></div>
+    </div>
 
     <div class="grid">
         <!-- LEFT PANEL -->
@@ -213,12 +267,14 @@
                     <span>Priority: Weakest Areas</span>
                     <span style="display:flex; align-items:baseline; gap:8px;">
                         <span id="lastSynced" style="font-size:0.6em; color:#718096; font-weight:normal;"></span>
+                        <button class="btn-small" id="refreshStatsBtn" style="font-size:12px;" title="Re-analyze your Anki stats">Refresh</button>
                         <button class="btn-small hidden" id="clearStatsBtn" style="font-size:12px;" title="Remove these stats from the homepage">Remove</button>
                     </span>
                 </h2>
                 <p class="muted" style="margin-top:-4px;">
                     Ranked from your AnKing review history. Weakness = 70% recent fail rate on established cards + 30% share of cards with 3+ lapses.
                 </p>
+                <div id="priorityStatus" class="status-msg" style="margin:0 0 8px;"></div>
                 <div id="weakList"></div>
 
                 <details id="allAreasWrap" class="hidden">
@@ -227,68 +283,6 @@
                 </details>
             </div>
 
-            <!-- ANKI SYNC -->
-            <div class="card">
-                <h2>AnKing Sync</h2>
-                <div class="settings-grid">
-                    <label class="field full">AnkiConnect address
-                        <input type="text" id="ankiUrlInput">
-                    </label>
-                    <label class="field full">Analyze by
-                        <select id="modeSelect">
-                            <option value="tags">AnKing tags (e.g. ^Systems)</option>
-                            <option value="decks">Subdecks of a deck (e.g. HSF(Drew))</option>
-                        </select>
-                    </label>
-                    <label class="field full deck-only">Deck
-                        <select id="deckRootSelect"></select>
-                    </label>
-                    <label class="field tag-only">Deck tag root
-                        <select id="rootSelect"></select>
-                    </label>
-                    <label class="field tag-only">Group subdivisions by
-                        <select id="familySelect"></select>
-                    </label>
-                    <label class="field">Detail level
-                        <select id="depthSelect">
-                            <option value="1">Broad (1 level down)</option>
-                            <option value="2">Narrow (2 levels down)</option>
-                        </select>
-                    </label>
-                    <label class="field">Look-back window
-                        <select id="daysSelect">
-                            <option value="14">14 days</option>
-                            <option value="30">30 days</option>
-                            <option value="60">60 days</option>
-                            <option value="90">90 days</option>
-                        </select>
-                    </label>
-                    <label class="field">Ignore areas with fewer than
-                        <input type="number" id="minCardsInput" min="1">
-                    </label>
-                    <label class="field tag-only">Limit to deck (optional)
-                        <input type="text" id="deckInput" placeholder="e.g. AnKing Step Deck">
-                    </label>
-                    <label class="check full"><input type="checkbox" id="autoSyncInput"> Auto-sync when I open the page</label>
-                </div>
-                <div class="btn-group">
-                    <button class="btn-primary" id="connectBtn">Connect to Anki</button>
-                    <button class="btn-success" id="analyzeBtn">Analyze my stats</button>
-                </div>
-                <div id="ankiProgress" class="status-msg"></div>
-
-                <details class="help">
-                    <summary>First-time setup</summary>
-                    <ol>
-                        <li>In Anki: <b>Tools → Add-ons → Get Add-ons</b>, enter code <code>2055492159</code> (AnkiConnect), then restart Anki.</li>
-                        <li>Keep Anki open and use this page in Chrome, Edge or Firefox on the <b>same computer</b>.</li>
-                        <li>Open this page with Anki running. The first time, Anki shows a permission popup for this site; click <b>Yes</b>. After that the page connects and syncs by itself every time you open it (and again if you come back after 15+ minutes). If the browser asks to let the page access devices on your local network, allow it.</li>
-                        <li>Still blocked? In Anki open <b>Tools → Add-ons → AnkiConnect → Config</b> and add your site's address (e.g. <code>https://username.github.io</code>) to <code>webCorsOriginList</code>, then restart Anki.</li>
-                        <li>For one-click AMBOSS practice, install the <a href="https://amboss.com/us/anki/qbank" target="_blank" rel="noopener noreferrer">AMBOSS Anki add-on</a>. The notebook's <b>Start Qbank session</b> button opens your weak cards in Anki's Browse window, where the add-on turns them into a matching Qbank session.</li>
-                        <li>After each analysis, results sync to GitHub, so your phone shows the latest snapshot even without Anki.</li>
-                    </ol>
-                </details>
-            </div>
         </div>
 
         <!-- RIGHT PANEL -->
@@ -303,8 +297,8 @@
                 <div id="upList"></div>
                 <div id="upStatus" class="status-msg"></div>
                 <div class="btn-group" style="margin-top:8px; flex-wrap:wrap;">
-                    <button class="btn-primary" id="upXlsxOpenBtn">📅 Import B&amp;B schedule (.xlsx)</button>
-                    <button class="btn-primary" id="upPdfOpenBtn">📄 Match a lecture PDF</button>
+                    <button class="btn-primary" id="upXlsxOpenBtn">Import B&amp;B schedule (.xlsx)</button>
+                    <button class="btn-primary" id="upPdfOpenBtn">Match a lecture PDF</button>
                 </div>
                 <details id="upAddWrap">
                     <summary class="add-summary">+ Add videos or cards</summary>
@@ -385,9 +379,77 @@
                 <label class="check" style="margin-top:12px;"><input type="checkbox" id="upAutoInput"> Auto-unsuspend items on their date when Anki is open</label>
             </div>
 
-            <!-- ANKING NOTEBOOK -->
-            <div class="card" id="notebookCard">
-                <h2>AnKing Notebook</h2>
+        </div>
+    </div>
+
+    <!-- TUCKED-AWAY TOOLS -->
+    <div class="tools">
+        <details class="card tool" id="syncCard">
+            <summary class="tool-summary">AnKing Sync <span class="tool-sub">settings, connection, first-time setup</span></summary>
+            <div class="tool-body">
+                <div class="settings-grid">
+                    <label class="field full">AnkiConnect address
+                        <input type="text" id="ankiUrlInput">
+                    </label>
+                    <label class="field full">Analyze by
+                        <select id="modeSelect">
+                            <option value="tags">AnKing tags (e.g. ^Systems)</option>
+                            <option value="decks">Subdecks of a deck (e.g. HSF(Drew))</option>
+                        </select>
+                    </label>
+                    <label class="field full deck-only">Deck
+                        <select id="deckRootSelect"></select>
+                    </label>
+                    <label class="field tag-only">Deck tag root
+                        <select id="rootSelect"></select>
+                    </label>
+                    <label class="field tag-only">Group subdivisions by
+                        <select id="familySelect"></select>
+                    </label>
+                    <label class="field">Detail level
+                        <select id="depthSelect">
+                            <option value="1">Broad (1 level down)</option>
+                            <option value="2">Narrow (2 levels down)</option>
+                        </select>
+                    </label>
+                    <label class="field">Look-back window
+                        <select id="daysSelect">
+                            <option value="14">14 days</option>
+                            <option value="30">30 days</option>
+                            <option value="60">60 days</option>
+                            <option value="90">90 days</option>
+                        </select>
+                    </label>
+                    <label class="field">Ignore areas with fewer than
+                        <input type="number" id="minCardsInput" min="1">
+                    </label>
+                    <label class="field tag-only">Limit to deck (optional)
+                        <input type="text" id="deckInput" placeholder="e.g. AnKing Step Deck">
+                    </label>
+                    <label class="check full"><input type="checkbox" id="autoSyncInput"> Auto-sync when I open the page</label>
+                </div>
+                <div class="btn-group">
+                    <button class="btn-primary" id="connectBtn">Connect to Anki</button>
+                    <button class="btn-success" id="analyzeBtn">Analyze my stats</button>
+                </div>
+                <div id="ankiProgress" class="status-msg"></div>
+
+                <details class="help">
+                    <summary>First-time setup</summary>
+                    <ol>
+                        <li>In Anki: <b>Tools → Add-ons → Get Add-ons</b>, enter code <code>2055492159</code> (AnkiConnect), then restart Anki.</li>
+                        <li>Keep Anki open and use this page in Chrome, Edge or Firefox on the <b>same computer</b>.</li>
+                        <li>Open this page with Anki running. The first time, Anki shows a permission popup for this site; click <b>Yes</b>. After that the page connects and syncs by itself every time you open it (and again if you come back after 15+ minutes). If the browser asks to let the page access devices on your local network, allow it.</li>
+                        <li>Still blocked? In Anki open <b>Tools → Add-ons → AnkiConnect → Config</b> and add your site's address (e.g. <code>https://username.github.io</code>) to <code>webCorsOriginList</code>, then restart Anki.</li>
+                        <li>For one-click AMBOSS practice, install the <a href="https://amboss.com/us/anki/qbank" target="_blank" rel="noopener noreferrer">AMBOSS Anki add-on</a>. The notebook's <b>Start Qbank session</b> button opens your weak cards in Anki's Browse window, where the add-on turns them into a matching Qbank session.</li>
+                        <li>After each analysis, results sync to GitHub, so your phone shows the latest snapshot even without Anki.</li>
+                    </ol>
+                </details>
+            </div>
+        </details>
+        <details class="card tool" id="notebookCard">
+            <summary class="tool-summary">AnKing Notebook <span class="tool-sub">stats and AMBOSS practice for any subdeck</span></summary>
+            <div class="tool-body">
                 <div class="input-group">
                     <select id="areaSelect"></select>
                 </div>
@@ -395,10 +457,10 @@
                     <p class="muted" style="margin:0;">Run <b>Analyze my stats</b> to load your subdecks.</p>
                 </div>
             </div>
-
-            <!-- PROGRESS OVER TIME -->
-            <div class="card" id="historyCard">
-                <h2>Progress Over Time</h2>
+        </details>
+        <details class="card tool" id="historyCard">
+            <summary class="tool-summary">Progress Over Time <span class="tool-sub">weekly retention history</span></summary>
+            <div class="tool-body">
                 <div class="input-group">
                     <select id="historySourceSelect"></select>
                 </div>
@@ -409,6 +471,32 @@
                 </div>
                 <div id="historyStatus" class="status-msg"></div>
             </div>
+        </details>
+    </div>
+    </div>
+
+    <!-- LEECHES VIEW -->
+    <div id="viewLeeches" class="hidden">
+        <div class="card">
+            <h2 style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;">
+                <span>Leeches</span>
+                <span style="display:flex; align-items:baseline; gap:8px;">
+                    <span id="leechSummary" style="font-size:0.6em; color:#718096; font-weight:normal;"></span>
+                    <button class="btn-small" id="leechRefreshBtn" style="font-size:12px;">Refresh</button>
+                </span>
+            </h2>
+            <p class="muted" style="margin-top:-4px;">Cards Anki has tagged as leeches because you kept forgetting them (8 lapses by default, and Anki usually suspends them). Leeches cost far more time than they're worth, so fix the card before bringing it back: reword it, add an image or mnemonic, or split it into smaller cards. Then unsuspend it, or reset it if you never really learned it.</p>
+            <div class="settings-grid" style="grid-template-columns: minmax(0, 260px);">
+                <label class="field">Show
+                    <select id="leechFilter">
+                        <option value="suspended">Suspended leeches</option>
+                        <option value="all">All leeches</option>
+                        <option value="near">Almost leeches (5+ lapses)</option>
+                    </select>
+                </label>
+            </div>
+            <div id="leechStatus" class="status-msg" style="margin:0 0 8px;"></div>
+            <div id="leechList"></div>
         </div>
     </div>
 </div>
@@ -629,9 +717,11 @@ function setAnkiStatus(ok, text) {
     el.style.color = ok ? '#38a169' : '#a0aec0';
 }
 function progress(msg, isErr = false) {
-    const el = $('ankiProgress');
-    el.textContent = msg;
-    el.classList.toggle('status-err', isErr);
+    for (const id of ['ankiProgress', 'priorityStatus']) {   // also shown on the Priority card, since Sync is tucked away
+        const el = $(id);
+        el.textContent = msg;
+        el.classList.toggle('status-err', isErr);
+    }
 }
 function ankiErrorText(err) {
     if (err instanceof TypeError) {
@@ -668,8 +758,10 @@ async function connectAnki({ silent = false } = {}) {
         populateUpSections();
         renderPicker();
         refreshUpcoming();
+        loadTodayStats();
+        loadLeeches();
         setAnkiStatus(true, `connected (${ankiTags.length.toLocaleString()} tags)`);
-        progress('Connected. Pick how to group subdivisions, then hit "Analyze my stats".');
+        progress('Connected. Click Refresh to analyze your stats.');
         renderNotebook();
         return true;
     } catch (err) {
@@ -797,6 +889,7 @@ async function analyze({ manual = false } = {}) {
     analyzing = true;
     const btn = $('analyzeBtn');
     btn.disabled = true;
+    $('refreshStatsBtn').disabled = true;
     try {
         if (!ankiTags && !(await connectAnki())) return;
         const s = readSettingsForm();
@@ -894,6 +987,7 @@ async function analyze({ manual = false } = {}) {
         progress(ankiErrorText(err), true);
     } finally {
         btn.disabled = false;
+        $('refreshStatsBtn').disabled = false;
         analyzing = false;
     }
 }
@@ -1151,7 +1245,7 @@ function clearStats() {
     const snap = getSnap();
     if (!snap) return;
     const name = snap.settings.mode === 'decks' ? snap.settings.deckRoot : cleanSeg(snap.settings.family || '');
-    if (!confirm(`Remove the ${name} stats from the homepage?\n\nYour saved history stays in database.json. Auto-sync pauses so they don't reload on their own; click "Analyze my stats" when you want stats back.`)) return;
+    if (!confirm(`Remove the ${name} stats from the homepage?\n\nYour saved history stays in database.json. Auto-sync pauses so they don't reload on their own; click Refresh when you want stats back.`)) return;
     const db = loadDb();
     delete db.ankiSnapshot;
     db.autoSyncPaused = true;
@@ -1159,7 +1253,7 @@ function clearStats() {
     selectedKey = '';
     try { localStorage.removeItem('notebook_selected'); } catch {}
     renderAll();
-    progress('Stats removed. Auto-sync is paused: change the settings if you like, then click "Analyze my stats".');
+    progress('Stats removed. Auto-sync is paused: change the settings under AnKing Sync if you like, then click Refresh.');
 }
 $('clearStatsBtn').addEventListener('click', clearStats);
 
@@ -1191,7 +1285,7 @@ function renderWeakAreas() {
     const box = $('weakList');
     if (!snap || !snap.areas || !snap.areas.length) {
         currentAreas = [];
-        box.innerHTML = `<p class="muted">No Anki data yet. Open this page on the computer with Anki running and hit <b>Analyze my stats</b>.</p>`;
+        box.innerHTML = `<p class="muted">No Anki data yet. Open this page on the computer with Anki running and click <b>Refresh</b>.</p>`;
         $('allAreasWrap').classList.add('hidden');
         $('lastSynced').textContent = '';
         $('clearStatsBtn').classList.add('hidden');
@@ -1213,7 +1307,7 @@ function renderWeakAreas() {
             <div class="area-stats">${statLine(a, days, hist)}</div>
             <div class="bar"><div style="width:${Math.round((a.score / maxScore) * 100)}%"></div></div>
         </div>`).join('')
-        + `<p class="muted" style="margin:4px 0 0;">Click an area to open it in the AnKing Notebook.</p>`;
+        + `<p class="muted" style="margin:4px 0 0;">Click an area to open its stats and AMBOSS practice in the AnKing Notebook below.</p>`;
 
     $('allAreasWrap').classList.remove('hidden');
     $('allAreasTable').innerHTML = `
@@ -1258,7 +1352,7 @@ function selectNotebook(key, scroll = false) {
     try { localStorage.setItem('notebook_selected', key); } catch {}
     $('areaSelect').value = key;
     renderNotebook();
-    if (scroll) $('notebookCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (scroll) { $('notebookCard').open = true; $('notebookCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 }
 $('areaSelect').addEventListener('change', e => selectNotebook(e.target.value));
 
@@ -1279,10 +1373,10 @@ function resourcesHtml(a, i) {
     }
     const amboss = a.amboss.map((b, j) => `
         <div class="res-item">
-            <span>❓ ${escHtml(b.label)} <span class="muted">· ${b.count} weak card${b.count === 1 ? '' : 's'}${b.ids.length ? ` · ${b.ids.length} QID${b.ids.length === 1 ? '' : 's'}` : ''}</span></span>
+            <span>${escHtml(b.label)} <span class="muted">· ${b.count} weak card${b.count === 1 ? '' : 's'}${b.ids.length ? ` · ${b.ids.length} QID${b.ids.length === 1 ? '' : 's'}` : ''}</span></span>
             <span class="actions">
                 ${b.ids.length ? `<button class="btn-small" data-act="copy-ids" data-i="${i}" data-j="${j}">Copy QIDs</button>` : ''}
-                <a class="btn-small" style="text-decoration:none; border-radius:4px;" href="${AMBOSS_SEARCH_URL(lastSeg(b.label))}" target="_blank" rel="noopener noreferrer">AMBOSS ↗</a>
+                <a class="btn-small" style="text-decoration:none; border-radius:4px;" href="${AMBOSS_SEARCH_URL(lastSeg(b.label))}" target="_blank" rel="noopener noreferrer">AMBOSS</a>
             </span>
         </div>`).join('');
     return `
@@ -1298,7 +1392,7 @@ function historyBlock(a) {
     const h = historyFor(getSnap().settings);
     const ser = h ? weeklySeries(h, a.path, 16) : [];
     if (ser.filter(p => p.v != null).length < 2) {
-        return '<div class="muted" style="margin-top:10px;">Weekly history builds up here as you sync. <a href="#historyCard">Import past history</a> to fill it in now.</div>';
+        return '<div class="muted" style="margin-top:10px;">Weekly history builds up here as you sync. <a href="#historyCard" data-act="open-history">Import past history</a> to fill it in now.</div>';
     }
     const t = retentionTrend(h, a.path);
     return `
@@ -1373,8 +1467,8 @@ async function loadResourcesFor(i) {
 // ============================================================
 // Video resources AnKing tags card-by-card (one sub-tag per video)
 const VIDEO_RESOURCES = [
-    { id: 'bootcamp', name: 'Bootcamp', icon: '🎬', re: /^#?bootcamp$/i },
-    { id: 'bnb', name: 'B&B', icon: '📘', re: /^#?(b&b|bnb|b_and_b|boards[\s_-]*(&|and)[\s_-]*beyond)$/i }
+    { id: 'bootcamp', name: 'Bootcamp', re: /^#?bootcamp$/i },
+    { id: 'bnb', name: 'B&B', re: /^#?(b&b|bnb|b_and_b|boards[\s_-]*(&|and)[\s_-]*beyond)$/i }
 ];
 // -> { res, i } for the first tag segment that names a video resource
 function resourceSeg(segs) {
@@ -1393,7 +1487,6 @@ const daysBetween = (a, b) => Math.round((new Date(b + 'T00:00:00') - new Date(a
 const daysUntil = key => daysBetween(todayKey(), key);
 const itemQuery = it => it.kind === 'deck' ? deckClause(it.key).trim() : tagQuery(it.key);
 const itemUid = it => `${it.kind}:${it.key}`.toLowerCase();
-const itemIcon = it => it.kind === 'deck' ? '🗂️' : (resourceOfKey(it.key) || { icon: '🏷️' }).icon;
 
 // Every Bootcamp / B&B video tag in the collection (the deepest tag under #Bootcamp or #B&B)
 let bcIndex = null;
@@ -1615,7 +1708,7 @@ function upRow(it, cls) {
     const connected = !!ankiTags;
     const early = !!it.doneAt && cls !== 'done';   // unsuspended before its date: stays in its slot, marked done
     const counts = it.total == null ? 'card count loads when Anki is open'
-        : it.total === 0 ? '⚠ no cards found for this tag'
+        : it.total === 0 ? 'no cards found for this tag'
         : cls === 'done' || early ? `${it.total} card${it.total === 1 ? '' : 's'} active`
         : `${it.suspended} of ${it.total} cards suspended`;
     const doneWhen = it.doneAt ? new Date(it.doneAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
@@ -1623,21 +1716,21 @@ function upRow(it, cls) {
     return `
     <div class="up-row ${cls}${early ? ' early' : ''}">
         <div class="up-main">
-            <div class="up-label">${itemIcon(it)} ${resBadge(it.kind === 'tag' ? resourceOfKey(it.key) : null)}${escHtml(it.label)}</div>
+            <div class="up-label">${resBadge(it.kind === 'tag' ? resourceOfKey(it.key) : null)}${escHtml(it.label)}</div>
             <div class="up-meta">
                 ${cls === 'done'
                     ? `<span>${doneText} ${doneWhen}</span>`
                     : early ? `<span class="up-when ${cls}">${relDate(it.date)}</span><span class="muted">· ${doneText} ${doneWhen}</span>`
                     : `<input type="date" class="up-date" data-up-date="${it.id}" value="${it.date || ''}" aria-label="Unsuspend date">${it.date ? `<span class="up-when ${cls}">${relDate(it.date)}</span>` : ''}`}
                 <span class="muted">· ${counts}</span>
-                ${it.stuck && !it.doneAt ? `<span class="stuck">⚠ ${it.stuck} didn’t unsuspend; click Unsuspend to retry</span>` : ''}
+                ${it.stuck && !it.doneAt ? `<span class="stuck">${it.stuck} didn’t unsuspend; click Unsuspend to retry</span>` : ''}
                 ${it.note ? `<span class="muted">· ${escHtml(it.note)}</span>` : ''}
             </div>
         </div>
         <div class="actions">
-            ${early ? '<span class="done-badge">✓ Already unsuspended</span>'
+            ${early ? '<span class="done-badge">Already unsuspended</span>'
                 : cls !== 'done' ? `<button class="btn-small btn-go" data-act="up-unsuspend" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Unsuspend</button>` : ''}
-            ${safeUrl(it.url) ? `<a class="btn-small" href="${escHtml(it.url)}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; border-radius:4px;">▶ Watch</a>` : ''}
+            ${safeUrl(it.url) ? `<a class="btn-small" href="${escHtml(it.url)}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; border-radius:4px;">Watch</a>` : ''}
             <button class="btn-small" data-act="up-browse" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>
             <button class="btn-small" data-act="up-remove" data-id="${it.id}" title="Remove from list">✕</button>
         </div>
@@ -1655,6 +1748,7 @@ function renderUpcoming() {
     $('upProgress').innerHTML = items.length ? `<div style="width:${Math.round((nDone / items.length) * 100)}%"></div>` : '';
     if (!items.length) {
         $('upAddWrap').open = true;
+        renderToday();
         box.innerHTML = '<p class="muted" style="margin-top:0;">Plan your semester here. Add the Bootcamp or B&amp;B videos (or any tag or subdeck) you’ll need to unsuspend and give each one a date. Due items rise to the top, and items tick themselves off once their cards are unsuspended in Anki.</p>';
         return;
     }
@@ -1686,6 +1780,7 @@ function renderUpcoming() {
     box.innerHTML = html;
     const det = $('upDoneDetails');
     if (det) det.addEventListener('toggle', () => { upDoneOpen = det.open; });
+    renderToday();
 }
 
 // Card ids for each item's search, in one round trip
@@ -1739,7 +1834,7 @@ async function unsuspendItems(ids, { auto = false } = {}) {
     let text = `${auto ? 'Auto-unsuspended' : 'Unsuspended'} ${changed.length} card${changed.length === 1 ? '' : 's'} for ${what}`;
     if (already > 0) text += ` (${already} ${already === 1 ? 'was' : 'were'} already active)`;
     text += left
-        ? `. ⚠ ${left} card${left === 1 ? ' is' : 's are'} still suspended; click Cards to check ${left === 1 ? 'it' : 'them'} in Anki.`
+        ? `. ${left} card${left === 1 ? ' is' : 's are'} still suspended; click Cards to check ${left === 1 ? 'it' : 'them'} in Anki.`
         : `. All ${totalCards} card${totalCards === 1 ? ' is' : 's are'} now active.`;
     upMsg(text, true);
 }
@@ -1749,7 +1844,7 @@ async function undoUnsuspend() {
     if (!u) return;
     if (u.cards.length) await anki('suspend', { cards: u.cards });
     const db = loadDb();
-    (db.upcoming || []).forEach(it => { if (u.itemIds.includes(it.id)) Object.assign(it, { doneAt: null, doneBy: null, stuck: 0 }); });
+    (db.upcoming || []).forEach(it => { if (u.itemIds.includes(it.id)) Object.assign(it, { doneAt: null, doneBy: null, stuck: 0, fu: null }); });
     saveDb(db);
     lastUnsuspend = null;
     countCache.clear();
@@ -2261,7 +2356,7 @@ function schedCandidates() {
     return schedRows.map(r => {
         const when = r.date ? new Date(r.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : 'No date';
         const lec = r.lectures.length ? escHtml(r.lectures.join(' / ')) : '';
-        const link = safeUrl(r.url) ? ` · <a href="${escHtml(r.url)}" target="_blank" rel="noopener noreferrer">video ↗</a>` : '';
+        const link = safeUrl(r.url) ? ` · <a href="${escHtml(r.url)}" target="_blank" rel="noopener noreferrer">video</a>` : '';
         if (!r.match) {
             return {
                 kind: 'none', key: r.slug, label: slugTitle(r.slug), disabled: true,
@@ -2284,6 +2379,365 @@ $('upXlsxOpenBtn').addEventListener('click', () => {
     $('upSource').value = 'xlsx';
     onSourceChange();
     $('upXlsxWrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+// ============================================================
+// TODAY — reviews, videos to watch, AMBOSS on new videos (spaced), AMBOSS on a weak area
+// ============================================================
+const FOLLOW_UP_DAYS = [2, 14];   // AMBOSS questions this many days after a video's cards are unsuspended
+const dayNumber = key => Math.floor(Date.parse(key + 'T00:00:00Z') / 864e5);
+const doneDay = it => it.doneAt ? dateKey(new Date(it.doneAt)) : null;
+
+// Give every recently unsuspended video its follow-up question dates (older ones are left alone)
+function ensureFollowUps(db) {
+    let changed = false;
+    const today = todayKey();
+    (db.upcoming || []).forEach(it => {
+        if (!it.doneAt || it.fu) return;
+        const d = doneDay(it);
+        it.fu = daysBetween(d, today) <= FOLLOW_UP_DAYS[FOLLOW_UP_DAYS.length - 1]
+            ? FOLLOW_UP_DAYS.map(n => ({ d: addDays(d, n), done: null }))
+            : [];
+        changed = true;
+    });
+    return changed;
+}
+
+async function loadTodayStats() {
+    if (!ankiTags) return;
+    try {
+        const [due, done] = await ankiMulti([
+            { action: 'findCards', params: { query: 'is:due' } },
+            { action: 'findCards', params: { query: 'rated:1' } }
+        ]);
+        const db = loadDb();
+        db.todayStats = { date: todayKey(), due: (due || []).length, done: (done || []).length, at: new Date().toISOString() };
+        saveDb(db);
+        renderToday();
+    } catch (err) { console.error(err); }
+}
+
+function todayRow({ kicker, title, detail = '', done = false, manual = null, actions = '' }) {
+    const box = manual
+        ? `<input type="checkbox" data-today="${manual}" ${done ? 'checked' : ''} aria-label="Mark done">`
+        : `<input type="checkbox" ${done ? 'checked' : ''} disabled aria-label="${done ? 'Done' : 'Not done yet'}" title="Ticks itself off from Anki">`;
+    return `
+    <div class="today-row${done ? ' done' : ''}">
+        ${box}
+        <div class="today-main">
+            <div><span class="today-kicker">${kicker}</span><span class="today-title">${title}</span></div>
+            ${detail ? `<div class="today-detail">${detail}</div>` : ''}
+        </div>
+        ${actions ? `<div class="today-actions">${actions}</div>` : ''}
+    </div>`;
+}
+
+function renderToday() {
+    const db = loadDb();
+    if (ensureFollowUps(db)) saveDb(db, false);   // local only: rendering must never push over a newer GitHub copy
+    const today = todayKey(), tomorrow = addDays(today, 1);
+    const items = db.upcoming || [];
+    const connected = !!ankiTags;
+    const rows = [];
+    let total = 0, done = 0;
+    const count = d => { total++; if (d) done++; };
+
+    // 1. Reviews
+    const st = db.todayStats && db.todayStats.date === today ? db.todayStats : null;
+    const revDone = !!st && st.due === 0;
+    count(revDone);
+    rows.push(todayRow({
+        kicker: 'Reviews',
+        title: !st ? 'Do your Anki reviews' : st.due ? `${st.due.toLocaleString()} card${st.due === 1 ? '' : 's'} due` : 'All caught up',
+        detail: !st ? 'Open this page with Anki running to load today’s count.'
+            : `${st.done.toLocaleString()} reviewed today · updated ${new Date(st.at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`,
+        done: revDone
+    }));
+
+    // 2. Videos to watch: due or overdue, plus anything unsuspended today
+    const watch = items.filter(it => (!it.doneAt && it.date && it.date <= today) || (it.doneAt && (doneDay(it) === today || it.date === today)))
+        .sort((a, b) => (!!a.doneAt - !!b.doneAt) || (a.date || '').localeCompare(b.date || ''));
+    watch.slice(0, 6).forEach(it => {
+        const d = !!it.doneAt;
+        count(d);
+        const overdue = !d && it.date < today ? `<span class="stuck">${-daysUntil(it.date)}d overdue</span> · ` : '';
+        rows.push(todayRow({
+            kicker: 'Watch',
+            title: escHtml(it.label),
+            detail: overdue + [it.note ? escHtml(it.note) : '', d ? `Unsuspended${it.total ? ` · ${it.total} cards active` : ''}` : it.suspended != null ? `${it.suspended} card${it.suspended === 1 ? '' : 's'} to unsuspend after watching` : ''].filter(Boolean).join(' · '),
+            done: d,
+            actions: (safeUrl(it.url) ? `<a class="btn-small" href="${escHtml(it.url)}" target="_blank" rel="noopener noreferrer">Watch</a>` : '')
+                + (d ? '' : `<button class="btn-small btn-go" data-act="up-unsuspend" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Unsuspend</button>`)
+        }));
+    });
+    const more = watch.length - 6;
+    const tmr = items.filter(it => !it.doneAt && it.date === tomorrow);
+    const tmrLectures = [...new Set(tmr.map(it => (it.note || '').replace(/ lecture$/, '')).filter(Boolean))];
+
+    // 3. AMBOSS on new videos (spaced follow-ups)
+    const fus = [];
+    items.forEach(it => (it.fu || []).forEach((f, k) => fus.push({ it, f, k })));
+    const latestPerVideo = list => { const m = new Map(); list.forEach(x => { const p = m.get(x.it.id); if (!p || x.k > p.k) m.set(x.it.id, x); }); return [...m.values()]; };
+    const fuDue = latestPerVideo(fus.filter(x => !x.f.done && x.f.d <= today));
+    const fuToday = latestPerVideo(fus.filter(x => x.f.done === today));
+    if (fuDue.length || fuToday.length) {
+        const list = fuDue.length ? fuDue : fuToday;
+        const d = !fuDue.length;
+        count(d);
+        const names = list.slice(0, 4).map(x => `${escHtml(x.it.label.split(' › ').pop())} <span class="muted">(${x.k === 0 ? `${FOLLOW_UP_DAYS[0]}-day` : `${Math.round(FOLLOW_UP_DAYS[1] / 7)}-week`} check)</span>`).join(', ')
+            + (list.length > 4 ? `, +${list.length - 4} more` : '');
+        const qs = Math.min(40, Math.max(10, list.length * 5));
+        rows.push(todayRow({
+            kicker: 'AMBOSS · new',
+            title: `${qs} questions on ${list.length} recent video${list.length === 1 ? '' : 's'}`,
+            detail: names,
+            done: d, manual: 'new',
+            actions: `<button class="btn-small" data-act="today-amboss-new" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Open cards</button>`
+        }));
+    }
+
+    // 4. AMBOSS on a weak area (rotates daily through your weakest areas)
+    const areas = (db.ankiSnapshot && db.ankiSnapshot.areas) || [];
+    if (areas.length) {
+        const pool = areas.filter(a => a.priority === 'P1');
+        const cand = (pool.length ? pool : areas).slice(0, 5);
+        const area = cand[dayNumber(today) % cand.length];
+        const i = areas.indexOf(area);
+        const d = !!(db.todayLog && db.todayLog[today] && db.todayLog[today].weak);
+        count(d);
+        rows.push(todayRow({
+            kicker: 'AMBOSS · weak area',
+            title: `20 questions on ${escHtml(area.label)}`,
+            detail: [area.retention != null ? `Retention ${pct(area.retention)}` : '', `${pct(area.struggle)} of cards with 3+ lapses`, cand.length > 1 ? `rotates daily through your ${cand.length} weakest areas` : ''].filter(Boolean).join(' · '),
+            done: d, manual: 'weak',
+            actions: `<button class="btn-small" data-act="qbank" data-i="${i}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Open cards</button>`
+        }));
+    }
+
+    const extras = [];
+    const nl = newLeechCount();
+    if (nl) extras.push(`<b>${nl} new leech${nl === 1 ? '' : 'es'}</b> since you last checked. <a href="#" data-act="open-leeches">Review ${nl === 1 ? 'it' : 'them'} in Leeches</a>; fixing leeches early saves review time.`);
+    if (more > 0) extras.push(`${more} more video${more === 1 ? '' : 's'} due in Upcoming.`);
+    if (tmr.length) extras.push(`Tomorrow: ${tmr.length} video${tmr.length === 1 ? '' : 's'}${tmrLectures.length ? ` for ${escHtml(tmrLectures.join(', '))}` : ''}. Watching before the lecture helps it stick.`);
+    if (rows.some(r => r.includes('Open cards'))) extras.push('“Open cards” shows them in Anki’s Browse window: select all, then Start Qbank Session (AMBOSS add-on).');
+
+    $('todayDate').textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+    $('todaySummary').textContent = `${done} of ${total} done`;
+    $('todayList').innerHTML = rows.join('') + (extras.length ? `<div class="today-foot">${extras.join('<br>')}</div>` : '');
+}
+
+function toggleToday(kind, on) {
+    const db = loadDb();
+    const today = todayKey();
+    if (kind === 'weak') {
+        db.todayLog = db.todayLog || {};
+        db.todayLog[today] = { ...(db.todayLog[today] || {}), weak: on };
+        Object.keys(db.todayLog).filter(k => daysBetween(k, today) > 30).forEach(k => delete db.todayLog[k]);
+    } else if (kind === 'new') {
+        (db.upcoming || []).forEach(it => (it.fu || []).forEach(f => {
+            if (on && !f.done && f.d <= today) f.done = today;
+            if (!on && f.done === today) f.done = null;
+        }));
+    }
+    saveDb(db);
+    renderToday();
+}
+
+function openNewVideoCards() {
+    const today = todayKey();
+    const list = [];
+    (loadDb().upcoming || []).forEach(it => (it.fu || []).forEach(f => { if (!f.done && f.d <= today && !list.includes(it)) list.push(it); }));
+    if (!list.length) return;
+    ankiDo(() => anki('guiBrowse', { query: `(${list.map(itemQuery).join(' OR ')})` }));
+}
+
+document.addEventListener('change', e => {
+    const t = e.target;
+    if (t.dataset && t.dataset.today) toggleToday(t.dataset.today, t.checked);
+});
+
+// ============================================================
+// LEECHES — cards Anki tagged "leech" (and ones close to it)
+// ============================================================
+const LEECH_STORE_MAX = 200;      // cards kept in database.json so the phone can show them
+const NEAR_LEECH_LAPSES = 5;      // "almost leeches": this many lapses or more, not yet tagged
+
+// Card text for a quick look: cloze answers in bold, everything else plain
+function leechText(fields) {
+    const f = Object.entries(fields || {}).sort((a, b) => a[1].order - b[1].order);
+    const main = (f.find(([n]) => /^(text|front|question)$/i.test(n)) || f[0] || [, { value: '' }])[1].value || '';
+    const marked = main.replace(/\{\{c\d+::(.*?)(::[^}]*)?\}\}/g, '\u0001$1\u0002');
+    const plain = marked.replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&[a-z#0-9]+;/gi, ' ').replace(/\s+/g, ' ').trim();
+    return plain.length > 240 ? plain.slice(0, 237).replace(/\s+\S*$/, '') + '…' : plain;
+}
+const leechHtml = text => escHtml(text).replace(/\u0001/g, '<b>').replace(/\u0002/g, '</b>').replace(/<b>([^<]*)$/, '<b>$1</b>');
+
+// Which subject a leech belongs to: your Priority grouping, else its Bootcamp/B&B section, else its deck
+function leechArea(tags, deckName, s) {
+    if (s && s.mode !== 'decks' && s.root && s.family) {
+        const prefix = `${s.root}::${s.family}::`.toLowerCase();
+        const t = tags.find(x => x.toLowerCase().startsWith(prefix));
+        if (t) return labelFrom(t.split('::').slice(2, 3));
+    }
+    if (s && s.mode === 'decks' && s.deckRoot && deckName.toLowerCase().startsWith(s.deckRoot.toLowerCase() + '::')) {
+        return labelFrom(deckName.split('::').slice(s.deckRoot.split('::').length, s.deckRoot.split('::').length + 1));
+    }
+    for (const t of tags) {
+        const segs = t.split('::'), r = resourceSeg(segs);
+        if (r && segs.length > r.i + 1) return labelFrom(segs.slice(r.i + 1, r.i + 2));
+    }
+    const d = deckName.split('::');
+    return cleanSeg(d[d.length - 1] || 'Other');
+}
+function leechVideo(tags) {
+    for (const t of tags) {
+        const segs = t.split('::'), r = resourceSeg(segs);
+        if (r && segs.length > r.i + 2) return `${r.res.name} · ${labelFrom(segs.slice(r.i + 1))}`;
+    }
+    return '';
+}
+
+let loadingLeeches = false;
+async function loadLeeches() {
+    if (!ankiTags || loadingLeeches) return;
+    loadingLeeches = true;
+    const st = $('leechStatus');
+    if (st) { st.textContent = 'Reading leeches from Anki…'; st.classList.remove('status-err'); }
+    try {
+        const [leechIds, nearIds] = await ankiMulti([
+            { action: 'findCards', params: { query: 'tag:leech' } },
+            { action: 'findCards', params: { query: `prop:lapses>=${NEAR_LEECH_LAPSES} -tag:leech -is:suspended` } }
+        ]);
+        const ids = [...new Set([...(leechIds || []), ...(nearIds || [])])];
+        const infos = [];
+        for (const batch of chunk(ids, 100)) infos.push(...await anki('cardsInfo', { cards: batch }));
+        const noteIds = [...new Set(infos.map(c => c.note))];
+        const tagsByNote = new Map();
+        for (const batch of chunk(noteIds, 200)) (await anki('notesInfo', { notes: batch })).forEach(n => n && tagsByNote.set(n.noteId, n.tags || []));
+        const s = (getSnap() || {}).settings || getSettings();
+        const leechSet = new Set(leechIds || []);
+        const cards = infos.filter(c => c && c.cardId).map(c => {
+            const tags = tagsByNote.get(c.note) || [];
+            return {
+                id: c.cardId, note: c.note, leech: leechSet.has(c.cardId), suspended: c.queue === -1,
+                lapses: c.lapses || 0, interval: c.interval || 0,
+                text: leechText(c.fields), area: leechArea(tags, c.deckName || '', s), video: leechVideo(tags)
+            };
+        }).sort((a, b) => (b.leech - a.leech) || (b.lapses - a.lapses));
+        const leeches = cards.filter(c => c.leech), near = cards.filter(c => !c.leech);
+        const db = loadDb();
+        db.leeches = {
+            at: new Date().toISOString(),
+            total: leeches.length, suspended: leeches.filter(c => c.suspended).length, nearTotal: near.length,
+            cards: [...leeches.slice(0, LEECH_STORE_MAX - 50), ...near.slice(0, 50)]
+        };
+        saveDb(db);
+        if (st) st.textContent = '';
+        renderLeeches();
+        renderToday();
+    } catch (err) {
+        console.error(err);
+        if (st) { st.textContent = ankiErrorText(err); st.classList.add('status-err'); }
+    } finally {
+        loadingLeeches = false;
+    }
+}
+
+let leechFilter = 'suspended';
+try { leechFilter = localStorage.getItem('leech_filter') || 'suspended'; } catch {}
+
+function renderLeeches() {
+    const L = loadDb().leeches;
+    const box = $('leechList'), connected = !!ankiTags;
+    $('leechFilter').value = leechFilter;
+    if (!L) {
+        $('leechSummary').textContent = '';
+        box.innerHTML = `<p class="muted">${connected ? 'Click Refresh to read your leeches from Anki.' : 'Open this page on the computer with Anki running to load your leeches.'}</p>`;
+        return;
+    }
+    $('leechSummary').textContent = `${L.total} leech${L.total === 1 ? '' : 'es'} · ${L.suspended} suspended · ${L.nearTotal} almost · updated ${timeAgo(L.at)}`;
+    const shown = L.cards.filter(c => leechFilter === 'near' ? !c.leech : c.leech && (leechFilter === 'all' || c.suspended));
+    if (!shown.length) {
+        box.innerHTML = `<p class="muted">${leechFilter === 'near' ? `No cards with ${NEAR_LEECH_LAPSES}+ lapses outside the leech tag. Nice.` : leechFilter === 'suspended' ? 'No suspended leeches.' : 'No leeches. Nice.'}</p>`;
+        return;
+    }
+    const groups = new Map();
+    shown.forEach(c => { if (!groups.has(c.area)) groups.set(c.area, []); groups.get(c.area).push(c); });
+    const ordered = [...groups.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+    const dis = connected ? '' : 'disabled title="Open Anki on this computer"';
+    box.innerHTML = ordered.map(([area, list]) => {
+        const ids = list.map(c => c.id).join(',');
+        const susp = list.filter(c => c.suspended).map(c => c.id).join(',');
+        return `
+        <div class="leech-group">
+            <div class="up-group-head">
+                <span class="res-title" style="margin:0;">${escHtml(area)} · ${list.length}</span>
+                <span class="actions" style="display:flex; gap:4px;">
+                    <button class="btn-small" data-act="leech-open" data-ids="${ids}" ${dis}>Open all in Anki</button>
+                    ${susp ? `<button class="btn-small btn-go" data-act="leech-unsuspend" data-ids="${susp}" ${dis}>Unsuspend all</button>` : ''}
+                </span>
+            </div>
+            ${list.map(c => `
+            <div class="leech-row${c.suspended ? ' susp' : ''}">
+                <div class="leech-main">
+                    <div class="leech-text">${leechHtml(c.text) || '<span class="muted">(no text)</span>'}</div>
+                    <div class="up-meta"><span class="${c.lapses >= 8 ? 'stuck' : ''}">${c.lapses} lapses</span><span class="muted">· ${c.suspended ? 'suspended' : 'active'}${c.video ? ` · ${escHtml(c.video)}` : ''}</span></div>
+                </div>
+                <div class="actions">
+                    <button class="btn-small" data-act="leech-open" data-ids="${c.id}" ${dis}>Open</button>
+                    ${c.suspended ? `<button class="btn-small btn-go" data-act="leech-unsuspend" data-ids="${c.id}" ${dis}>Unsuspend</button>` : ''}
+                    <button class="btn-small" data-act="leech-reset" data-ids="${c.id}" ${dis} title="Reset to a new card and unsuspend it">Reset</button>
+                </div>
+            </div>`).join('')}
+        </div>`;
+    }).join('') + (L.cards.length < L.total + L.nearTotal ? `<p class="muted">Showing your ${L.cards.length} worst cards. Open Anki’s Browse window and search <code>tag:leech</code> for all of them.</p>` : '');
+}
+
+async function leechAction(act, ids) {
+    const cards = ids.split(',').map(Number).filter(Boolean);
+    if (!cards.length) return;
+    if (act === 'leech-open') return anki('guiBrowse', { query: `cid:${cards.join(',')}` });
+    if (act === 'leech-reset' && !confirm(`Reset ${cards.length === 1 ? 'this card' : `${cards.length} cards`} to new? ${cards.length === 1 ? 'It loses' : 'They lose'} ${cards.length === 1 ? 'its' : 'their'} review history and come back as new cards. Do this after rewriting a card you never really learned.`)) return;
+    if (act === 'leech-reset') { await anki('forgetCards', { cards }); await anki('unsuspend', { cards }); }
+    if (act === 'leech-unsuspend') await anki('unsuspend', { cards });
+    await loadLeeches();
+    $('leechStatus').textContent = `${act === 'leech-reset' ? 'Reset and unsuspended' : 'Unsuspended'} ${cards.length} card${cards.length === 1 ? '' : 's'}.`;
+}
+
+// New leeches since you last opened the Leeches tab (for the Today panel)
+function newLeechCount() {
+    const db = loadDb();
+    if (!db.leeches) return 0;
+    const seen = new Set(db.leechSeen || []);
+    return db.leeches.cards.filter(c => c.leech && !seen.has(c.id)).length;
+}
+function markLeechesSeen() {
+    const db = loadDb();
+    if (!db.leeches) return;
+    db.leechSeen = db.leeches.cards.filter(c => c.leech).map(c => c.id).slice(0, 1000);
+    saveDb(db);
+}
+
+// ---------- tabs ----------
+function showView(name) {
+    const leeches = name === 'leeches';
+    $('viewDashboard').classList.toggle('hidden', leeches);
+    $('viewLeeches').classList.toggle('hidden', !leeches);
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === name));
+    try { localStorage.setItem('view', name); } catch {}
+    if (leeches) {
+        renderLeeches();
+        markLeechesSeen();
+        renderToday();
+        if (ankiTags && (!loadDb().leeches || Date.now() - new Date(loadDb().leeches.at) > 5 * 60000)) loadLeeches();
+    }
+}
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => showView(t.dataset.view)));
+$('leechRefreshBtn').addEventListener('click', () => loadLeeches());
+$('leechFilter').addEventListener('change', e => {
+    leechFilter = e.target.value;
+    try { localStorage.setItem('leech_filter', leechFilter); } catch {}
+    renderLeeches();
 });
 
 // ============================================================
@@ -2336,6 +2790,24 @@ document.addEventListener('click', e => {
             renderPicker();
             $('upSearch').focus();
             break;
+        case 'leech-open':
+        case 'leech-unsuspend':
+        case 'leech-reset':
+            ankiDo(() => leechAction(el.dataset.act, el.dataset.ids));
+            break;
+        case 'open-leeches':
+            e.preventDefault();
+            showView('leeches');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            break;
+        case 'open-history':
+            e.preventDefault();
+            $('historyCard').open = true;
+            $('historyCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            break;
+        case 'today-amboss-new':
+            openNewVideoCards();
+            break;
         case 'up-undo':
             ankiDo(undoUnsuspend);
             break;
@@ -2351,6 +2823,19 @@ document.addEventListener('click', e => {
 });
 
 $('connectBtn').addEventListener('click', () => connectAnki());
+$('refreshStatsBtn').addEventListener('click', () => analyze({ manual: true }));
+// remember which tucked-away sections you keep open
+(function rememberTools() {
+    let open = {};
+    try { open = JSON.parse(localStorage.getItem('tools_open') || '{}'); } catch {}
+    document.querySelectorAll('details.tool').forEach(d => {
+        if (open[d.id]) d.open = true;
+        d.addEventListener('toggle', () => {
+            open[d.id] = d.open;
+            try { localStorage.setItem('tools_open', JSON.stringify(open)); } catch {}
+        });
+    });
+})();
 $('analyzeBtn').addEventListener('click', () => analyze({ manual: true }));
 ['familySelect', 'depthSelect', 'daysSelect', 'minCardsInput', 'deckInput', 'ankiUrlInput', 'autoSyncInput'].forEach(id => $(id).addEventListener('change', readSettingsForm));
 
@@ -2370,8 +2855,8 @@ async function autoSync() {
     const off = getSettings().autoSync === false, paused = !!loadDb().autoSyncPaused;
     const connected = await connectAnki({ silent: true });
     if (!connected) return;
-    if (off) { progress('Connected. Auto-sync is off; click "Analyze my stats" to refresh.'); return; }
-    if (paused) { progress('Connected. Auto-sync is paused since you removed the stats; click "Analyze my stats" to load them again.'); return; }
+    if (off) { progress('Connected. Auto-sync is off; click Refresh to update your stats.'); return; }
+    if (paused) { progress('Connected. Auto-sync is paused since you removed the stats; click Refresh to load them again.'); return; }
     await analyze();
 }
 // ...and again when you come back to the tab, if the last sync is getting old
@@ -2381,6 +2866,7 @@ function refreshOnReturn() {
     if (!ankiTags || Date.now() - lastUpRefresh < 20000) return;
     lastUpRefresh = Date.now();
     refreshUpcoming();
+    loadTodayStats();
 }
 window.addEventListener('focus', refreshOnReturn);
 document.addEventListener('visibilitychange', () => {
@@ -2394,6 +2880,10 @@ document.addEventListener('visibilitychange', () => {
 (async function init() {
     fillSettingsForm();
     renderAll();
+    renderLeeches();
+    let v = 'dashboard';
+    try { v = location.hash === '#leeches' ? 'leeches' : (localStorage.getItem('view') || 'dashboard'); } catch {}
+    if (v === 'leeches') showView('leeches');
     renderPicker();
     await pullFromGitHub();   // load the GitHub copy first so a fresh sync isn't overwritten
     autoSync();
