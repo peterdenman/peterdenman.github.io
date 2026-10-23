@@ -233,7 +233,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 23d · Back to basics</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 23e · Back to basics</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -1639,7 +1639,7 @@ async function loadPickerCounts() {
         for (const batch of chunk(need, 50)) {
             const res = await ankiMulti(batch.flatMap(([p]) => [
                 { action: 'findCards', params: { query: itemQuery(p) } },
-                { action: 'findCards', params: { query: itemQuery(p) + ' is:suspended' } }
+                { action: 'findCards', params: { query: itemQuery(p) + SUSPENDED_Q } }
             ]));
             if (token !== pickerToken) return;
             batch.forEach(([p, k], j) => {
@@ -1806,16 +1806,18 @@ function renderUpcoming() {
 
 // Re-count every open item and tick off anything whose cards you've unsuspended in Anki
 let refreshingUp = false;
+// Suspended cards that count: leeches Anki suspended on its own don't hold a video back or undo it
+const SUSPENDED_Q = ' is:suspended -tag:leech';
 async function refreshUpcoming() {
     if (!ankiTags || refreshingUp) { renderUpcoming(); return; }
     refreshingUp = true;
     try {
-        const open = (loadDb().upcoming || []).filter(it => !it.doneAt);
+        const items = loadDb().upcoming || [];   // done ones too, so re-suspending in Anki is noticed
         const results = new Map();
-        for (const batch of chunk(open, 50)) {
+        for (const batch of chunk(items, 50)) {
             const res = await ankiMulti(batch.flatMap(it => [
                 { action: 'findCards', params: { query: itemQuery(it) } },
-                { action: 'findCards', params: { query: itemQuery(it) + ' is:suspended' } }
+                { action: 'findCards', params: { query: itemQuery(it) + SUSPENDED_Q } }
             ]));
             batch.forEach((it, j) => results.set(it.id, { total: (res[2 * j] || []).length, suspended: (res[2 * j + 1] || []).length }));
         }
@@ -1824,10 +1826,12 @@ async function refreshUpcoming() {
             const db = loadDb();
             (db.upcoming || []).forEach(it => {
                 const r = results.get(it.id);
-                if (!r || it.doneAt) return;
+                if (!r) return;
                 Object.assign(it, r, { checkedAt: now });
                 countCache.set(itemQuery(it), r);
-                if (r.total > 0 && r.suspended === 0) Object.assign(it, { doneAt: now, doneBy: 'anki' });
+                if (!it.doneAt && r.total > 0 && r.suspended === 0) Object.assign(it, { doneAt: now, doneBy: 'anki' });
+                // re-suspended in Anki (most of its cards again): back on the schedule, follow-up questions cleared
+                else if (it.doneAt && r.total > 0 && r.suspended >= r.total / 2) Object.assign(it, { doneAt: null, doneBy: null, fu: null });
             });
             saveDb(db);
         }
@@ -2783,7 +2787,7 @@ async function autoSync() {
 const RESYNC_AFTER_MINUTES = 15;
 let lastUpRefresh = 0;
 function refreshOnReturn() {
-    if (!ankiTags || Date.now() - lastUpRefresh < 20000) return;
+    if (!ankiTags || Date.now() - lastUpRefresh < 5000) return;
     lastUpRefresh = Date.now();
     refreshUpcoming();
     loadTodayStats();
