@@ -176,6 +176,7 @@
         input.up-date { width: auto; padding: 2px 4px; font-size: 1em; }
         .up-when { font-weight: bold; }
         .stuck { color: #c53030; font-weight: bold; }
+        .link-btn { flex: 0 0 auto; background: none; border: none; padding: 0 2px; color: #3182ce; font-weight: normal; font-size: 1em; text-decoration: underline; cursor: pointer; }
         .up-when.due { color: #c53030; }
         .up-when.soon { color: #c05621; }
         .up-when.later { color: #2b6cb0; }
@@ -232,7 +233,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 23b · Re-suspend</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 23c · Related videos</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -376,7 +377,8 @@
                     </div>
                     <button class="btn-success" id="upAddBtn" style="width:100%;" disabled>Add selected</button>
                 </details>
-                <label class="check" style="margin-top:12px;"><input type="checkbox" id="upAutoInput"> Auto-unsuspend items on their date when Anki is open</label>
+                <label class="check" style="margin-top:12px;"><input type="checkbox" id="upRelatedInput"> Include related videos (the rest of each video’s B&amp;B category)</label>
+                <label class="check" style="margin-top:6px;"><input type="checkbox" id="upAutoInput"> Auto-unsuspend items on their date when Anki is open</label>
             </div>
 
         </div>
@@ -522,7 +524,8 @@ const DEFAULT_SETTINGS = {
     minCards: 20,
     deck: '',
     autoSync: true,
-    autoUnsuspend: false
+    autoUnsuspend: false,
+    relatedDefault: true
 };
 
 const $ = id => document.getElementById(id);
@@ -660,7 +663,8 @@ function readSettingsForm() {
         minCards: Math.max(1, parseInt($('minCardsInput').value, 10) || DEFAULT_SETTINGS.minCards),
         deck: $('deckInput').value.trim(),
         autoSync: $('autoSyncInput').checked,
-        autoUnsuspend: $('upAutoInput').checked
+        autoUnsuspend: $('upAutoInput').checked,
+        relatedDefault: $('upRelatedInput').checked
     };
     saveSettings(s);
     return s;
@@ -674,6 +678,7 @@ function fillSettingsForm() {
     $('deckInput').value = s.deck;
     $('autoSyncInput').checked = s.autoSync !== false;
     $('upAutoInput').checked = !!s.autoUnsuspend;
+    $('upRelatedInput').checked = s.relatedDefault !== false;
     $('modeSelect').value = s.mode;
     setOptions($('deckRootSelect'), s.deckRoot ? [s.deckRoot] : ['(connect to load)'], s.deckRoot);
     setOptions($('rootSelect'), [s.root], s.root);
@@ -1513,7 +1518,35 @@ const todayKey = () => dateKey(new Date());
 const addDays = (key, n) => { const d = new Date(key + 'T00:00:00'); d.setDate(d.getDate() + n); return dateKey(d); };
 const daysBetween = (a, b) => Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 864e5);
 const daysUntil = key => daysBetween(todayKey(), key);
-const itemQuery = it => it.kind === 'deck' ? deckClause(it.key).trim() : tagQuery(it.key);
+// A video's category is its parent tag, e.g. …::#B&B::01_Biochem::03_Enzymes for …::03_Enzymes::02_Enzyme_Inhibitors.
+// Only when there is a real category level between the subject and the video.
+function videoCategory(key) {
+    const segs = String(key).split('::'), r = resourceSeg(segs);
+    if (!r || segs.length - (r.i + 1) < 3) return null;
+    return segs.slice(0, -1).join('::');
+}
+const itemScopeTag = it => (it.withRelated && videoCategory(it.key)) || it.key;
+const itemQuery = it => it.kind === 'deck' ? deckClause(it.key).trim() : tagQuery(itemScopeTag(it));
+// The other videos in the same category: names plus B&B link names ("enzyme-inhibitors")
+function relatedInfo(key) {
+    const cat = videoCategory(key);
+    if (!cat || !ankiTags) return null;
+    const pre = cat.toLowerCase() + '::';
+    const vids = bootcampIndex().videos.filter(v => v.tag.toLowerCase().startsWith(pre) && v.tag.toLowerCase() !== key.toLowerCase());
+    if (!vids.length) return null;
+    const segs = cat.split('::');
+    return {
+        cat: cleanSeg(segs[segs.length - 1]),
+        videos: vids.map(v => { const leaf = v.tag.split('::').pop(); return { name: cleanSeg(leaf), slug: normName(leaf) }; })
+    };
+}
+function relatedLinks(it) {
+    if (!it.rel || !it.rel.videos.length) return '';
+    const base = /boardsbeyond\.com\/video\//i.test(it.url || '') ? safeUrl(it.url).split('?')[0].replace(/[^/]+$/, '') : '';
+    return it.rel.videos.map(v => base
+        ? `<a href="${escHtml(base + encodeURIComponent(v.slug))}" target="_blank" rel="noopener noreferrer">${escHtml(v.name)}</a>`
+        : escHtml(v.name)).join(', ');
+}
 const itemUid = it => `${it.kind}:${it.key}`.toLowerCase();
 
 // Every Bootcamp / B&B video tag in the collection (the deepest tag under #Bootcamp or #B&B)
@@ -1699,10 +1732,12 @@ function addSelected() {
             : mode === 'sheet' ? (p.date ? addDays(p.date, offset) : null)
             : mode === 'one' || ks.length === 1 ? d1
             : addDays(d1, Math.round(idx * span / (ks.length - 1)));
-        const c = countCache.get(itemQuery(p));
+        const c = getSettings().relatedDefault !== false && videoCategory(p.key) ? null : countCache.get(itemQuery(p));
         db.upcoming.push({
             id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
             kind: p.kind, key: p.key, label: p.full, date, note: p.note || null, url: p.url || null,
+            withRelated: p.kind === 'tag' && getSettings().relatedDefault !== false && !!videoCategory(p.key),
+            rel: p.kind === 'tag' ? relatedInfo(p.key) : null,
             total: c ? c.total : null, suspended: c ? c.suspended : null,
             checkedAt: c ? new Date().toISOString() : null,
             addedAt: new Date().toISOString(), doneAt: null, doneBy: null
@@ -1751,6 +1786,7 @@ function upRow(it, cls) {
                     : early ? `<span class="up-when ${cls}">${relDate(it.date)}</span><span class="muted">· ${doneText} ${doneWhen}</span>`
                     : `<input type="date" class="up-date" data-up-date="${it.id}" value="${it.date || ''}" aria-label="Unsuspend date">${it.date ? `<span class="up-when ${cls}">${relDate(it.date)}</span>` : ''}`}
                 <span class="muted">· ${counts}</span>
+                ${it.rel && it.rel.videos.length ? `<span class="muted">· ${it.withRelated ? 'with' : 'related'}: ${relatedLinks(it)}</span><button class="link-btn" data-act="up-related" data-id="${it.id}">${it.withRelated ? 'just this video' : `include ${it.rel.videos.length === 1 ? 'it' : 'them'}`}</button>` : ''}
                 ${it.stuck && !it.doneAt ? `<span class="stuck">${it.stuck} didn’t unsuspend; click Unsuspend to retry</span>` : ''}
                 ${it.note ? `<span class="muted">· ${escHtml(it.note)}</span>` : ''}
             </div>
@@ -1935,9 +1971,10 @@ async function refreshUpcoming({ allowAuto = true } = {}) {
             ]));
             batch.forEach((it, j) => results.set(it.id, { total: (res[2 * j] || []).length, suspended: (res[2 * j + 1] || []).length }));
         }
-        if (results.size) {
+        {
             const now = new Date().toISOString();
             const db = loadDb();
+            (db.upcoming || []).forEach(it => { if (it.kind === 'tag') it.rel = relatedInfo(it.key); });
             (db.upcoming || []).forEach(it => {
                 const r = results.get(it.id);
                 if (!r || it.doneAt) return;
@@ -1967,6 +2004,38 @@ let upSearchTimer = null;
 $('upSearch').addEventListener('input', () => { clearTimeout(upSearchTimer); upSearchTimer = setTimeout(renderPicker, 200); });
 $('upSchedMode').addEventListener('change', updateSchedFields);
 $('upAddBtn').addEventListener('click', addSelected);
+// Recount items (including done ones) after their scope changes; reopen or close them to match Anki
+async function recountItems(ids) {
+    const items = (loadDb().upcoming || []).filter(it => ids.includes(it.id));
+    if (!items.length || !ankiTags) { renderUpcoming(); return; }
+    const all = await cardsPerItem(items), susp = await cardsPerItem(items, ' is:suspended');
+    const now = new Date().toISOString();
+    const db = loadDb();
+    (db.upcoming || []).forEach(it => {
+        const k = items.findIndex(x => x.id === it.id);
+        if (k < 0) return;
+        Object.assign(it, { total: all[k].length, suspended: susp[k].length, checkedAt: now });
+        if (it.doneAt && susp[k].length) Object.assign(it, { doneAt: null, doneBy: null, fu: null });
+        else if (!it.doneAt && all[k].length && !susp[k].length) Object.assign(it, { doneAt: now, doneBy: 'anki' });
+    });
+    saveDb(db);
+    countCache.clear();
+    renderUpcoming();
+}
+async function setRelated(ids, on) {
+    const db = loadDb();
+    (db.upcoming || []).forEach(it => { if (ids.includes(it.id) && it.kind === 'tag' && videoCategory(it.key)) it.withRelated = on; });
+    saveDb(db);
+    await recountItems(ids);
+}
+$('upRelatedInput').addEventListener('change', () => {
+    readSettingsForm();
+    const on = $('upRelatedInput').checked;
+    const ids = (loadDb().upcoming || []).filter(it => it.kind === 'tag' && videoCategory(it.key) && !!it.withRelated !== on).map(it => it.id);
+    if (ids.length && confirm(`${on ? 'Include' : 'Stop including'} related videos for the ${ids.length} video${ids.length === 1 ? '' : 's'} already in your list too?`)) {
+        ankiDo(() => setRelated(ids, on));
+    }
+});
 $('upAutoInput').addEventListener('change', () => {
     readSettingsForm();
     if ($('upAutoInput').checked && ankiTags) refreshUpcoming();
@@ -2532,7 +2601,7 @@ function renderToday() {
         rows.push(todayRow({
             kicker: 'Watch',
             title: escHtml(it.label),
-            detail: overdue + [it.note ? escHtml(it.note) : '', d ? `Unsuspended${it.total ? ` · ${it.total} cards active` : ''}` : it.suspended != null ? `${it.suspended} card${it.suspended === 1 ? '' : 's'} to unsuspend after watching` : ''].filter(Boolean).join(' · '),
+            detail: overdue + [it.note ? escHtml(it.note) : '', it.withRelated && it.rel ? `also watch: ${relatedLinks(it)}` : '', d ? `Unsuspended${it.total ? ` · ${it.total} cards active` : ''}` : it.suspended != null ? `${it.suspended} card${it.suspended === 1 ? '' : 's'} to unsuspend after watching` : ''].filter(Boolean).join(' · '),
             done: d,
             actions: (safeUrl(it.url) ? `<a class="btn-small" href="${escHtml(it.url)}" target="_blank" rel="noopener noreferrer">Watch</a>` : '')
                 + (d ? `<button class="btn-small" data-act="up-resuspend" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Re-suspend</button>`
@@ -2843,6 +2912,11 @@ document.addEventListener('click', e => {
         case 'up-browse': {
             const it = (loadDb().upcoming || []).find(x => x.id === el.dataset.id);
             if (it) ankiDo(() => anki('guiBrowse', { query: itemQuery(it) }));
+            break;
+        }
+        case 'up-related': {
+            const it = (loadDb().upcoming || []).find(x => x.id === el.dataset.id);
+            if (it) ankiDo(() => setRelated([it.id], !it.withRelated));
             break;
         }
         case 'up-resuspend':
