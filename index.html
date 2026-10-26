@@ -253,7 +253,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26d · All lectures + ScholarRx / Bootcamp</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26f · Lecture names in Upcoming</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -1772,6 +1772,8 @@ function relDate(key) {
 function upRow(it, cls) {
     const connected = !!ankiTags;
     const early = !!it.doneAt && cls !== 'done';   // unsuspended before its date: stays in its slot, marked done
+    if (it.lecture) return lectureUpRow(it, cls, early, connected);
+    if (it.group) return groupUpRow(it, cls, early, connected);
     const counts = it.total == null ? 'card count loads when Anki is open'
         : it.total === 0 ? 'no cards found for this tag'
         : cls === 'done' || early ? `${it.total} card${it.total === 1 ? '' : 's'} active`
@@ -1800,8 +1802,103 @@ function upRow(it, cls) {
     </div>`;
 }
 
+// Group videos by the lecture they're scheduled for, so lists show topics ("Pharmacodynamics") rather than single videos.
+// Videos with no lecture (added by hand or from a PDF) stay as their own rows.
+function itemLecture(it) {
+    const lecs = it.lectures && it.lectures.length ? it.lectures
+        : (/ lecture$/.test(it.note || '') ? it.note.replace(/ lecture$/, '').split(' / ').map(n => ({ name: n.trim(), date: it.date })) : []);
+    if (!lecs.length) return null;
+    return lecs.find(l => l.date === it.date) || lecs[0];
+}
+const videoName = it => it.label.split(' › ').pop();
+function groupByLecture(items) {
+    const groups = new Map(), out = [];
+    items.forEach(it => {
+        const l = itemLecture(it);
+        if (!l) { out.push(it); return; }
+        const key = `${it.date || ''}|${l.name.toLowerCase()}`;
+        if (!groups.has(key)) groups.set(key, { key, name: l.name, date: it.date || null, items: [] });
+        groups.get(key).items.push(it);
+    });
+    groups.forEach(g => {
+        const its = g.items;
+        const known = its.every(x => x.total != null);
+        out.push({
+            id: 'grp:' + g.key, group: true, ids: its.map(x => x.id), items: its, label: g.name, date: g.date,
+            doneAt: its.every(x => x.doneAt) ? its.map(x => x.doneAt).sort().pop() : null,
+            total: known ? its.reduce((s, x) => s + x.total, 0) : null,
+            suspended: known ? its.reduce((s, x) => s + (x.suspended || 0), 0) : null,
+            url: its.length === 1 ? its[0].url : null
+        });
+    });
+    return out;
+}
+function videoLinks(items) {
+    return items.map(x => safeUrl(x.url)
+        ? `<a href="${escHtml(x.url)}" target="_blank" rel="noopener noreferrer">${escHtml(videoName(x))}</a>`
+        : escHtml(videoName(x))).join(', ');
+}
+function groupUpRow(it, cls, early, connected) {
+    const n = it.items.length, nDone = it.items.filter(x => x.doneAt).length;
+    const counts = it.total == null ? 'card count loads when Anki is open'
+        : it.total === 0 ? 'no cards found'
+        : cls === 'done' || early ? `${it.total} card${it.total === 1 ? '' : 's'} active`
+        : `${it.suspended} of ${it.total} cards still suspended`;
+    const when = it.doneAt ? new Date(it.doneAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+    const res = resourceOfKey(it.items[0].key);
+    const dis = connected ? '' : 'disabled title="Open Anki on this computer"';
+    return `
+    <div class="up-row ${cls}${early ? ' early' : ''}">
+        <div class="up-main">
+            <div class="up-label">${resBadge(res)}${escHtml(it.label)}</div>
+            <div class="up-meta">
+                ${cls === 'done'
+                    ? `<span>Unsuspended ${when}</span>`
+                    : `<input type="date" class="up-date" data-up-date-group="${escHtml(it.ids.join(','))}" value="${it.date || ''}" aria-label="Unsuspend date">${it.date ? `<span class="up-when ${cls}">${relDate(it.date)}</span>` : ''}`}
+                <span class="muted">· ${counts}${!it.doneAt && nDone ? ` · ${nDone} of ${n} videos unsuspended` : ''}</span>
+            </div>
+            <div class="up-meta"><span class="muted">${n} video${n === 1 ? '' : 's'}: ${videoLinks(it.items)}</span></div>
+        </div>
+        <div class="actions">
+            ${early ? '<span class="done-badge">Already unsuspended</span>' : ''}
+            <button class="btn-small" data-act="grp-browse" data-ids="${escHtml(it.ids.join(','))}" ${dis}>Cards</button>
+            <button class="btn-small" data-act="grp-remove" data-ids="${escHtml(it.ids.join(','))}" title="Remove from list">✕</button>
+        </div>
+    </div>`;
+}
+
+// Lectures without a B&B video, shown in Upcoming on their date (done once you tick ScholarRx / Bootcamp on Today)
+function lectureRows(db) {
+    const quizzes = db.quizzes || {};
+    return allLectures(db).filter(l => l.scholar).map(l => {
+        const q = quizzes[l.key] || {};
+        return { id: 'lec:' + l.key, lecture: true, key: l.key, label: l.name, date: l.date, doneAt: q.study ? q.study + 'T12:00:00' : null };
+    });
+}
+function lectureUpRow(it, cls, early, connected) {
+    const m = matchLectureCards(it.label);
+    const when = it.doneAt ? new Date(it.doneAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+    return `
+    <div class="up-row ${cls}${early ? ' early' : ''}">
+        <div class="up-main">
+            <div class="up-label"><span class="res-badge scholarrx">ScholarRx / Bootcamp</span>${escHtml(it.label)}</div>
+            <div class="up-meta">
+                ${cls === 'done' ? `<span>Studied ${when}</span>` : `<span class="up-when ${cls}">${relDate(it.date)}</span>`}
+                <span class="muted">· lecture without a B&amp;B video${m ? ` · AnKing cards: ${escHtml(m.res.name)} ${escHtml(m.label)}` : ''}</span>
+            </div>
+        </div>
+        <div class="actions">
+            ${early ? '<span class="done-badge">Already studied</span>' : ''}
+            <a class="btn-small" href="${SCHOLARRX_URL}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; border-radius:4px;">ScholarRx</a>
+            <a class="btn-small" href="${BOOTCAMP_HOME}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; border-radius:4px;">Bootcamp</a>
+            ${m ? `<button class="btn-small" data-act="quiz-cards" data-quiz="${escHtml(it.key)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>` : ''}
+            <button class="btn-small" data-act="lec-hide" data-quiz="${escHtml(it.key)}" title="Not a lecture? Hide it">✕</button>
+        </div>
+    </div>`;
+}
 function renderUpcoming() {
-    const items = loadDb().upcoming || [];
+    const db0 = loadDb();
+    const items = groupByLecture(db0.upcoming || []).concat(lectureRows(db0));
     const box = $('upList');
     const isEarly = it => it.doneAt && it.date && daysUntil(it.date) > 0;
     const open = items.filter(it => !it.doneAt || isEarly(it)), done = items.filter(it => it.doneAt && !isEarly(it));
@@ -1830,7 +1927,7 @@ function renderUpcoming() {
         html += `
         <div class="up-group">
             <div class="up-group-head">
-                <span class="res-title" style="margin:0;">${title} · ${list.length}${cards ? ` · ~${cards.toLocaleString()} new cards` : ''}${early ? ` · ${early} already unsuspended` : ''}</span>
+                <span class="res-title" style="margin:0;">${title} · ${list.length}${cards ? ` · ~${cards.toLocaleString()} new cards` : ''}${early ? ` · ${early} already done` : ''}</span>
             </div>
             ${list.map(it => upRow(it, cls)).join('')}
         </div>`;
@@ -1898,6 +1995,12 @@ document.addEventListener('change', e => {
         updateAddBtn();
     } else if (t.dataset && t.dataset.pick !== undefined) {
         updateAddBtn();
+    } else if (t.dataset && t.dataset.upDateGroup) {
+        const ids = t.dataset.upDateGroup.split(',');
+        const db = loadDb();
+        (db.upcoming || []).forEach(x => { if (ids.includes(x.id)) x.date = t.value || null; });
+        saveDb(db);
+        renderUpcoming();
     } else if (t.dataset && t.dataset.upDate) {
         const db = loadDb();
         const it = (db.upcoming || []).find(x => x.id === t.dataset.upDate);
@@ -2330,10 +2433,10 @@ async function importSchedule() {
             const db = loadDb();
             db.lectures = (db.lectures || []).filter(l => l.src !== schedName).concat(lectures.map(l => ({ ...l, src: schedName })));
             saveDb(db);
-            renderToday();
+            renderUpcoming();
         }
         const nScholar = lectures.filter(l => l.scholar).length;
-        lectureNote = lectures.length ? ` Added ${lectures.length} lectures to Today’s quizzes${nScholar ? ` (${nScholar} without videos, planned with ScholarRx / Bootcamp)` : ''}.` : '';
+        lectureNote = lectures.length ? ` Also added all ${lectures.length} lectures for Today’s quizzes${nScholar ? `; the ${nScholar} without videos are now in your Upcoming list as ScholarRx / Bootcamp lectures` : ''}.` : '';
         if (!entries.length) { setSt(`No video links found in that spreadsheet.${lectureNote}`, !lectures.length); schedRows = []; renderPicker(); return; }
         if (!ankiTags) { setSt(`Found ${entries.length} video links. Open this page with Anki running to match them to your AnKing cards.${lectureNote}`, true); schedRows = []; renderPicker(); return; }
         const idx = videoTagIndex('bnb');
@@ -2455,7 +2558,7 @@ function renderToday() {
     const rows = [], log = [];
     let total = 0, done = 0;
     const count = d => { total++; if (d) done++; };
-    const note = (k, t, d, id) => log.push(id ? { k, t, d: !!d, id } : { k, t, d: !!d });
+    const note = (k, t, d, id, ids) => log.push(ids ? { k, t, d: !!d, ids } : id ? { k, t, d: !!d, id } : { k, t, d: !!d });
 
     // 1. Reviews
     const st = db.todayStats && db.todayStats.date === today ? db.todayStats : null;
@@ -2471,23 +2574,29 @@ function renderToday() {
     }));
 
     // 2. Videos to watch: due or overdue, plus anything unsuspended today
-    const watch = items.filter(it => (!it.doneAt && it.date && it.date <= today) || (it.doneAt && (doneDay(it) === today || it.date === today)))
+    const watch = groupByLecture(items).filter(it => (!it.doneAt && it.date && it.date <= today) || (it.doneAt && (doneDay(it) === today || it.date === today)))
         .sort((a, b) => (!!a.doneAt - !!b.doneAt) || (a.date || '').localeCompare(b.date || ''));
-    watch.slice(0, 6).forEach(it => {
+    watch.slice(0, 8).forEach(it => {
         const d = !!it.doneAt;
         count(d);
-        note('watch', it.label, d, it.id);
+        if (it.group) note('watch', it.label, d, null, it.ids); else note('watch', it.label, d, it.id);
         const overdue = !d && it.date < today ? `<span class="stuck">${-daysUntil(it.date)}d overdue</span> · ` : '';
+        const vids = it.group ? it.items : [it];
+        const nDone = vids.filter(x => x.doneAt).length;
+        const status = d ? `Unsuspended${it.total ? ` · ${it.total} cards active` : ''}`
+            : it.suspended != null ? `${it.suspended} card${it.suspended === 1 ? '' : 's'} to unsuspend in Anki after watching${nDone ? ` · ${nDone} of ${vids.length} videos done` : ''}` : '';
         rows.push(todayRow({
             kicker: 'Watch',
             title: escHtml(it.label),
-            detail: overdue + [it.note ? escHtml(it.note) : '', d ? `Unsuspended${it.total ? ` · ${it.total} cards active` : ''}` : it.suspended != null ? `${it.suspended} card${it.suspended === 1 ? '' : 's'} to unsuspend in Anki after watching` : ''].filter(Boolean).join(' · '),
+            detail: overdue + [it.group ? `${vids.length} video${vids.length === 1 ? '' : 's'}: ${videoLinks(vids)}` : (it.note ? escHtml(it.note) : ''), status].filter(Boolean).join(' · '),
             done: d,
-            actions: (safeUrl(it.url) ? `<a class="btn-small" href="${escHtml(it.url)}" target="_blank" rel="noopener noreferrer">Watch</a>` : '')
-                + `<button class="btn-small" data-act="up-browse" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>`
+            actions: (!it.group && safeUrl(it.url) ? `<a class="btn-small" href="${escHtml(it.url)}" target="_blank" rel="noopener noreferrer">Watch</a>` : '')
+                + (it.group
+                    ? `<button class="btn-small" data-act="grp-browse" data-ids="${escHtml(it.ids.join(','))}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>`
+                    : `<button class="btn-small" data-act="up-browse" data-id="${it.id}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>`)
         }));
     });
-    const more = watch.length - 6;
+    const more = watch.length - 8;
 
     // 2b. Quizzes released on the day of each lecture: a practice quiz and a readiness quiz.
     //     Unfinished ones carry over for a week.
@@ -2570,7 +2679,7 @@ function renderToday() {
     const extras = [];
     const nl = newLeechCount();
     if (nl) extras.push(`<b>${nl} new leech${nl === 1 ? '' : 'es'}</b> since you last checked. <a href="#" data-act="open-leeches">Review ${nl === 1 ? 'it' : 'them'} in Leeches</a>; fixing leeches early saves review time.`);
-    if (more > 0) extras.push(`${more} more video${more === 1 ? '' : 's'} due in Upcoming.`);
+    if (more > 0) extras.push(`${more} more lecture${more === 1 ? '' : 's'} with videos due in Upcoming.`);
     if (moreLecs > 0) extras.push(`${moreLecs} more lecture${moreLecs === 1 ? '' : 's'} with quizzes open from the past week.`);
     if (tmr.length || tmrLecs.length) extras.push(`Tomorrow: ${tmrLecs.length ? escHtml(tmrLecs.map(l => l.name + (l.scholar ? ' (ScholarRx / Bootcamp)' : '')).join(', ')) : `${tmr.length} video${tmr.length === 1 ? '' : 's'}`}. Previewing before the lecture helps it stick.`);
     if (rows.some(r => r.includes('Open cards'))) extras.push('“Open cards” shows them in Anki’s Browse window: select all, then Start Qbank Session (AMBOSS add-on).');
@@ -2824,6 +2933,10 @@ function dayRowDone(r, day, items) {
         const it = items.find(x => x.id === r.id);
         if (it && it.doneAt && doneDay(it) <= day) return true;
     }
+    if (r.k === 'watch' && r.ids && r.ids.length) {
+        const its = r.ids.map(id => items.find(x => x.id === id));
+        if (its.every(it => it && it.doneAt && doneDay(it) <= day)) return true;
+    }
     return !!r.d;
 }
 
@@ -2963,7 +3076,7 @@ function toggleQuiz(key, type, on) {
     if (!q.practice && !q.readiness && !q.study) delete db.quizzes[key];
     Object.keys(db.quizzes).filter(k => daysBetween(k.split('|')[0], today) > DAY_LOG_DAYS).forEach(k => delete db.quizzes[k]);
     saveDb(db);
-    renderToday();
+    renderUpcoming();
 }
 function openQuizCards(key) {
     const lec = allLectures(loadDb()).find(l => l.key === key);
@@ -2977,7 +3090,7 @@ function hideLecture(key) {
     const db = loadDb();
     db.hiddenLectures = [...new Set([...(db.hiddenLectures || []), key])];
     saveDb(db);
-    renderToday();
+    renderUpcoming();
 }
 
 // ============================================================
@@ -3004,6 +3117,22 @@ document.addEventListener('click', e => {
         case 'up-browse': {
             const it = (loadDb().upcoming || []).find(x => x.id === el.dataset.id);
             if (it) ankiDo(() => anki('guiBrowse', { query: itemQuery(it) }));
+            break;
+        }
+        case 'grp-browse': {
+            const ids = (el.dataset.ids || '').split(',');
+            const list = (loadDb().upcoming || []).filter(x => ids.includes(x.id));
+            if (list.length) ankiDo(() => anki('guiBrowse', { query: `(${list.map(itemQuery).join(' OR ')})` }));
+            break;
+        }
+        case 'grp-remove': {
+            const ids = (el.dataset.ids || '').split(',');
+            if (ids.length > 1 && !confirm(`Remove this lecture’s ${ids.length} videos from your list?`)) break;
+            const db = loadDb();
+            db.upcoming = (db.upcoming || []).filter(x => !ids.includes(x.id));
+            saveDb(db);
+            renderUpcoming();
+            renderPicker();
             break;
         }
         case 'up-remove': {
