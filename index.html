@@ -263,7 +263,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26l · Card picks</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26m · Export all B&amp;B cards</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -352,6 +352,8 @@
                     <label class="lec-auto"><input type="checkbox" id="autoUnsuspendInput"> Unsuspend each lecture’s B&amp;B cards automatically on its due date</label>
                     <span>
                         <button class="link-btn" id="lecExportBtn" title="Save the cards of these lectures’ B&amp;B videos to a file you send to Claude, who picks the ones that match each lecture">Export cards for review</button>
+                        <span class="muted">·</span>
+                        <button class="link-btn" id="bnbExportBtn" title="Save every B&amp;B card in your collection (text and note ID) to one file for Claude. Send it once; then Claude can pick cards straight from your slides.">Export all B&amp;B cards</button>
                         <span class="muted">·</span>
                         <button class="link-btn" id="lecImportBtn">Import lectures (.json)</button>
                     </span>
@@ -1727,6 +1729,7 @@ function lecRow(l, cls, connected) {
                 <span class="muted">· ${n} of ${LEC_PARTS.length} done${m ? ` · AnKing: ${escHtml(m.res.name)} ${escHtml(m.label)}` : ''}</span>
             </div>
             ${vids.length ? `<div class="lec-vids">B&amp;B (${vids.length}): ${vids.map(v => v.tag ? `<span title="${escHtml(v.label || '')}">${escHtml(vidName(v))}</span>` : `<span class="vid-missing" title="Not found in your AnKing tags">${escHtml(vidName(v))} (not found)</span>`).join(', ')}${picks.length ? ` · ${picks.length.toLocaleString()} notes picked` : waiting ? ' · <span class="vid-missing">waiting for card picks</span>' : ''}${l.unsusp ? ` · <b>${l.unsusp.n.toLocaleString()} cards unsuspended ${escHtml(new Date(l.unsusp.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}</b>` : ''}</div>` : ''}
+            ${!vids.length && (picks.length || l.unsusp) ? `<div class="lec-vids">${picks.length ? `${picks.length.toLocaleString()} notes picked` : ''}${l.unsusp ? `${picks.length ? ' · ' : ''}<b>${l.unsusp.n.toLocaleString()} cards unsuspended ${escHtml(new Date(l.unsusp.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}</b>` : ''}</div>` : ''}
             ${l.note ? `<div class="lec-vids muted">${escHtml(l.note)}</div>` : ''}
         </div>
         <div class="actions">
@@ -2011,6 +2014,62 @@ async function exportCards() {
     }
 }
 $('lecExportBtn').addEventListener('click', exportCards);
+
+// ---------- export every B&B card (one file for Claude to search by content) ----------
+async function exportAllBnb() {
+    if (exporting) return;
+    if (!ankiTags) { upMsg('Open this page on the computer with Anki running to export your cards.'); return; }
+    const vids = bnbVideos();
+    if (!vids.length) { upMsg('No B&amp;B tags found in your AnKing deck.'); return; }
+    const roots = [...new Set(vids.map(v => v.resRoot))];
+    const leafLabel = new Map(vids.map(v => [v.tag.toLowerCase(), v.label]));
+    exporting = true;
+    $('bnbExportBtn').disabled = true;
+    const t0 = Date.now();
+    try {
+        upMsg('Finding your B&amp;B cards in Anki…');
+        const ids = new Set();
+        for (const r of roots) (await anki('findNotes', { query: tagQuery(r) })).forEach(id => ids.add(id));
+        const suspended = new Set(await anki('findCards', { query: `(${roots.map(tagQuery).join(' OR ')}) is:suspended` }));
+        const all = [...ids], out = [];
+        for (let b = 0; b < all.length; b += 250) {
+            upMsg(`Reading your B&amp;B cards from Anki… ${Math.round((b / all.length) * 100)}% of ${all.length.toLocaleString()} notes`);
+            const infos = await anki('notesInfo', { notes: all.slice(b, b + 250) });
+            infos.forEach(info => {
+                if (!info || !info.fields) return;
+                const f = Object.entries(info.fields).sort((a, c) => a[1].order - c[1].order);
+                const main = f.find(([n]) => /^(text|front|question)$/i.test(n)) || f[0];
+                const extra = f.find(([n]) => /^(extra|back|answer)$/i.test(n) && n !== (main && main[0]));
+                const tags = info.tags || [];
+                const videos = [...new Set(tags.map(t => leafLabel.get(t.toLowerCase())).filter(Boolean))];
+                const cards = info.cards || [];
+                out.push({
+                    id: info.noteId,
+                    text: main ? shortText(main[1].value, 600) : '',
+                    extra: extra ? shortText(extra[1].value, 250) : '',
+                    video: videos.join(' | '),
+                    suspended: cards.length ? cards.every(c => suspended.has(c)) : null,
+                    leech: tags.some(t => t.toLowerCase() === 'leech')
+                });
+            });
+        }
+        out.sort((a, c) => a.video.localeCompare(c.video) || a.id - c.id);
+        const data = { format: 'study-tracker-bnb-v1', exported: new Date().toISOString(), videos: vids.length, notes: out };
+        const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
+        const a = document.createElement('a');
+        a.href = url; a.download = `bnb_cards_${todayKey()}.json`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        upMsg(`Exported ${out.length.toLocaleString()} B&amp;B notes from ${vids.length.toLocaleString()} videos (${Math.round((Date.now() - t0) / 1000)}s). Send <b>bnb_cards_${todayKey()}.json</b> to Claude once; after that, sending your slides is enough. Export again after big AnkiHub updates.`);
+    } catch (err) {
+        console.error(err);
+        upMsg(escHtml(ankiErrorText(err)));
+    } finally {
+        exporting = false;
+        $('bnbExportBtn').disabled = false;
+    }
+}
+$('bnbExportBtn').addEventListener('click', exportAllBnb);
 
 $('lecImportBtn').addEventListener('click', () => $('lecImportInput').click());
 $('lecImportInput').addEventListener('change', importLectures);
