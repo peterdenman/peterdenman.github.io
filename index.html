@@ -180,6 +180,24 @@
         .check input { width: auto; margin: 0; }
         svg text { font-family: inherit; }
         .lec-form { margin-bottom: 4px; }
+        .find-panel { border: 1px solid #bee3f8; background: #f7fbff; border-radius: 6px; padding: 12px; margin: 10px 0; }
+        .find-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; font-size: 0.95em; color: #2d3748; }
+        .find-hint { font-weight: normal; color: #718096; font-size: 0.9em; }
+        .find-list { max-height: 380px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px; background: white; margin-top: 10px; }
+        .find-row { display: flex; align-items: flex-start; gap: 8px; padding: 7px 8px; border-bottom: 1px solid #edf2f7; font-size: 0.88em; cursor: pointer; }
+        .find-row:last-child { border-bottom: none; }
+        .find-row input { width: auto; margin: 3px 0 0; flex-shrink: 0; }
+        .find-row .find-name { font-weight: 600; color: #1a202c; }
+        .find-why { display: block; color: #718096; font-size: 0.92em; margin-top: 2px; }
+        .match { font-weight: bold; }
+        .match.strong { color: #276749; }
+        .match.good { color: #2b6cb0; }
+        .match.weak { color: #a0aec0; }
+        .find-cov { margin-top: 10px; font-size: 0.85em; }
+        .find-cov ol { margin: 4px 0 0; padding-left: 20px; }
+        .find-cov li { margin-bottom: 3px; color: #2d3748; }
+        .find-cov .gap { color: #c53030; }
+        .lec-vids { font-size: 0.8em; color: #4a5568; margin-top: 4px; overflow-wrap: anywhere; }
         .up-progress { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin: 10px 0 12px; }
         .up-progress > div { height: 100%; background: #38a169; }
         .up-group { margin-bottom: 12px; }
@@ -241,7 +259,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26i · Manual lectures</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26j · Find B&amp;B videos</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -327,6 +345,23 @@
                     <button type="submit" class="btn-success" style="width:100%;">Add lecture</button>
                 </form>
                 <div id="upStatus" class="status-msg"></div>
+                <div id="findPanel" class="find-panel hidden">
+                    <div class="find-head">
+                        <span>Find B&amp;B videos · <b id="findLecName"></b></span>
+                        <button class="link-btn" data-act="find-close">Close</button>
+                    </div>
+                    <label class="field full">Learning objectives <span class="find-hint">one per line · these count most</span>
+                        <textarea id="findObj" rows="5" placeholder="1. Describe the dose-response curve&#10;2. Compare full, partial and inverse agonists&#10;3. …"></textarea>
+                    </label>
+                    <label class="field full">Slides <span class="find-hint">PDF or PowerPoint, optional</span>
+                        <input type="file" id="findSlides" accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation">
+                    </label>
+                    <button class="btn-primary" id="findBtn" style="width:100%;">Find videos</button>
+                    <div id="findStatus" class="status-msg"></div>
+                    <div id="findResults"></div>
+                    <div id="findCoverage"></div>
+                    <button class="btn-success hidden" id="findSaveBtn" style="width:100%; margin-top:8px;">Attach videos</button>
+                </div>
                 <div class="up-progress hidden" id="upProgress"></div>
                 <div id="upList"></div>
             </div>
@@ -749,6 +784,7 @@ async function connectAnki({ silent = false } = {}) {
         populateTagSelectors();
         lectureMatchCache.clear();
         lecCardCache.clear();
+        bnbTextIndex = null;
         renderUpcoming();
         loadTodayStats();
         loadReviewHistory();
@@ -1566,8 +1602,14 @@ function lectureCards(l) {
     lecCardCache.set(ck, m);
     return m;
 }
+// Every AnKing tag for a lecture: the B&B videos you attached, else the one matched from its link or name
+function lectureTags(l) {
+    if (Array.isArray(l.videos) && l.videos.length) return l.videos.map(v => v.tag);
+    const m = lectureCards(l);
+    return m ? [m.tag] : [];
+}
 function openLectureCards(list) {
-    const tags = [...new Set(list.map(lectureCards).filter(Boolean).map(m => m.tag))];
+    const tags = [...new Set(list.flatMap(lectureTags))];
     if (tags.length) ankiDo(() => anki('guiBrowse', { query: `(${tags.map(tagQuery).join(' OR ')})` }));
 }
 
@@ -1592,11 +1634,12 @@ function addLecture(e) {
     if (!name) { upMsg('Type the lecture name (or paste its video link).'); $('lecName').focus(); return; }
     if (!date) { upMsg('Pick a due date.'); $('lecDate').focus(); return; }
     const db = loadDb();
-    db.myLectures = lectureList(db).concat({ id: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name, url: url || '', date, type, added: new Date().toISOString() });
+    const newId = 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    db.myLectures = lectureList(db).concat({ id: newId, name, url: url || '', date, type, added: new Date().toISOString() });
     saveDb(db);
     $('lecName').value = ''; $('lecUrl').value = '';
     $('lecName').focus();
-    upMsg(`Added <b>${escHtml(name)}</b> (${escHtml(type)}) for ${escHtml(relDate(date).replace(/^Today$/, 'today').replace(/^Tomorrow$/, 'tomorrow'))}.`);
+    upMsg(`Added <b>${escHtml(name)}</b> (${escHtml(type)}) for ${escHtml(relDate(date).replace(/^Today$/, 'today').replace(/^Tomorrow$/, 'tomorrow'))}. <button class="link-btn" data-act="find-open" data-id="${escHtml(newId)}">Find its B&amp;B videos</button>`);
     renderUpcoming();
 }
 
@@ -1638,7 +1681,9 @@ function toggleLecturePart(id, part, on) {
 
 function lecRow(l, cls, connected) {
     const n = LEC_PARTS.filter(([k]) => l[k]).length;
-    const m = lectureCards(l);
+    const vids = Array.isArray(l.videos) ? l.videos : [];
+    const m = vids.length ? null : lectureCards(l);
+    const hasCards = vids.length || m;
     const u = safeUrl(l.url);
     const when = cls === 'done' ? `Done ${new Date(lecDoneDay(l) + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : relDate(l.date);
     return `
@@ -1650,10 +1695,12 @@ function lecRow(l, cls, connected) {
                 <input type="date" class="up-date" data-lec-date="${escHtml(l.id)}" value="${escHtml(l.date)}" aria-label="Due date">
                 <span class="muted">· ${n} of ${LEC_PARTS.length} done${m ? ` · AnKing: ${escHtml(m.res.name)} ${escHtml(m.label)}` : ''}</span>
             </div>
+            ${vids.length ? `<div class="lec-vids">B&amp;B (${vids.length}): ${escHtml(vids.map(v => v.label.split(' › ').pop()).join(', '))}</div>` : ''}
         </div>
         <div class="actions">
             ${u ? `<a class="btn-small" href="${escHtml(u)}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; border-radius:4px;">Watch</a>` : ''}
-            ${m ? `<button class="btn-small" data-act="lec-cards" data-id="${escHtml(l.id)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>` : ''}
+            <button class="btn-small" data-act="find-open" data-id="${escHtml(l.id)}" title="Find the B&amp;B videos for this lecture from its learning objectives and slides">${vids.length ? 'Edit videos' : 'Find videos'}</button>
+            ${hasCards ? `<button class="btn-small" data-act="lec-cards" data-id="${escHtml(l.id)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>` : ''}
             <button class="btn-small" data-act="lec-remove" data-id="${escHtml(l.id)}" title="Remove this lecture">✕</button>
         </div>
     </div>`;
@@ -1701,6 +1748,370 @@ $('lecDate').value = todayKey();
 document.addEventListener('change', e => {
     const t = e.target;
     if (t.dataset && t.dataset.lecDate && t.value) setLecture(t.dataset.lecDate, { date: t.value });
+});
+
+// ============================================================
+// FIND B&B VIDEOS — rank B&B videos for a lecture from its learning objectives (weighted most) and slides,
+// using the text of your AnKing B&B cards
+// ============================================================
+const PDFJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
+const PDFJS_WORKER_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+const OBJ_WEIGHT = 0.75;          // share of the score from the learning objectives when you give both
+const STOP_WORDS = new Set(('a about above after again against all also am an and any are as at be because been before being below between both but by can could did do does doing down during each few for from further had has have having he her here hers him his how if in into is it its itself just me more most my no nor not now of off on once only or other our out over own same she should so some such than that the their them then there these they this those through to too under until up very was we were what when where which while who whom why will with would you your may might must shall via per vs eg ie etc use used using within without however therefore thus one two three four five first second third new well like see seen common commonly usually often due associated cause causes caused including include includes less either neither every').split(' '));
+const SLIDE_WORDS = new Set(('slide slides lecture lectures objective objectives learning page pages figure fig table copyright university college school course week module session review chapter section reading readings professor department faculty www http https com edu org pdf student students describe explain identify discuss understand list define compare contrast outline summary introduction overview recognize recall apply interpret predict distinguish differentiate characterize demonstrate analyze evaluate relate state name give able know').split(' '));
+
+function cleanCardText(html) {
+    return String(html || '')
+        .replace(/\{\{c\d+::(.*?)(::[^}]*)?\}\}/g, '$1')
+        .replace(/\[sound:[^\]]*\]/g, ' ')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;|&[a-z]+;|&#\d+;/gi, ' ');
+}
+// Words (lightly stemmed) plus two-word phrases such as "heart failure"
+function termsOf(text) {
+    const out = [];
+    let prev = null;
+    for (const raw of String(text).toLowerCase().split(/[^a-z0-9]+/)) {
+        if (raw.length < 3 || /^\d+$/.test(raw) || STOP_WORDS.has(raw) || SLIDE_WORDS.has(raw)) { prev = null; continue; }
+        const w = stemWord(raw);
+        out.push(w);
+        if (prev) out.push(prev + ' ' + w);
+        prev = w;
+    }
+    return out;
+}
+function countTerms(terms, weight, into = new Map()) {
+    terms.forEach(t => into.set(t, (into.get(t) || 0) + (t.includes(' ') ? 1.5 * weight : weight)));
+    return into;
+}
+// counts -> tf-idf weights normalised to length 1, keeping only terms the videos know about
+function weighVector(counts, idf) {
+    const v = new Map();
+    let norm = 0;
+    counts.forEach((c, t) => {
+        const w = idf.get(t);
+        if (!w) return;
+        const x = (1 + Math.log(c)) * w;
+        v.set(t, x);
+        norm += x * x;
+    });
+    norm = Math.sqrt(norm) || 1;
+    v.forEach((x, t) => v.set(t, x / norm));
+    return v;
+}
+const dotVec = (a, b) => { let s = 0; const [small, big] = a.size < b.size ? [a, b] : [b, a]; small.forEach((x, t) => { const y = big.get(t); if (y) s += x * y; }); return s; };
+
+// Every B&B video in your collection: the deepest tag under #B&B
+function bnbVideos() {
+    const tags = (ankiTags || []).filter(t => { const r = resourceSeg(t.split('::')); return r && r.res.id === 'bnb'; });
+    const parents = new Set();
+    tags.forEach(t => { const p = t.split('::'); for (let k = 1; k < p.length; k++) parents.add(p.slice(0, k).join('::').toLowerCase()); });
+    return tags.filter(t => !parents.has(t.toLowerCase())).map(t => {
+        const segs = t.split('::'), { res, i } = resourceSeg(segs);
+        return segs.length > i + 1 ? { tag: t, res, resRoot: segs.slice(0, i + 1).join('::'), label: labelFrom(segs.slice(i + 1)) } : null;
+    }).filter(Boolean).sort((a, b) => a.tag.localeCompare(b.tag, undefined, { numeric: true, sensitivity: 'base' }));
+}
+
+// Builds (once per visit) a text profile for every B&B video from its name + its cards' text
+let bnbTextIndex = null;
+async function buildBnbTextIndex(onStatus) {
+    if (bnbTextIndex) return bnbTextIndex;
+    const videos = bnbVideos();
+    if (!videos.length) throw new Error('No B&B video tags found in your AnKing deck. The B&B tags come with the AnKing Step deck (v12).');
+    const byTag = new Map(videos.map((v, i) => [v.tag.toLowerCase(), i]));
+    const docs = videos.map(v => countTerms(termsOf(v.label), 5));   // the video's name counts extra
+    let usedCards = false;
+    try {
+        const ids = new Set();
+        for (const r of [...new Set(videos.map(v => v.resRoot))]) (await anki('findNotes', { query: tagQuery(r) })).forEach(id => ids.add(id));
+        const batches = chunk([...ids], 250);
+        for (let b = 0; b < batches.length; b++) {
+            onStatus(`Reading your B&B card text from Anki… ${Math.round((b / batches.length) * 100)}% (once per visit; the first run can take a minute)`);
+            const infos = await anki('notesInfo', { notes: batches[b] });
+            infos.forEach(info => {
+                if (!info || !info.fields) return;
+                const vids = (info.tags || []).map(t => byTag.get(t.toLowerCase())).filter(i => i !== undefined);
+                if (!vids.length) return;
+                const text = Object.entries(info.fields)
+                    .filter(([name, f]) => /^(text|front|back|extra|question|answer)$/i.test(name) || f.order <= 1)
+                    .map(([, f]) => cleanCardText(f.value)).join(' ');
+                const terms = termsOf(text);
+                vids.forEach(i => countTerms(terms, 1, docs[i]));
+            });
+        }
+        usedCards = true;
+    } catch (err) {
+        console.error('Card text unavailable, matching on video names only', err);
+    }
+    const df = new Map();
+    docs.forEach(d => d.forEach((_, t) => df.set(t, (df.get(t) || 0) + 1)));
+    const N = docs.length, idf = new Map();
+    df.forEach((n, t) => idf.set(t, Math.log((N + 1) / (n + 0.5))));
+    bnbTextIndex = { videos, idf, vecs: docs.map(d => weighVector(d, idf)), usedCards };
+    return bnbTextIndex;
+}
+
+// ---------- reading slides ----------
+async function loadPdfJs() {
+    if (!window.pdfjsLib) {
+        await new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = PDFJS_URL;
+            s.onload = resolve;
+            s.onerror = () => reject(new Error("Couldn't load the PDF reader. Check your internet connection."));
+            document.head.appendChild(s);
+        });
+    }
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
+    return window.pdfjsLib;
+}
+async function pdfToPages(file) {
+    const lib = await loadPdfJs();
+    const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+    const pages = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const content = await (await pdf.getPage(i)).getTextContent();
+        pages.push(content.items.map(it => it.str).join(' '));
+    }
+    return pages;
+}
+// Minimal zip reader (for .pptx): -> { names, read(name) }
+async function openZip(buf) {
+    const dv = new DataView(buf), u8 = new Uint8Array(buf), dec = new TextDecoder();
+    let eocd = -1;
+    for (let i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 65557); i--) {
+        if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    }
+    if (eocd < 0) throw new Error("That file couldn't be opened. Save it as .pptx or PDF and try again.");
+    const entries = new Map();
+    let p = dv.getUint32(eocd + 16, true);
+    for (let n = dv.getUint16(eocd + 10, true); n > 0 && dv.getUint32(p, true) === 0x02014b50; n--) {
+        const nlen = dv.getUint16(p + 28, true);
+        entries.set(dec.decode(u8.subarray(p + 46, p + 46 + nlen)), {
+            method: dv.getUint16(p + 10, true), size: dv.getUint32(p + 20, true), off: dv.getUint32(p + 42, true)
+        });
+        p += 46 + nlen + dv.getUint16(p + 30, true) + dv.getUint16(p + 32, true);
+    }
+    return {
+        names: [...entries.keys()],
+        read: async name => {
+            const e = entries.get(name);
+            if (!e) return null;
+            const start = e.off + 30 + dv.getUint16(e.off + 26, true) + dv.getUint16(e.off + 28, true);
+            const data = u8.subarray(start, start + e.size);
+            if (e.method === 0) return dec.decode(data);
+            if (e.method !== 8) throw new Error('This file uses a compression the page can’t read. Save it as PDF and try again.');
+            return new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+        }
+    };
+}
+async function pptxToPages(file) {
+    const zip = await openZip(await file.arrayBuffer());
+    const num = n => +(n.match(/(\d+)\.xml$/) || [0, 0])[1];
+    const slides = zip.names.filter(n => /^ppt\/slides\/slide\d+\.xml$/.test(n)).sort((a, b) => num(a) - num(b));
+    const pages = [];
+    for (const n of slides) {
+        const xml = await zip.read(n);
+        const doc = new DOMParser().parseFromString(xml, 'application/xml');
+        const paras = [...doc.getElementsByTagNameNS('*', 'p')].map(pp => [...pp.getElementsByTagNameNS('*', 't')].map(t => t.textContent).join(''));
+        // speaker notes often hold the real content
+        const notesXml = await zip.read(`ppt/notesSlides/notesSlide${num(n)}.xml`);
+        const notes = notesXml ? [...new DOMParser().parseFromString(notesXml, 'application/xml').getElementsByTagNameNS('*', 't')].map(t => t.textContent).join(' ') : '';
+        pages.push(paras.join('\n') + (notes ? '\n' + notes : ''));
+    }
+    return pages;
+}
+async function slidesToPages(file) {
+    if (/\.pptx$/i.test(file.name)) return pptxToPages(file);
+    if (/\.ppt$/i.test(file.name)) throw new Error('Old .ppt files can’t be read. Save the slides as .pptx or PDF.');
+    return pdfToPages(file);
+}
+
+// Learning objectives: one per line (numbers and bullets removed); a pasted paragraph is split at "1." "2." …
+function splitObjectives(text) {
+    let t = String(text || '').replace(/\r/g, '');
+    if (!t.includes('\n')) t = t.replace(/\s+(?=(\d{1,2}[.)]|[•●▪◦])\s)/g, '\n');
+    return t.split('\n')
+        .map(x => x.replace(/^\s*(\d{1,2}[.)]|[a-z][.)]|[-–•●▪◦*])\s*/i, '').trim())
+        .filter(x => x.length >= 8 && !/^(learning )?objectives?:?$/i.test(x) && !/^by the end of/i.test(x));
+}
+const pageRanges = nums => {
+    const out = [];
+    nums.forEach(n => { const last = out[out.length - 1]; if (last && n === last[1] + 1) last[1] = n; else out.push([n, n]); });
+    return out.map(([a, b]) => a === b ? `${a}` : `${a}–${b}`).join(', ');
+};
+
+// ---------- the panel ----------
+let finder = null;   // { id, objectives: [...], matches: [...], checked: Set(tags) }
+function findMsg(t, err = false) { const st = $('findStatus'); st.textContent = t; st.classList.toggle('status-err', err); }
+
+function openFinder(id) {
+    const l = lectureList(loadDb()).find(x => x.id === id);
+    if (!l) return;
+    if (!finder || finder.id !== id) {
+        finder = { id, objectives: [], matches: [], checked: new Set((l.videos || []).map(v => v.tag)) };
+        $('findObj').value = '';
+        $('findSlides').value = '';
+        findMsg(ankiTags ? '' : 'Open this page on the computer with Anki running; the search reads your AnKing B&B cards.', !ankiTags);
+        renderFinder();
+    }
+    $('findLecName').textContent = l.name;
+    $('findPanel').classList.remove('hidden');
+    $('findPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('findObj').focus({ preventScroll: true });
+}
+function closeFinder() {
+    finder = null;
+    $('findPanel').classList.add('hidden');
+}
+
+async function runFinder() {
+    if (!finder) return;
+    const l = lectureList(loadDb()).find(x => x.id === finder.id);
+    if (!l) { closeFinder(); return; }
+    if (!ankiTags) { findMsg('Open this page on the computer with Anki running first.', true); return; }
+    const objectives = splitObjectives($('findObj').value);
+    const file = $('findSlides').files[0];
+    if (!objectives.length && !file) { findMsg('Paste the learning objectives, or choose the slides (or both).', true); return; }
+    const btn = $('findBtn');
+    btn.disabled = true;
+    try {
+        let pages = [];
+        if (file) {
+            findMsg('Reading your slides…');
+            pages = (await slidesToPages(file)).filter(p => p.replace(/\s+/g, '').length > 0);
+            if (pages.join(' ').replace(/\s+/g, '').length < 40) {
+                if (!objectives.length) { findMsg("Couldn't find text in those slides (they may be images). Paste the learning objectives instead.", true); return; }
+                pages = [];
+            }
+        }
+        const idx = await buildBnbTextIndex(t => findMsg(t));
+        findMsg('Matching…');
+        const vecOf = text => weighVector(countTerms(termsOf(text), 1), idx.idf);
+        // objectives: each one on its own, plus all together (the lecture title counts as a hint too)
+        const objVecs = objectives.map(vecOf);
+        const objAll = weighVector(countTerms(termsOf(objectives.join('\n') + '\n' + l.name), 1), idx.idf);
+        const pageVecs = pages.map(vecOf);
+        const slideAll = pages.length ? weighVector(pages.reduce((m, p) => countTerms(termsOf(p), 1, m), new Map()), idx.idf) : new Map();
+        const hasObj = objectives.length > 0 && objAll.size > 0, hasSlides = slideAll.size > 0;
+        if (!hasObj && !hasSlides) { findMsg('None of those words appear in your B&B cards. Try pasting the objectives in full.', true); return; }
+
+        const raw = idx.vecs.map((vec, i) => {
+            const oDoc = hasObj ? dotVec(objAll, vec) : 0;
+            const oEach = hasObj ? objVecs.map(v => dotVec(v, vec)) : [];
+            const sDoc = hasSlides ? dotVec(slideAll, vec) : 0;
+            const sEach = hasSlides ? pageVecs.map(v => dotVec(v, vec)) : [];
+            return { i, oDoc, oEach, oBest: Math.max(0, ...oEach), sDoc, sEach, sBest: Math.max(0, ...sEach) };
+        });
+        const top = k => Math.max(1e-9, ...raw.map(x => x[k]));
+        const T = { oDoc: top('oDoc'), oBest: top('oBest'), sDoc: top('sDoc'), sBest: top('sBest') };
+        // best score per objective / per slide across all videos, so each objective gets its own best videos
+        const objTop = objectives.map((_, j) => Math.max(1e-9, ...raw.map(x => x.oEach[j])));
+        const pageTop = pages.map((_, j) => Math.max(1e-9, ...raw.map(x => x.sEach[j] || 0)));
+        raw.forEach(x => {
+            const oRel = hasObj ? Math.max(x.oDoc / T.oDoc, ...x.oEach.map((v, j) => v / objTop[j] * (objTop[j] >= 0.05 ? 1 : 0.5))) : 0;
+            const sRel = hasSlides ? Math.max(x.sDoc / T.sDoc, 0.8 * x.sBest / T.sBest) : 0;
+            x.rel = hasObj && hasSlides ? OBJ_WEIGHT * oRel + (1 - OBJ_WEIGHT) * sRel : hasObj ? oRel : sRel;
+            x.objHits = x.oEach.map((v, j) => v >= 0.6 * objTop[j] && v >= 0.04 ? j : -1).filter(j => j >= 0);
+            x.pageHits = x.sEach.map((v, j) => v >= 0.6 * pageTop[j] && v >= 0.05 ? j + 1 : -1).filter(j => j > 0);
+        });
+        raw.sort((a, b) => b.rel - a.rel);
+        const kept = raw.filter(x => x.rel >= 0.3).slice(0, 40);
+        // make sure each objective's best video is in the list
+        objectives.forEach((_, j) => {
+            const best = raw.reduce((b, x) => (x.oEach[j] > (b ? b.oEach[j] : 0) ? x : b), null);
+            if (best && best.oEach[j] >= 0.04 && !kept.includes(best)) kept.push(best);
+        });
+        const qv = hasObj ? objAll : slideAll;
+        finder.objectives = objectives;
+        finder.objTop = objTop;
+        finder.matches = kept.map((x, rank) => {
+            const v = idx.videos[x.i], vec = idx.vecs[x.i];
+            const contrib = [];
+            qv.forEach((w, t) => { const y = vec.get(t); if (y) contrib.push([t, w * y]); });
+            contrib.sort((a, b) => b[1] - a[1]);
+            const words = [];
+            for (const [t] of contrib) {
+                if (words.length >= 4) break;
+                if (words.some(w => w.includes(' ') && w.split(' ').includes(t))) continue;
+                if (t.includes(' ')) { const parts = t.split(' '); for (let k = words.length - 1; k >= 0; k--) if (!words[k].includes(' ') && parts.includes(words[k])) words.splice(k, 1); }
+                words.push(t);
+            }
+            return { tag: v.tag, label: v.label, rel: x.rel, oEach: x.oEach, objHits: x.objHits, pages: x.pageHits, words, pre: (x.rel >= 0.55 && rank < 12) || x.objHits.some(j => x.oEach[j] >= 0.95 * objTop[j] && objTop[j] >= 0.05) };
+        });
+        // first search for this lecture: tick the strong matches; later searches keep your ticks
+        if (!(l.videos || []).length && !finder.searched) finder.matches.forEach(m => { if (m.pre) finder.checked.add(m.tag); });
+        finder.searched = true;
+        const nObj = objectives.length;
+        findMsg(`${finder.matches.length} B&B video${finder.matches.length === 1 ? '' : 's'} found from ${[nObj ? `${nObj} objective${nObj === 1 ? '' : 's'}` : '', pages.length ? `${pages.length} slide${pages.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' and ')}. The strongest are ticked; check the list and the objectives below, then attach.${idx.usedCards ? '' : ' (Matched on video names only; card text could not be read.)'}`);
+        renderFinder();
+    } catch (err) {
+        console.error(err);
+        findMsg(err instanceof TypeError ? ankiErrorText(err) : err.message, true);
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+function renderFinder() {
+    if (!finder) return;
+    const l = lectureList(loadDb()).find(x => x.id === finder.id) || {};
+    const attached = (l.videos || []).filter(v => !finder.matches.some(m => m.tag === v.tag));
+    const rows = [
+        ...attached.map(v => ({ tag: v.tag, label: v.label, attachedOnly: true })),
+        ...finder.matches
+    ];
+    $('findResults').innerHTML = rows.length ? `<div class="find-list">${rows.map(m => {
+        const strength = m.attachedOnly ? null : m.rel >= 0.66 ? ['strong', 'Strong'] : m.rel >= 0.45 ? ['good', 'Good'] : ['weak', 'Weak'];
+        const why = m.attachedOnly ? 'Already attached'
+            : [`<span class="match ${strength[0]}">${strength[1]} match</span>`,
+               m.objHits.length ? `objective${m.objHits.length === 1 ? '' : 's'} ${m.objHits.map(j => j + 1).join(', ')}` : '',
+               m.pages.length ? `slide${m.pages.length === 1 ? '' : 's'} ${pageRanges(m.pages)}` : '',
+               m.words.length ? `<i>${escHtml(m.words.join(', '))}</i>` : ''].filter(Boolean).join(' · ');
+        return `<label class="find-row"><input type="checkbox" data-find="${escHtml(m.tag)}" ${finder.checked.has(m.tag) ? 'checked' : ''}><span><span class="find-name">${escHtml(m.label)}</span><span class="find-why">${why}</span></span></label>`;
+    }).join('')}</div>` : '';
+    // coverage: which ticked video answers each objective
+    if (finder.objectives.length && finder.matches.length) {
+        const items = finder.objectives.map((o, j) => {
+            const top = finder.objTop[j];
+            const best = finder.matches.filter(m => m.oEach[j] >= 0.6 * top && m.oEach[j] >= 0.04).sort((a, b) => b.oEach[j] - a.oEach[j]);
+            const ticked = best.filter(m => finder.checked.has(m.tag));
+            const short = escHtml(o.length > 90 ? o.slice(0, 87) + '…' : o);
+            if (ticked.length) return `<li>${short} <span class="muted">→ ${escHtml(ticked.slice(0, 2).map(m => m.label.split(' › ').pop()).join(', '))}</span></li>`;
+            if (best.length) return `<li>${short} <span class="gap">→ not ticked yet: ${escHtml(best[0].label.split(' › ').pop())}</span></li>`;
+            return `<li>${short} <span class="gap">→ no clear B&amp;B match; may need your lecture notes or a search in B&amp;B</span></li>`;
+        });
+        $('findCoverage').innerHTML = `<div class="find-cov"><b>Objectives</b><ol>${items.join('')}</ol></div>`;
+    } else $('findCoverage').innerHTML = '';
+    const n = finder.checked.size;
+    $('findSaveBtn').classList.toggle('hidden', !rows.length);
+    $('findSaveBtn').textContent = n ? `Attach ${n} video${n === 1 ? '' : 's'} to ${l.name || 'this lecture'}` : `Attach no videos`;
+}
+
+function saveFinder() {
+    if (!finder) return;
+    const known = new Map();
+    const db = loadDb();
+    const l = lectureList(db).find(x => x.id === finder.id);
+    if (!l) { closeFinder(); return; }
+    (l.videos || []).forEach(v => known.set(v.tag, v));
+    finder.matches.forEach(m => known.set(m.tag, { tag: m.tag, label: m.label }));
+    const order = bnbVideos().map(v => v.tag);
+    l.videos = [...finder.checked].map(t => known.get(t)).filter(Boolean)
+        .sort((a, b) => (order.indexOf(a.tag) + 1 || 1e9) - (order.indexOf(b.tag) + 1 || 1e9));
+    saveDb(db);
+    upMsg(`Attached ${l.videos.length} B&amp;B video${l.videos.length === 1 ? '' : 's'} to <b>${escHtml(l.name)}</b>.`);
+    closeFinder();
+    renderUpcoming();
+}
+
+$('findBtn').addEventListener('click', runFinder);
+$('findSaveBtn').addEventListener('click', saveFinder);
+document.addEventListener('change', e => {
+    const t = e.target;
+    if (!finder || !t.dataset || t.dataset.find === undefined) return;
+    if (t.checked) finder.checked.add(t.dataset.find); else finder.checked.delete(t.dataset.find);
+    renderFinder();
 });
 
 // ============================================================
@@ -1767,7 +2178,8 @@ function renderToday() {
     const LEC_MAX = 8;
     lecs.slice(0, LEC_MAX).forEach(l => {
         const late = l.date < today ? `<span class="${lecDone(l) ? '' : 'stuck'}">${daysBetween(l.date, today)}d overdue</span> · ` : '';
-        const m = lectureCards(l), u = safeUrl(l.url);
+        const u = safeUrl(l.url), vids = Array.isArray(l.videos) ? l.videos : [];
+        const hasCards = lectureTags(l).length > 0;
         LEC_PARTS.forEach(([part, label]) => {
             const d = !!l[part];
             count(d);
@@ -1775,11 +2187,11 @@ function renderToday() {
             rows.push(todayRow({
                 kicker: label,
                 title: escHtml(l.name),
-                detail: late + escHtml(l.type || '') + (part === 'watched' && !u ? ' · no link saved' : ''),
+                detail: late + escHtml(l.type || '') + (part === 'watched' && vids.length ? ` · B&amp;B: ${escHtml(vids.map(v => v.label.split(' › ').pop()).join(', '))}` : ''),
                 done: d,
                 check: `<input type="checkbox" data-lec="${escHtml(l.id)}" data-part="${part}" ${d ? 'checked' : ''} aria-label="Mark ${escHtml(label)} done">`,
                 actions: part !== 'watched' ? '' : (u ? `<a class="btn-small" href="${escHtml(u)}" target="_blank" rel="noopener noreferrer">Watch</a>` : '')
-                    + (m ? `<button class="btn-small" data-act="lec-cards" data-id="${escHtml(l.id)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>` : '')
+                    + (hasCards ? `<button class="btn-small" data-act="lec-cards" data-id="${escHtml(l.id)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>` : '')
             }));
         });
     });
@@ -1806,7 +2218,7 @@ function renderToday() {
         note('amboss-new', title, d);
         const names = fuList.slice(0, 4).map(x => `${escHtml(x.l.name)} <span class="muted">(${x.k === 0 ? `${FOLLOW_UP_DAYS[0]}-day` : `${Math.round(FOLLOW_UP_DAYS[1] / 7)}-week`} check)</span>`).join(', ')
             + (fuList.length > 4 ? `, +${fuList.length - 4} more` : '');
-        const hasCards = fuList.some(x => lectureCards(x.l));
+        const hasCards = fuList.some(x => lectureTags(x.l).length);
         rows.push(todayRow({
             kicker: 'AMBOSS · new',
             title,
@@ -2185,6 +2597,12 @@ document.addEventListener('click', e => {
             break;
         case 'lec-undo':
             undoRemove();
+            break;
+        case 'find-open':
+            openFinder(el.dataset.id);
+            break;
+        case 'find-close':
+            closeFinder();
             break;
         case 'leech-open':
             ankiDo(() => leechAction(el.dataset.act, el.dataset.ids));
