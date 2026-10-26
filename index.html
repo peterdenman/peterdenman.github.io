@@ -197,6 +197,10 @@
         .find-cov ol { margin: 4px 0 0; padding-left: 20px; }
         .find-cov li { margin-bottom: 3px; color: #2d3748; }
         .find-cov .gap { color: #c53030; }
+        .lec-opts { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.82em; margin: 8px 0 0; color: #4a5568; }
+        .lec-auto { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+        .lec-auto input { width: auto; margin: 0; }
+        .vid-missing { color: #c53030; }
         .lec-vids { font-size: 0.8em; color: #4a5568; margin-top: 4px; overflow-wrap: anywhere; }
         .up-progress { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin: 10px 0 12px; }
         .up-progress > div { height: 100%; background: #38a169; }
@@ -259,7 +263,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26j · Find B&amp;B videos</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26k · Auto-unsuspend B&amp;B cards</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -344,6 +348,11 @@
                     </div>
                     <button type="submit" class="btn-success" style="width:100%;">Add lecture</button>
                 </form>
+                <div class="lec-opts">
+                    <label class="lec-auto"><input type="checkbox" id="autoUnsuspendInput"> Unsuspend each lecture’s B&amp;B cards automatically on its due date</label>
+                    <button class="link-btn" id="lecImportBtn">Import lectures (.json)</button>
+                    <input type="file" id="lecImportInput" accept=".json,application/json" class="hidden">
+                </div>
                 <div id="upStatus" class="status-msg"></div>
                 <div id="findPanel" class="find-panel hidden">
                     <div class="find-head">
@@ -357,6 +366,9 @@
                         <input type="file" id="findSlides" accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation">
                     </label>
                     <button class="btn-primary" id="findBtn" style="width:100%;">Find videos</button>
+                    <label class="field full" style="margin-top:10px;">…or search B&amp;B videos by name
+                        <input type="text" id="findName" placeholder="e.g. collagen">
+                    </label>
                     <div id="findStatus" class="status-msg"></div>
                     <div id="findResults"></div>
                     <div id="findCoverage"></div>
@@ -785,7 +797,9 @@ async function connectAnki({ silent = false } = {}) {
         lectureMatchCache.clear();
         lecCardCache.clear();
         bnbTextIndex = null;
+        resolveLectureVideos();
         renderUpcoming();
+        unsuspendLectures();
         loadTodayStats();
         loadReviewHistory();
         loadLeeches();
@@ -1604,7 +1618,7 @@ function lectureCards(l) {
 }
 // Every AnKing tag for a lecture: the B&B videos you attached, else the one matched from its link or name
 function lectureTags(l) {
-    if (Array.isArray(l.videos) && l.videos.length) return l.videos.map(v => v.tag);
+    if (Array.isArray(l.videos) && l.videos.length) return l.videos.filter(v => v.tag).map(v => v.tag);
     const m = lectureCards(l);
     return m ? [m.tag] : [];
 }
@@ -1671,6 +1685,7 @@ function setLecture(id, changes) {
     Object.assign(l, changes);
     saveDb(db);
     renderUpcoming();
+    if ('date' in changes) unsuspendLectures();
 }
 function toggleLecturePart(id, part, on) {
     if (!LEC_PARTS.some(([k]) => k === part)) return;
@@ -1681,9 +1696,10 @@ function toggleLecturePart(id, part, on) {
 
 function lecRow(l, cls, connected) {
     const n = LEC_PARTS.filter(([k]) => l[k]).length;
-    const vids = Array.isArray(l.videos) ? l.videos : [];
+    const vids = lecVideos(l);
     const m = vids.length ? null : lectureCards(l);
-    const hasCards = vids.length || m;
+    const hasCards = lectureTags(l).length > 0 || m;
+    const canUnsusp = pendingTags(l).length > 0;
     const u = safeUrl(l.url);
     const when = cls === 'done' ? `Done ${new Date(lecDoneDay(l) + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : relDate(l.date);
     return `
@@ -1695,11 +1711,13 @@ function lecRow(l, cls, connected) {
                 <input type="date" class="up-date" data-lec-date="${escHtml(l.id)}" value="${escHtml(l.date)}" aria-label="Due date">
                 <span class="muted">· ${n} of ${LEC_PARTS.length} done${m ? ` · AnKing: ${escHtml(m.res.name)} ${escHtml(m.label)}` : ''}</span>
             </div>
-            ${vids.length ? `<div class="lec-vids">B&amp;B (${vids.length}): ${escHtml(vids.map(v => v.label.split(' › ').pop()).join(', '))}</div>` : ''}
+            ${vids.length ? `<div class="lec-vids">B&amp;B (${vids.length}): ${vids.map(v => v.tag ? `<span title="${escHtml(v.label || '')}">${escHtml(vidName(v))}</span>` : `<span class="vid-missing" title="Not found in your AnKing tags">${escHtml(vidName(v))} (not found)</span>`).join(', ')}${l.unsusp ? ` · <b>${l.unsusp.n.toLocaleString()} cards unsuspended ${escHtml(new Date(l.unsusp.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}</b>` : ''}</div>` : ''}
+            ${l.note ? `<div class="lec-vids muted">${escHtml(l.note)}</div>` : ''}
         </div>
         <div class="actions">
             ${u ? `<a class="btn-small" href="${escHtml(u)}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; border-radius:4px;">Watch</a>` : ''}
             <button class="btn-small" data-act="find-open" data-id="${escHtml(l.id)}" title="Find the B&amp;B videos for this lecture from its learning objectives and slides">${vids.length ? 'Edit videos' : 'Find videos'}</button>
+            ${canUnsusp ? `<button class="btn-small" data-act="lec-unsuspend" data-id="${escHtml(l.id)}" ${connected ? 'title="Unsuspend this lecture’s B&amp;B cards now"' : 'disabled title="Open Anki on this computer"'}>Unsuspend now</button>` : ''}
             ${hasCards ? `<button class="btn-small" data-act="lec-cards" data-id="${escHtml(l.id)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>` : ''}
             <button class="btn-small" data-act="lec-remove" data-id="${escHtml(l.id)}" title="Remove this lecture">✕</button>
         </div>
@@ -1709,6 +1727,7 @@ function lecRow(l, cls, connected) {
 let upDoneOpen = false;
 function renderUpcoming() {
     const db = loadDb();
+    $('autoUnsuspendInput').checked = db.autoUnsuspend !== false;
     const list = lectureList(db);
     const connected = !!ankiTags;
     const box = $('upList');
@@ -1717,7 +1736,7 @@ function renderUpcoming() {
     $('upProgress').classList.toggle('hidden', !list.length);
     $('upProgress').innerHTML = list.length ? `<div style="width:${Math.round((done.length / list.length) * 100)}%"></div>` : '';
     if (!list.length) {
-        box.innerHTML = '<p class="muted" style="margin:10px 0 0;">Add each lecture with its due date and type. On the due date, Today lists its video, practice quiz and readiness quiz. Anything you don’t finish stays on Today until you tick it off.</p>';
+        box.innerHTML = '<p class="muted" style="margin:10px 0 0;">Add each lecture with its due date and type, then attach its B&amp;B videos. On the due date, their cards are unsuspended and Today lists the practice quiz and readiness quiz. Anything you don’t finish stays on Today until you tick it off.</p>';
         renderToday();
         return;
     }
@@ -1742,6 +1761,138 @@ function renderUpcoming() {
     if (det) det.addEventListener('toggle', () => { upDoneOpen = det.open; });
     renderToday();
 }
+
+// ---------- B&B videos on a lecture: names (from an import) -> your AnKing tags ----------
+const vidName = v => (v.label || v.name || '').split(' › ').pop();
+const lecVideos = l => Array.isArray(l.videos) ? l.videos : [];
+function resolveVideo(v, leaves, all) {
+    const known = new Set((ankiTags || []).map(t => t.toLowerCase()));
+    if (v.tag && known.has(v.tag.toLowerCase())) return v;
+    const want = normName(v.name || v.label || '');
+    if (!want) return v;
+    const pick = list => {
+        let cand = list;
+        if (v.section) { const sec = normName(v.section); const f = list.filter(e => normName(e.tag.split('::').join(' ')).includes(sec)); if (f.length) cand = f; }
+        return cand.length ? matchVideoSlug(want, cand) : null;
+    };
+    const m = pick(leaves) || pick(all);
+    return m ? { name: v.name || vidName(v), section: v.section, tag: m.tag, label: m.label } : { name: v.name || vidName(v), section: v.section };
+}
+// Fill in the AnKing tag for any lecture video that doesn't have one yet (needs Anki's tag list)
+function resolveLectureVideos() {
+    if (!ankiTags) return false;
+    const all = videoTagIndex('bnb');
+    const leafSet = new Set(bnbVideos().map(v => v.tag.toLowerCase()));
+    const leaves = all.filter(e => leafSet.has(e.tag.toLowerCase()));
+    const db = loadDb();
+    let changed = false;
+    lectureList(db).forEach(l => {
+        if (!lecVideos(l).length) return;
+        l.videos = l.videos.map(v => {
+            const r = resolveVideo(v, leaves, all);
+            if (r.tag !== v.tag) changed = true;
+            return r;
+        });
+    });
+    if (changed) saveDb(db);
+    return changed;
+}
+
+// ---------- automatic unsuspend on the due date ----------
+// Unsuspends the cards of a lecture's attached B&B videos (never leeches). Each lecture is done once;
+// re-suspending cards in Anki afterwards is left alone.
+const autoUnsuspendOn = () => loadDb().autoUnsuspend !== false;
+// videos on a lecture whose cards haven't been unsuspended yet (e.g. one you attached after its day)
+const pendingTags = l => { const doneT = new Set(((l.unsusp && l.unsusp.tags) || (l.unsusp ? lectureTags(l) : [])).map(t => t.toLowerCase())); return lectureTags(l).filter(t => !doneT.has(t.toLowerCase())); };
+let unsuspending = false, unsuspendAgain = null;
+async function unsuspendLectures({ ids = null } = {}) {
+    if (!ankiTags) return;
+    if (unsuspending) {   // one run at a time; anything asked for meanwhile runs right after
+        unsuspendAgain = { ids: unsuspendAgain && unsuspendAgain.ids && ids ? [...unsuspendAgain.ids, ...ids] : (unsuspendAgain && !unsuspendAgain.ids) || !ids ? null : ids };
+        return;
+    }
+    if (!ids && !autoUnsuspendOn()) return;
+    resolveLectureVideos();
+    const today = todayKey();
+    const due = lectureList(loadDb()).filter(l => ids ? ids.includes(l.id) : l.date <= today).filter(l => pendingTags(l).length);
+    if (!due.length) return;
+    unsuspending = true;
+    const done = [];
+    try {
+        for (const l of due) {
+            const tags = pendingTags(l);
+            const query = `(${tags.map(tagQuery).join(' OR ')}) is:suspended -tag:leech`;
+            const cards = await anki('findCards', { query });
+            if (cards.length) await anki('unsuspend', { cards });
+            done.push({ id: l.id, name: l.name, n: cards.length, tags });
+        }
+    } catch (err) {
+        console.error(err);
+        upMsg(escHtml(ankiErrorText(err)));
+    } finally {
+        unsuspending = false;
+        if (unsuspendAgain) { const next = unsuspendAgain; unsuspendAgain = null; setTimeout(() => unsuspendLectures(next), 0); }
+    }
+    if (!done.length) return;
+    const db = loadDb();
+    done.forEach(r => {
+        const l = lectureList(db).find(x => x.id === r.id);
+        if (!l) return;
+        const prev = l.unsusp || { n: 0, tags: [] };
+        l.unsusp = { date: prev.date || today, n: (prev.n || 0) + r.n, tags: [...new Set([...(prev.tags || []), ...r.tags])] };
+        if (!l.watched) l.watched = today;   // the lecture's first Today row ticks itself off; AMBOSS follow-ups count from here
+    });
+    saveDb(db);
+    const total = done.reduce((s, r) => s + r.n, 0);
+    upMsg(`Unsuspended ${total.toLocaleString()} B&amp;B card${total === 1 ? '' : 's'} for ${escHtml(done.map(r => r.name).join(', '))}.`);
+    renderUpcoming();
+}
+$('autoUnsuspendInput').checked = autoUnsuspendOn();
+$('autoUnsuspendInput').addEventListener('change', e => {
+    const db = loadDb();
+    db.autoUnsuspend = e.target.checked;
+    saveDb(db);
+    renderUpcoming();
+    if (e.target.checked) unsuspendLectures();
+});
+
+// ---------- import a list of lectures (from Claude) ----------
+// { "lectures": [ { "name", "date": "YYYY-MM-DD", "type", "videos": [ { "name", "section"? } ], "note"? } ] }
+async function importLectures() {
+    const file = $('lecImportInput').files[0];
+    $('lecImportInput').value = '';
+    if (!file) return;
+    let data;
+    try { data = JSON.parse(await file.text()); } catch { upMsg('That file isn’t a lecture list (.json).'); return; }
+    const incoming = (Array.isArray(data) ? data : data.lectures || []).filter(x => x && x.name && /^\d{4}-\d{2}-\d{2}$/.test(x.date || ''));
+    if (!incoming.length) { upMsg('No lectures found in that file.'); return; }
+    const db = loadDb();
+    const list = lectureList(db).slice();
+    let added = 0, updated = 0;
+    incoming.forEach(x => {
+        const videos = (x.videos || []).map(v => typeof v === 'string' ? { name: v } : { name: v.name, section: v.section }).filter(v => v.name);
+        const type = LECTURE_TYPES.includes(x.type) ? x.type : (x.type || '');
+        const hit = list.find(l => l.name.toLowerCase() === String(x.name).toLowerCase() && l.date === x.date);
+        if (hit) { Object.assign(hit, { type: type || hit.type, videos, note: x.note || hit.note || '' }); updated++; }
+        else {
+            list.push({ id: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: String(x.name), url: safeUrl(x.url) || '', date: x.date, type, videos, note: x.note || '', added: new Date().toISOString() });
+            added++;
+        }
+    });
+    db.myLectures = list;
+    saveDb(db);
+    resolveLectureVideos();
+    const vids = lectureList(loadDb()).filter(l => incoming.some(x => x.name.toLowerCase() === l.name.toLowerCase() && x.date === l.date)).flatMap(lecVideos);
+    const missing = vids.filter(v => !v.tag);
+    upMsg(`Imported ${added + updated} lecture${added + updated === 1 ? '' : 's'}${updated ? ` (${updated} updated)` : ''}.`
+        + (!ankiTags ? ' Open this page with Anki running to match the videos to your AnKing cards.'
+            : missing.length ? ` <span class="vid-missing">${missing.length} of ${vids.length} videos not found in your AnKing tags: ${escHtml(missing.map(v => v.name).join(', '))}. Use Edit videos on the lecture to pick them by name.</span>`
+            : ` All ${vids.length} videos matched your AnKing cards.`));
+    renderUpcoming();
+    unsuspendLectures();
+}
+$('lecImportBtn').addEventListener('click', () => $('lecImportInput').click());
+$('lecImportInput').addEventListener('change', importLectures);
 
 $('lecForm').addEventListener('submit', addLecture);
 $('lecDate').value = todayKey();
@@ -1949,8 +2100,9 @@ function openFinder(id) {
     const l = lectureList(loadDb()).find(x => x.id === id);
     if (!l) return;
     if (!finder || finder.id !== id) {
-        finder = { id, objectives: [], matches: [], checked: new Set((l.videos || []).map(v => v.tag)) };
+        finder = { id, objectives: [], matches: [], nameHits: [], checked: new Set((l.videos || []).map(v => v.tag || 'name:' + vidName(v))) };
         $('findObj').value = '';
+        $('findName').value = '';
         $('findSlides').value = '';
         findMsg(ankiTags ? '' : 'Open this page on the computer with Anki running; the search reads your AnKing B&B cards.', !ankiTags);
         renderFinder();
@@ -2056,14 +2208,19 @@ async function runFinder() {
 function renderFinder() {
     if (!finder) return;
     const l = lectureList(loadDb()).find(x => x.id === finder.id) || {};
-    const attached = (l.videos || []).filter(v => !finder.matches.some(m => m.tag === v.tag));
+    const seen = new Set();
+    const lost = (l.videos || []).filter(v => !v.tag).map(v => ({ tag: 'name:' + vidName(v), label: vidName(v), lost: true }));
     const rows = [
-        ...attached.map(v => ({ tag: v.tag, label: v.label, attachedOnly: true })),
+        ...lost,
+        ...(finder.nameHits || []).map(v => ({ tag: v.tag, label: v.label, nameOnly: true })),
+        ...(l.videos || []).filter(v => v.tag).map(v => ({ tag: v.tag, label: v.label, attachedOnly: true })),
         ...finder.matches
-    ];
+    ].filter(m => { const k = m.tag.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; })
+     .map(m => m.nameOnly || m.attachedOnly ? (finder.matches.find(x => x.tag === m.tag) || m) : m);
     $('findResults').innerHTML = rows.length ? `<div class="find-list">${rows.map(m => {
-        const strength = m.attachedOnly ? null : m.rel >= 0.66 ? ['strong', 'Strong'] : m.rel >= 0.45 ? ['good', 'Good'] : ['weak', 'Weak'];
-        const why = m.attachedOnly ? 'Already attached'
+        const plain = m.attachedOnly || m.nameOnly || m.lost;
+        const strength = plain ? null : m.rel >= 0.66 ? ['strong', 'Strong'] : m.rel >= 0.45 ? ['good', 'Good'] : ['weak', 'Weak'];
+        const why = m.lost ? '<span class="vid-missing">Not found in your AnKing tags · untick to remove, then search for it by name below</span>' : plain ? (finder.checked.has(m.tag) && (l.videos || []).some(v => v.tag === m.tag) ? 'Already attached' : 'Name match')
             : [`<span class="match ${strength[0]}">${strength[1]} match</span>`,
                m.objHits.length ? `objective${m.objHits.length === 1 ? '' : 's'} ${m.objHits.map(j => j + 1).join(', ')}` : '',
                m.pages.length ? `slide${m.pages.length === 1 ? '' : 's'} ${pageRanges(m.pages)}` : '',
@@ -2094,18 +2251,31 @@ function saveFinder() {
     const db = loadDb();
     const l = lectureList(db).find(x => x.id === finder.id);
     if (!l) { closeFinder(); return; }
-    (l.videos || []).forEach(v => known.set(v.tag, v));
-    finder.matches.forEach(m => known.set(m.tag, { tag: m.tag, label: m.label }));
+    (l.videos || []).filter(v => v.tag).forEach(v => known.set(v.tag, v));
+    [...finder.matches, ...(finder.nameHits || [])].forEach(m => known.set(m.tag, { name: vidName(m), tag: m.tag, label: m.label }));
     const order = bnbVideos().map(v => v.tag);
     l.videos = [...finder.checked].map(t => known.get(t)).filter(Boolean)
-        .sort((a, b) => (order.indexOf(a.tag) + 1 || 1e9) - (order.indexOf(b.tag) + 1 || 1e9));
+        .sort((a, b) => (order.indexOf(a.tag) + 1 || 1e9) - (order.indexOf(b.tag) + 1 || 1e9))
+        .concat((l.videos || []).filter(v => !v.tag && finder.checked.has('name:' + vidName(v))));   // not found yet: kept unless you untick it
     saveDb(db);
+    unsuspendLectures();
     upMsg(`Attached ${l.videos.length} B&amp;B video${l.videos.length === 1 ? '' : 's'} to <b>${escHtml(l.name)}</b>.`);
     closeFinder();
     renderUpcoming();
 }
 
 $('findBtn').addEventListener('click', runFinder);
+let findNameTimer = null;
+$('findName').addEventListener('input', () => {
+    clearTimeout(findNameTimer);
+    findNameTimer = setTimeout(() => {
+        if (!finder) return;
+        const q = $('findName').value.toLowerCase().replace(/[_:›\s-]+/g, ' ').trim();
+        if (q.length >= 2 && !ankiTags) findMsg('Open this page on the computer with Anki running to search your B&B videos.', true);
+        finder.nameHits = q.length < 2 || !ankiTags ? [] : bnbVideos().filter(v => v.label.toLowerCase().replace(/[_:›\s-]+/g, ' ').includes(q)).slice(0, 25);
+        renderFinder();
+    }, 200);
+});
 $('findSaveBtn').addEventListener('click', saveFinder);
 document.addEventListener('change', e => {
     const t = e.target;
@@ -2178,19 +2348,35 @@ function renderToday() {
     const LEC_MAX = 8;
     lecs.slice(0, LEC_MAX).forEach(l => {
         const late = l.date < today ? `<span class="${lecDone(l) ? '' : 'stuck'}">${daysBetween(l.date, today)}d overdue</span> · ` : '';
-        const u = safeUrl(l.url), vids = Array.isArray(l.videos) ? l.videos : [];
-        const hasCards = lectureTags(l).length > 0;
-        LEC_PARTS.forEach(([part, label]) => {
+        const u = safeUrl(l.url), vids = lecVideos(l);
+        const tags = lectureTags(l), hasCards = tags.length > 0;
+        const cardsMode = vids.length > 0;   // lectures with B&B videos: the first row is their cards, unsuspended for you
+        const missing = vids.filter(v => !v.tag);
+        LEC_PARTS.forEach(([part, label0]) => {
+            const label = part === 'watched' && cardsMode ? 'B&B cards' : label0;
             const d = !!l[part];
             count(d);
-            log.push({ k: part === 'watched' ? 'watch' : 'quiz', t: part === 'watched' ? l.name : `${label} · ${l.name}`, d, lec: l.id, p: part });
+            log.push({ k: part === 'watched' ? (cardsMode ? 'cards' : 'watch') : 'quiz', t: part === 'watched' ? l.name : `${label} · ${l.name}`, d, lec: l.id, p: part });
+            let detail = late + escHtml(l.type || '');
+            if (part === 'watched' && cardsMode) {
+                detail += ` · ${escHtml(vids.map(vidName).join(', '))}`
+                    + (l.unsusp ? ` · ${l.unsusp.n ? `${l.unsusp.n.toLocaleString()} cards unsuspended` : 'already unsuspended'}`
+                        : !tags.length ? ''
+                        : autoUnsuspendOn() ? ' · unsuspend automatically when this page is open with Anki' : '')
+                    + (missing.length ? ` · <span class="vid-missing">not found in your AnKing tags: ${escHtml(missing.map(vidName).join(', '))}</span>` : '');
+            }
+            if (part === 'watched' && l.note) detail += `<div class="muted">${escHtml(l.note)}</div>`;
+            const auto = part === 'watched' && cardsMode && tags.length;
             rows.push(todayRow({
                 kicker: label,
                 title: escHtml(l.name),
-                detail: late + escHtml(l.type || '') + (part === 'watched' && vids.length ? ` · B&amp;B: ${escHtml(vids.map(v => v.label.split(' › ').pop()).join(', '))}` : ''),
+                detail,
                 done: d,
-                check: `<input type="checkbox" data-lec="${escHtml(l.id)}" data-part="${part}" ${d ? 'checked' : ''} aria-label="Mark ${escHtml(label)} done">`,
+                check: auto
+                    ? `<input type="checkbox" ${d ? 'checked' : ''} disabled aria-label="${d ? 'Done' : 'Not done yet'}" title="Ticks itself off when the cards are unsuspended">`
+                    : `<input type="checkbox" data-lec="${escHtml(l.id)}" data-part="${part}" ${d ? 'checked' : ''} aria-label="Mark ${escHtml(label)} done">`,
                 actions: part !== 'watched' ? '' : (u ? `<a class="btn-small" href="${escHtml(u)}" target="_blank" rel="noopener noreferrer">Watch</a>` : '')
+                    + (auto && pendingTags(l).length ? `<button class="btn-small" data-act="lec-unsuspend" data-id="${escHtml(l.id)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Unsuspend now</button>` : '')
                     + (hasCards ? `<button class="btn-small" data-act="lec-cards" data-id="${escHtml(l.id)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>` : '')
             }));
         });
@@ -2484,7 +2670,7 @@ $('leechFilter').addEventListener('change', e => {
 // HISTORY — each day's Today list, plus Anki's own review counts
 // ============================================================
 const DAY_LOG_DAYS = 180;
-const KICKERS = { reviews: 'Reviews', watch: 'Watch', quiz: 'Quiz', scholarrx: 'Lecture', lecture: 'Questions · lecture', 'amboss-new': 'AMBOSS · new', 'amboss-weak': 'AMBOSS · weak area' };
+const KICKERS = { reviews: 'Reviews', watch: 'Watch', cards: 'B&B cards', quiz: 'Quiz', scholarrx: 'Lecture', lecture: 'Questions · lecture', 'amboss-new': 'AMBOSS · new', 'amboss-weak': 'AMBOSS · weak area' };
 
 async function loadReviewHistory() {
     if (!ankiTags) return;
@@ -2601,6 +2787,9 @@ document.addEventListener('click', e => {
         case 'find-open':
             openFinder(el.dataset.id);
             break;
+        case 'lec-unsuspend':
+            unsuspendLectures({ ids: [el.dataset.id] });
+            break;
         case 'find-close':
             closeFinder();
             break;
@@ -2679,6 +2868,7 @@ function refreshOnReturn() {
     if (!ankiTags || Date.now() - lastUpRefresh < 5000) return;
     lastUpRefresh = Date.now();
     loadTodayStats();
+    unsuspendLectures();   // a lecture whose day has come (e.g. the page stayed open overnight)
 }
 window.addEventListener('focus', refreshOnReturn);
 document.addEventListener('visibilitychange', () => {
