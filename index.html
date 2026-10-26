@@ -110,6 +110,22 @@
         .stat-v { font-size: 1.2em; font-weight: bold; color: #1a202c; }
         .stat-l { font-size: 0.72em; color: #718096; }
         .res-block { margin-top: 14px; }
+        .hist-strip { display: grid; grid-template-columns: repeat(28, minmax(0, 1fr)); gap: 3px; }
+        .hist-cell { aspect-ratio: 1; border-radius: 3px; background: #edf2f7; }
+        .hist-cell.l0 { background: #e2e8f0; }
+        .hist-cell.l1 { background: #c6f6d5; }
+        .hist-cell.l2 { background: #9ae6b4; }
+        .hist-cell.l3 { background: #68d391; }
+        .hist-cell.l4 { background: #38a169; }
+        .hist-cell.today { outline: 2px solid #3182ce; outline-offset: 1px; }
+        .hist-strip-labels { display: flex; justify-content: space-between; font-size: 0.75em; color: #a0aec0; margin-top: 4px; }
+        .hist-day { margin-bottom: 16px; }
+        .hist-row { display: flex; align-items: baseline; gap: 8px; padding: 5px 0; border-bottom: 1px solid #f1f4f8; font-size: 0.9em; color: #4a5568; }
+        .hist-row.done .hist-title { color: #a0aec0; }
+        .hist-mark { width: 14px; flex-shrink: 0; color: #a0aec0; text-align: center; }
+        .hist-row.done .hist-mark { color: #38a169; font-weight: bold; }
+        .hist-title { min-width: 0; overflow-wrap: anywhere; }
+        @media (max-width: 600px) { .hist-row { flex-wrap: wrap; } .hist-row .today-kicker { min-width: 0; } }
         .tabs { display: flex; gap: 4px; margin: -10px 0 18px; border-bottom: 1px solid #e2e8f0; }
         .tab { flex: 0 0 auto; background: none; color: #718096; border-radius: 0; padding: 8px 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
         .tab.active { color: #1a202c; border-bottom-color: #3182ce; }
@@ -143,6 +159,10 @@
         .today-detail { font-size: 0.84em; color: #718096; margin-top: 3px; }
         .today-actions { display: flex; gap: 6px; flex-shrink: 0; }
         .today-actions .btn-small { text-decoration: none; border-radius: 4px; }
+        .quiz-checks { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 6px; }
+        .quiz-check { display: inline-flex; align-items: center; gap: 6px; color: #2d3748; font-size: 1.05em; cursor: pointer; }
+        .quiz-check input { width: auto; margin: 0; }
+        .quiz-check.done { color: #a0aec0; text-decoration: line-through; }
         .today-foot { font-size: 0.82em; color: #718096; margin-top: 8px; line-height: 1.6; }
         @media (max-width: 600px) {
             .today-row { flex-wrap: wrap; }
@@ -182,7 +202,7 @@
         .up-when.later { color: #2b6cb0; }
         .up-row .actions { display: flex; gap: 4px; flex-shrink: 0; }
         .res-badge { display: inline-block; font-size: 0.72em; font-weight: bold; padding: 1px 5px; border-radius: 3px; margin-right: 4px; vertical-align: 1px; }
-        .res-badge.bootcamp, .res-badge.bnb { background: #edf2f7; color: #4a5568; }
+        .res-badge.bootcamp, .res-badge.bnb, .res-badge.scholarrx { background: #edf2f7; color: #4a5568; }
         .btn-small.btn-go { background: #38a169; color: white; border-color: #38a169; }
         .btn-small.btn-go:disabled { background: #cbd5e0; color: #718096; border-color: #cbd5e0; }
         .up-done { margin-top: 4px; }
@@ -233,7 +253,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 23e · Back to basics</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26d · All lectures + ScholarRx / Bootcamp</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -245,6 +265,7 @@
 
     <nav class="tabs" aria-label="Views">
         <button class="tab active" data-view="dashboard">Dashboard</button>
+        <button class="tab" data-view="history">History</button>
         <button class="tab" data-view="leeches">Leeches</button>
     </nav>
 
@@ -308,6 +329,7 @@
                             <select id="upSource">
                                 <option value="bootcamp">Bootcamp videos</option>
                                 <option value="bnb">B&amp;B videos</option>
+                                <option value="scholarrx">ScholarRx bricks</option>
                                 <option value="xlsx">Import schedule (.xlsx)</option>
                                 <option value="pdf">Match my lecture PDF</option>
                                 <option value="tag">Any tag</option>
@@ -475,6 +497,20 @@
     </div>
     </div>
 
+    <!-- HISTORY VIEW -->
+    <div id="viewHistory" class="hidden">
+        <div class="card">
+            <h2 style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;">
+                <span>History</span>
+                <span id="histSummary" style="font-size:0.6em; color:#718096; font-weight:normal;"></span>
+            </h2>
+            <div class="hist-strip" id="histStrip"></div>
+            <div class="hist-strip-labels" id="histStripLabels"></div>
+            <p class="muted" style="margin:6px 0 18px;">Each square is a day: the darker it is, the more of that day’s list you finished. Hover for the day’s reviews.</p>
+            <div id="histList"></div>
+        </div>
+    </div>
+
     <!-- LEECHES VIEW -->
     <div id="viewLeeches" class="hidden">
         <div class="card">
@@ -533,6 +569,7 @@ let ankiDecks = null;         // all deck names (only after connecting)
 let ankiTags = null;          // all tags from the collection (only after connecting)
 let currentAreas = [];        // areas in the current snapshot (for button handlers)
 let currentFileSha = '';
+let syncReady = false;   // true once the GitHub copy has been loaded (or there is none)
 
 // ============================================================
 // LOCAL DATABASE
@@ -578,7 +615,7 @@ function setSync(ok, text) {
 
 async function pullFromGitHub() {
     const gh = ghInfo();
-    if (!gh) { setSync(false, 'Offline'); renderAll(); return; }
+    if (!gh) { setSync(false, 'Offline'); syncReady = true; renderAll(); return; }
     try {
         const res = await fetch(gh.url, { headers: gh.headers, cache: 'no-store' });
         if (res.status === 200) {
@@ -604,6 +641,7 @@ async function pullFromGitHub() {
         console.error(err);
         setSync(false, 'Offline');
     }
+    syncReady = true;
     renderAll();
 }
 
@@ -780,10 +818,12 @@ async function connectAnki({ silent = false } = {}) {
         populateDeckSelect();
         populateTagSelectors();
         bcIndex = null;
+        lectureMatchCache.clear();
         populateUpSections();
         renderPicker();
         refreshUpcoming();
         loadTodayStats();
+        loadReviewHistory();
         loadLeeches();
         setAnkiStatus(true, `connected (${ankiTags.length.toLocaleString()} tags)`);
         progress('Connected. Click Refresh to analyze your stats.');
@@ -1493,7 +1533,8 @@ async function loadResourcesFor(i) {
 // Video resources AnKing tags card-by-card (one sub-tag per video)
 const VIDEO_RESOURCES = [
     { id: 'bootcamp', name: 'Bootcamp', re: /^#?bootcamp$/i },
-    { id: 'bnb', name: 'B&B', re: /^#?(b&b|bnb|b_and_b|boards[\s_-]*(&|and)[\s_-]*beyond)$/i }
+    { id: 'bnb', name: 'B&B', re: /^#?(b&b|bnb|b_and_b|boards[\s_-]*(&|and)[\s_-]*beyond)$/i },
+    { id: 'scholarrx', name: 'ScholarRx', re: /^#?(scholar[\s_-]*rx|rx[\s_-]*bricks)$/i }
 ];
 // -> { res, i } for the first tag segment that names a video resource
 function resourceSeg(segs) {
@@ -1699,7 +1740,7 @@ function addSelected() {
         const c = countCache.get(itemQuery(p));
         db.upcoming.push({
             id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
-            kind: p.kind, key: p.key, label: p.full, date, note: p.note || null, url: p.url || null,
+            kind: p.kind, key: p.key, label: p.full, date, note: p.note || null, url: p.url || null, lectures: p.lectures || null,
             total: c ? c.total : null, suspended: c ? c.suspended : null,
             checkedAt: c ? new Date().toISOString() : null,
             addedAt: new Date().toISOString(), doneAt: null, doneBy: null
@@ -2178,8 +2219,10 @@ async function readXlsx(file) {
 
 // Reads a weekly calendar: a row of dates on top, lecture names under one set of dated columns,
 // video links under another set with the same dates. Undated link columns (e.g. "Multiple Sessions") are kept without a date.
+// Calendar blocks that aren't lectures (no quizzes for these)
+const NON_LECTURE = /^(icrit|iace|clinical skills|msk sandbox|maps\b|study day|exam\b|mandatory|course intro|(mad )?week\s*\d)|\breview\b/i;
 function parseSchedule(sheets) {
-    const out = [], skipped = [];
+    const out = [], skipped = [], lectures = new Map();
     const isDateNum = v => typeof v === 'number' && v > 36000 && v < 60000;
     // Excel stores dates as days since 1899-12-30; read them in UTC so time zones / daylight saving can't shift the day
     const serialKey = v => { const d = new Date(Date.UTC(1899, 11, 30) + Math.round(v) * 864e5); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`; };
@@ -2194,6 +2237,18 @@ function parseSchedule(sheets) {
         const rowNums = [...rows.keys()].sort((a, b) => a - b);
         const headers = rowNums.filter(r => [...rows.get(r).values()].filter(c => isDateNum(c.v)).length >= 3);
         const text = (r, c) => { const x = rows.get(r) && rows.get(r).get(c); return x && typeof x.v === 'string' ? x.v : ''; };
+        // Every lecture: text in the first column for each date (the lecture side of the calendar)
+        headers.forEach((h, hi) => {
+            const hdr = rows.get(h), next = headers[hi + 1] || Infinity;
+            const byDate = new Map();
+            hdr.forEach((x, c) => { if (isDateNum(x.v)) { const d = serialKey(x.v); if (!byDate.has(d) || c < byDate.get(d)) byDate.set(d, c); } });
+            byDate.forEach((col, date) => rowNums.filter(r => r > h && r < next).forEach(r => {
+                const t = text(r, col).trim().replace(/\s+/g, ' ');
+                if (!isLabel(t) || NON_LECTURE.test(t)) return;
+                const key = `${date}|${t.toLowerCase()}`;
+                if (!lectures.has(key)) lectures.set(key, { key, name: t, date });
+            }));
+        });
         rowNums.forEach(r => {
             const header = [...headers].reverse().find(h => h < r);
             rows.get(r).forEach((cell, col) => {
@@ -2225,7 +2280,10 @@ function parseSchedule(sheets) {
             });
         });
     });
-    return { entries: out, skipped };
+    // A lecture with no video link on its day is studied with ScholarRx
+    const withVideo = new Set(out.filter(e => e.date && e.lecture).map(e => `${e.date}|${e.lecture.toLowerCase()}`));
+    const lectureList = [...lectures.values()].map(l => ({ ...l, scholar: !withVideo.has(l.key) }));
+    return { entries: out, skipped, lectures: lectureList };
 }
 
 // Match a video link's name ("acid-base-principles") to an AnKing B&B tag ("…::02_Acid-Base_Principles")
@@ -2258,7 +2316,7 @@ function matchVideoSlug(slug, idx) {
 const slugTitle = slug => slug.split('-').filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
 const safeUrl = u => /^https?:\/\//i.test(u || '') ? u : '';
 
-let schedRows = [], schedName = '';
+let schedRows = [], schedName = '', lectureNote = '';
 async function importSchedule() {
     const st = $('upXlsxStatus');
     const setSt = (t, err = false) => { st.textContent = t; st.classList.toggle('status-err', err); };
@@ -2266,10 +2324,18 @@ async function importSchedule() {
     if (!file) return;
     try {
         setSt('Reading your schedule…');
-        const { entries, skipped } = parseSchedule(await readXlsx(file));
-        if (!entries.length) { setSt('No video links found in that spreadsheet.', true); schedRows = []; renderPicker(); return; }
+        const { entries, skipped, lectures } = parseSchedule(await readXlsx(file));
         schedName = file.name.replace(/\.xlsx$/i, '');
-        if (!ankiTags) { setSt(`Found ${entries.length} video links. Open this page with Anki running to match them to your AnKing cards.`, true); schedRows = []; renderPicker(); return; }
+        if (lectures.length) {
+            const db = loadDb();
+            db.lectures = (db.lectures || []).filter(l => l.src !== schedName).concat(lectures.map(l => ({ ...l, src: schedName })));
+            saveDb(db);
+            renderToday();
+        }
+        const nScholar = lectures.filter(l => l.scholar).length;
+        lectureNote = lectures.length ? ` Added ${lectures.length} lectures to Today’s quizzes${nScholar ? ` (${nScholar} without videos, planned with ScholarRx / Bootcamp)` : ''}.` : '';
+        if (!entries.length) { setSt(`No video links found in that spreadsheet.${lectureNote}`, !lectures.length); schedRows = []; renderPicker(); return; }
+        if (!ankiTags) { setSt(`Found ${entries.length} video links. Open this page with Anki running to match them to your AnKing cards.${lectureNote}`, true); schedRows = []; renderPicker(); return; }
         const idx = videoTagIndex('bnb');
         // one row per AnKing tag (a video can appear twice in the schedule; keep its first date)
         const byKey = new Map();
@@ -2279,17 +2345,18 @@ async function importSchedule() {
             const prev = byKey.get(key);
             if (prev) {
                 if (e.lecture && !prev.lectures.includes(e.lecture)) prev.lectures.push(e.lecture);
+                if (e.lecture && e.date && !prev.lecs.some(l => l.name === e.lecture && l.date === e.date)) prev.lecs.push({ name: e.lecture, date: e.date });
                 if (e.date && (!prev.date || e.date < prev.date)) prev.date = e.date;
                 return;
             }
-            byKey.set(key, { ...e, match: m, lectures: e.lecture ? [e.lecture] : [] });
+            byKey.set(key, { ...e, match: m, lectures: e.lecture ? [e.lecture] : [], lecs: e.lecture && e.date ? [{ name: e.lecture, date: e.date }] : [] });
         });
         schedRows = [...byKey.values()].sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999') || a.url.localeCompare(b.url));
         const matched = schedRows.filter(r => r.match), close = matched.filter(r => r.match.how === 'close').length;
         const missing = schedRows.length - matched.length;
         setSt(`${schedName}: ${schedRows.length} videos. ${matched.length} matched to your AnKing B&B tags${close ? ` (${close} by a close name)` : ''}${missing ? `, ${missing} not found; use Find on those` : ''}.`
             + (skipped.length ? ` ${skipped.length} topic-page link${skipped.length === 1 ? '' : 's'} skipped.` : '')
-            + (idx.length ? '' : ' No B&B tags found in your collection.'));
+            + (idx.length ? '' : ' No B&B tags found in your collection.') + lectureNote);
         $('upSchedMode').value = 'sheet';
         updateSchedFields();
         renderPicker();
@@ -2313,7 +2380,7 @@ function schedCandidates() {
         }
         return {
             kind: 'tag', key: r.match.tag, label: r.match.label, full: r.match.label, badge: resBadge(r.match.res),
-            date: r.date, url: safeUrl(r.url), pre: true,
+            date: r.date, url: safeUrl(r.url), pre: true, lectures: r.lecs,
             note: r.lectures.length ? `${r.lectures.join(' / ')} lecture` : (schedName ? `from ${schedName}` : null),
             extra: `<b>${when}</b>${lec ? ` · ${lec}` : ''}${link}${r.match.how === 'close' ? ` · <span class="match good">close name match (${escHtml(slugTitle(r.slug))})</span>` : ''}`
         };
@@ -2381,18 +2448,20 @@ function todayRow({ kicker, title, detail = '', done = false, manual = null, act
 
 function renderToday() {
     const db = loadDb();
-    if (ensureFollowUps(db)) saveDb(db, false);   // local only: rendering must never push over a newer GitHub copy
+    if (ensureFollowUps(db) | migrateLectureTicks(db)) saveDb(db, false);   // local only: rendering must never push over a newer GitHub copy
     const today = todayKey(), tomorrow = addDays(today, 1);
     const items = db.upcoming || [];
     const connected = !!ankiTags;
-    const rows = [];
+    const rows = [], log = [];
     let total = 0, done = 0;
     const count = d => { total++; if (d) done++; };
+    const note = (k, t, d, id) => log.push(id ? { k, t, d: !!d, id } : { k, t, d: !!d });
 
     // 1. Reviews
     const st = db.todayStats && db.todayStats.date === today ? db.todayStats : null;
     const revDone = !!st && st.due === 0;
     count(revDone);
+    note('reviews', !st ? 'Do your Anki reviews' : st.due ? `${st.due} cards due` : 'All caught up', revDone);
     rows.push(todayRow({
         kicker: 'Reviews',
         title: !st ? 'Do your Anki reviews' : st.due ? `${st.due.toLocaleString()} card${st.due === 1 ? '' : 's'} due` : 'All caught up',
@@ -2407,6 +2476,7 @@ function renderToday() {
     watch.slice(0, 6).forEach(it => {
         const d = !!it.doneAt;
         count(d);
+        note('watch', it.label, d, it.id);
         const overdue = !d && it.date < today ? `<span class="stuck">${-daysUntil(it.date)}d overdue</span> · ` : '';
         rows.push(todayRow({
             kicker: 'Watch',
@@ -2418,8 +2488,42 @@ function renderToday() {
         }));
     });
     const more = watch.length - 6;
+
+    // 2b. Quizzes released on the day of each lecture: a practice quiz and a readiness quiz.
+    //     Unfinished ones carry over for a week.
+    const quizzes = db.quizzes || {};
+    const allDone = (l, q) => q.practice && q.readiness && (!l.scholar || q.study);
+    const lecs = allLectures(db).filter(l => l.date <= today && daysBetween(l.date, today) <= QUIZ_CARRY_DAYS)
+        .filter(l => { const q = quizzes[l.key] || {}; return !allDone(l, q) || q.practice === today || q.readiness === today || q.study === today; })
+        // today's lectures first, then anything carried over (most recent first)
+        .sort((a, b) => ((b.date === today) - (a.date === today)) || b.date.localeCompare(a.date) || a.name.localeCompare(b.name));
+    lecs.slice(0, 10).forEach(l => {
+        const q = quizzes[l.key] || {};
+        const sDone = !!q.study, pDone = !!q.practice, rDone = !!q.readiness;
+        if (l.scholar) { count(sDone); note('scholarrx', `ScholarRx / Bootcamp · ${l.name}`, sDone); }
+        count(pDone); count(rDone);
+        note('quiz', `Practice quiz · ${l.name}`, pDone);
+        note('quiz', `Readiness quiz · ${l.name}`, rDone);
+        const finished = pDone && rDone && (!l.scholar || sDone);
+        const when = l.date === today ? 'Today’s lecture' : `<span class="${finished ? '' : 'stuck'}">${daysBetween(l.date, today)}d ago</span>`;
+        const box = (type, label, d) => `<label class="quiz-check${d ? ' done' : ''}"><input type="checkbox" data-quiz="${escHtml(l.key)}" data-type="${type}" ${d ? 'checked' : ''}> ${label}</label>`;
+        const m = l.scholar ? matchLectureCards(l.name) : null;
+        const hasCards = l.items.some(it => it.kind === 'tag') || !!m;
+        const dis = connected ? '' : 'disabled title="Open Anki on this computer"';
+        rows.push(todayRow({
+            kicker: l.scholar ? 'Lecture' : 'Quizzes',
+            title: escHtml(l.name),
+            detail: `${when}${l.scholar ? ' · study with ScholarRx or Bootcamp' : ''}${l.items.length ? ` · ${l.items.length} video${l.items.length === 1 ? '' : 's'}` : ''}${m ? ` · AnKing cards: ${escHtml(m.res.name)} ${escHtml(m.label)}` : ''}`
+                + `<div class="quiz-checks">${l.scholar ? box('study', 'ScholarRx / Bootcamp', sDone) : ''}${box('practice', 'Practice quiz', pDone)}${box('readiness', 'Readiness quiz', rDone)}</div>`,
+            done: finished,
+            actions: (l.scholar ? `<a class="btn-small" href="${SCHOLARRX_URL}" target="_blank" rel="noopener noreferrer">ScholarRx</a><a class="btn-small" href="${BOOTCAMP_HOME}" target="_blank" rel="noopener noreferrer">Bootcamp</a>` : '')
+                + (hasCards ? `<button class="btn-small" data-act="quiz-cards" data-quiz="${escHtml(l.key)}" ${dis} title="Open this lecture’s cards in Anki">${l.scholar ? 'Cards' : 'Open cards'}</button>` : '')
+                + `<button class="btn-small" data-act="lec-hide" data-quiz="${escHtml(l.key)}" title="Not a lecture? Hide it">✕</button>`
+        }));
+    });
+    const moreLecs = lecs.length - 10;
     const tmr = items.filter(it => !it.doneAt && it.date === tomorrow);
-    const tmrLectures = [...new Set(tmr.map(it => (it.note || '').replace(/ lecture$/, '')).filter(Boolean))];
+    const tmrLecs = allLectures(db).filter(l => l.date === tomorrow);
 
     // 3. AMBOSS on new videos (spaced follow-ups)
     const fus = [];
@@ -2431,6 +2535,7 @@ function renderToday() {
         const list = fuDue.length ? fuDue : fuToday;
         const d = !fuDue.length;
         count(d);
+        note('amboss-new', `${Math.min(40, Math.max(10, list.length * 5))} questions on ${list.length} recent video${list.length === 1 ? '' : 's'}`, d);
         const names = list.slice(0, 4).map(x => `${escHtml(x.it.label.split(' › ').pop())} <span class="muted">(${x.k === 0 ? `${FOLLOW_UP_DAYS[0]}-day` : `${Math.round(FOLLOW_UP_DAYS[1] / 7)}-week`} check)</span>`).join(', ')
             + (list.length > 4 ? `, +${list.length - 4} more` : '');
         const qs = Math.min(40, Math.max(10, list.length * 5));
@@ -2452,6 +2557,7 @@ function renderToday() {
         const i = areas.indexOf(area);
         const d = !!(db.todayLog && db.todayLog[today] && db.todayLog[today].weak);
         count(d);
+        note('amboss-weak', `20 questions on ${area.label}`, d);
         rows.push(todayRow({
             kicker: 'AMBOSS · weak area',
             title: `20 questions on ${escHtml(area.label)}`,
@@ -2465,12 +2571,24 @@ function renderToday() {
     const nl = newLeechCount();
     if (nl) extras.push(`<b>${nl} new leech${nl === 1 ? '' : 'es'}</b> since you last checked. <a href="#" data-act="open-leeches">Review ${nl === 1 ? 'it' : 'them'} in Leeches</a>; fixing leeches early saves review time.`);
     if (more > 0) extras.push(`${more} more video${more === 1 ? '' : 's'} due in Upcoming.`);
-    if (tmr.length) extras.push(`Tomorrow: ${tmr.length} video${tmr.length === 1 ? '' : 's'}${tmrLectures.length ? ` for ${escHtml(tmrLectures.join(', '))}` : ''}. Watching before the lecture helps it stick.`);
+    if (moreLecs > 0) extras.push(`${moreLecs} more lecture${moreLecs === 1 ? '' : 's'} with quizzes open from the past week.`);
+    if (tmr.length || tmrLecs.length) extras.push(`Tomorrow: ${tmrLecs.length ? escHtml(tmrLecs.map(l => l.name + (l.scholar ? ' (ScholarRx / Bootcamp)' : '')).join(', ')) : `${tmr.length} video${tmr.length === 1 ? '' : 's'}`}. Previewing before the lecture helps it stick.`);
     if (rows.some(r => r.includes('Open cards'))) extras.push('“Open cards” shows them in Anki’s Browse window: select all, then Start Qbank Session (AMBOSS add-on).');
 
     $('todayDate').textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
     $('todaySummary').textContent = `${done} of ${total} done`;
     $('todayList').innerHTML = rows.join('') + (extras.length ? `<div class="today-foot">${extras.join('<br>')}</div>` : '');
+
+    // Save today's list to the history (only when something changed)
+    const entry = { total, done, rows: log, reviews: st ? { due: st.due, done: st.done } : null };
+    const prev = (db.dayLog || {})[today];
+    if (!prev || JSON.stringify({ total: prev.total, done: prev.done, rows: prev.rows, reviews: prev.reviews }) !== JSON.stringify(entry)) {
+        db.dayLog = db.dayLog || {};
+        db.dayLog[today] = { ...entry, at: new Date().toISOString() };
+        Object.keys(db.dayLog).filter(k => daysBetween(k, today) > DAY_LOG_DAYS).forEach(k => delete db.dayLog[k]);
+        saveDb(db, syncReady);
+        if (!$('viewHistory').classList.contains('hidden')) renderDayHistory();
+    }
 }
 
 function toggleToday(kind, on) {
@@ -2501,6 +2619,7 @@ function openNewVideoCards() {
 document.addEventListener('change', e => {
     const t = e.target;
     if (t.dataset && t.dataset.today) toggleToday(t.dataset.today, t.checked);
+    if (t.dataset && t.dataset.quiz && t.dataset.type) toggleQuiz(t.dataset.quiz, t.dataset.type, t.checked);
 });
 
 // ============================================================
@@ -2657,9 +2776,11 @@ function markLeechesSeen() {
 
 // ---------- tabs ----------
 function showView(name) {
+    const views = { dashboard: 'viewDashboard', history: 'viewHistory', leeches: 'viewLeeches' };
+    if (!views[name]) name = 'dashboard';
+    Object.entries(views).forEach(([k, id]) => $(id).classList.toggle('hidden', k !== name));
     const leeches = name === 'leeches';
-    $('viewDashboard').classList.toggle('hidden', leeches);
-    $('viewLeeches').classList.toggle('hidden', !leeches);
+    if (name === 'history') { renderDayHistory(); loadReviewHistory(); }
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === name));
     try { localStorage.setItem('view', name); } catch {}
     if (leeches) {
@@ -2676,6 +2797,188 @@ $('leechFilter').addEventListener('change', e => {
     try { localStorage.setItem('leech_filter', leechFilter); } catch {}
     renderLeeches();
 });
+
+// ============================================================
+// HISTORY — each day's Today list, plus Anki's own review counts
+// ============================================================
+const DAY_LOG_DAYS = 180;
+const KICKERS = { reviews: 'Reviews', watch: 'Watch', quiz: 'Quiz', scholarrx: 'ScholarRx / Bootcamp', lecture: 'Questions · lecture', 'amboss-new': 'AMBOSS · new', 'amboss-weak': 'AMBOSS · weak area' };
+
+async function loadReviewHistory() {
+    if (!ankiTags) return;
+    try {
+        const res = await anki('getNumCardsReviewedByDay');
+        const map = {};
+        (res || []).filter(x => Array.isArray(x)).sort((a, b) => String(b[0]).localeCompare(String(a[0]))).slice(0, DAY_LOG_DAYS)
+            .forEach(([d, n]) => { map[d] = n; });
+        const db = loadDb();
+        if (JSON.stringify(db.reviewsByDay || {}) !== JSON.stringify(map)) { db.reviewsByDay = map; saveDb(db); }
+        renderDayHistory();
+    } catch (err) { console.error(err); }
+}
+
+// A video counts as done on a past day if its cards were unsuspended by the end of that day,
+// even if the page wasn't opened after you did it
+function dayRowDone(r, day, items) {
+    if (r.k === 'watch' && r.id) {
+        const it = items.find(x => x.id === r.id);
+        if (it && it.doneAt && doneDay(it) <= day) return true;
+    }
+    return !!r.d;
+}
+
+let histShowAll = false;
+function renderDayHistory() {
+    const db = loadDb(), log = db.dayLog || {}, rev = db.reviewsByDay || {}, items = db.upcoming || [];
+    const today = todayKey();
+    const tally = day => {
+        const e = log[day];
+        if (!e || !e.rows || !e.rows.length) return null;
+        return { n: e.rows.filter(r => dayRowDone(r, day, items)).length, total: e.rows.length };
+    };
+    const fmt = (d, opts) => new Date(d + 'T00:00:00').toLocaleDateString(undefined, opts);
+    const revOf = d => rev[d] != null ? rev[d] : (log[d] && log[d].reviews ? log[d].reviews.done : null);
+
+    // 4-week strip
+    const days = Array.from({ length: 28 }, (_, i) => addDays(today, i - 27));
+    $('histStrip').innerHTML = days.map(d => {
+        const t = tally(d), r = revOf(d);
+        const lvl = !t ? (r ? 'l0' : 'none') : t.n === t.total ? 'l4' : t.n / t.total >= 0.66 ? 'l3' : t.n / t.total >= 0.33 ? 'l2' : 'l1';
+        const tip = `${fmt(d, { weekday: 'short', month: 'short', day: 'numeric' })}: ${t ? `${t.n} of ${t.total} done` : 'no list saved'}${r ? ` · ${r} reviews` : ''}`;
+        return `<div class="hist-cell ${lvl}${d === today ? ' today' : ''}" title="${escHtml(tip)}"></div>`;
+    }).join('');
+    $('histStripLabels').innerHTML = `<span>${fmt(days[0], { month: 'short', day: 'numeric' })}</span><span>Today</span>`;
+
+    // summary
+    const past = Array.from({ length: 14 }, (_, i) => addDays(today, -(i + 1)));
+    const full = past.filter(d => { const t = tally(d); return t && t.n === t.total; }).length;
+    const revSum = past.reduce((s, d) => s + (revOf(d) || 0), 0);
+    let streak = 0;
+    const tt = tally(today);
+    for (let i = (tt && tt.n === tt.total) ? 0 : 1; i < 400; i++) {
+        const t = tally(addDays(today, -i));
+        if (t && t.n === t.total) streak++; else break;
+    }
+    $('histSummary').textContent = `Last 14 days: ${full} finished · ${revSum.toLocaleString()} reviews · streak ${streak} day${streak === 1 ? '' : 's'}`;
+
+    // day list
+    const keys = Object.keys(log).filter(k => log[k] && log[k].rows && log[k].rows.length).sort().reverse();
+    if (!keys.length) {
+        $('histList').innerHTML = '<p class="muted">Your Today list is saved here each day, starting today. Days before this update only show their review counts (in the squares above).</p>';
+        return;
+    }
+    const shown = histShowAll ? keys : keys.slice(0, 14);
+    $('histList').innerHTML = shown.map(d => {
+        const e = log[d], t = tally(d), r = revOf(d);
+        return `
+        <div class="hist-day">
+            <div class="up-group-head">
+                <span class="res-title" style="margin:0;">${d === today ? 'Today' : fmt(d, { weekday: 'long', month: 'short', day: 'numeric' })}</span>
+                <span class="muted" style="font-size:0.85em;">${t.n} of ${t.total} done${r != null ? ` · ${r.toLocaleString()} reviews` : ''}</span>
+            </div>
+            ${e.rows.map(row => {
+                const ok = dayRowDone(row, d, items);
+                return `<div class="hist-row${ok ? ' done' : ''}"><span class="hist-mark">${ok ? '✓' : '·'}</span><span class="today-kicker">${KICKERS[row.k] || ''}</span><span class="hist-title">${escHtml(row.t)}</span></div>`;
+            }).join('')}
+        </div>`;
+    }).join('') + (!histShowAll && keys.length > 14 ? `<button class="btn-small" data-act="hist-all">Show all ${keys.length} days</button>` : '');
+}
+
+// ---------- lectures and their quizzes ----------
+const QUIZ_CARRY_DAYS = 6;
+// Lectures come from your schedule import (each with its own date); older items fall back to their note ("pH lecture")
+function lecturesOf(items) {
+    const map = new Map();
+    items.forEach(it => {
+        const lecs = it.lectures && it.lectures.length ? it.lectures
+            : (/ lecture$/.test(it.note || '') && it.date ? it.note.replace(/ lecture$/, '').split(' / ').map(n => ({ name: n.trim(), date: it.date })) : []);
+        lecs.forEach(l => {
+            if (!l.name || !l.date) return;
+            const key = `${l.date}|${l.name.toLowerCase()}`;
+            if (!map.has(key)) map.set(key, { key, name: l.name, date: l.date, items: [] });
+            map.get(key).items.push(it);
+        });
+    });
+    return [...map.values()];
+}
+// The previous version ticked "practice questions" per video (it.lq); carry those over as practice quizzes
+function migrateLectureTicks(db) {
+    let changed = false;
+    (db.upcoming || []).forEach(it => {
+        if (!it.lq) return;
+        if (it.lq.done) {
+            db.quizzes = db.quizzes || {};
+            lecturesOf([it]).forEach(l => { db.quizzes[l.key] = { practice: it.lq.done, ...(db.quizzes[l.key] || {}) }; });
+        }
+        delete it.lq;
+        changed = true;
+    });
+    return changed;
+}
+// Every lecture: from the schedule import plus any carried by videos in Upcoming; hidden ones left out
+function allLectures(db) {
+    const hidden = new Set(db.hiddenLectures || []);
+    const map = new Map();
+    (db.lectures || []).forEach(l => map.set(l.key, { ...l, items: [] }));
+    lecturesOf(db.upcoming || []).forEach(l => {
+        const e = map.get(l.key);
+        if (e) e.items.push(...l.items); else map.set(l.key, { ...l, scholar: false });
+    });
+    return [...map.values()].filter(l => !hidden.has(l.key)).map(l => ({ ...l, scholar: l.scholar && !l.items.length }));
+}
+// ScholarRx / Bootcamp lectures: find matching AnKing cards by name: Bootcamp tags first, then ScholarRx, then B&B
+const SCHOLARRX_URL = 'https://usmle-rx.scholarrx.com';
+const BOOTCAMP_HOME = 'https://bootcamp.com/';
+const lectureMatchCache = new Map();
+function lectureTopicVariants(name) {
+    const base = name.replace(/\(.*?\)/g, ' ').replace(/(^|\s)\d+\)?\s+/g, ' ');
+    const parts = [base];
+    if (base.includes(':')) parts.push(base.split(':').slice(1).join(':'), base.split(':')[0]);
+    return parts.map(p => p.replace(/\b(i{1,3}|iv|vi{0,3})\b/gi, ' ').replace(/\s+/g, ' ').trim()).filter(p => p.length >= 3);
+}
+function matchLectureCards(name) {
+    if (!ankiTags) return null;
+    if (lectureMatchCache.has(name)) return lectureMatchCache.get(name);
+    let found = null;
+    for (const res of ['bootcamp', 'scholarrx', 'bnb']) {
+        const idx = videoTagIndex(res);
+        if (!idx.length) continue;
+        for (const v of lectureTopicVariants(name)) {
+            const m = matchVideoSlug(normName(v), idx);
+            if (m && (!found || (m.how === 'exact' && found.how !== 'exact'))) found = m;
+            if (found && found.how === 'exact') break;
+        }
+        if (found) break;
+    }
+    lectureMatchCache.set(name, found);
+    return found;
+}
+function toggleQuiz(key, type, on) {
+    if (!['practice', 'readiness', 'study'].includes(type)) return;
+    const db = loadDb();
+    const today = todayKey();
+    db.quizzes = db.quizzes || {};
+    const q = db.quizzes[key] = { ...(db.quizzes[key] || {}) };
+    if (on) q[type] = today; else delete q[type];
+    if (!q.practice && !q.readiness && !q.study) delete db.quizzes[key];
+    Object.keys(db.quizzes).filter(k => daysBetween(k.split('|')[0], today) > DAY_LOG_DAYS).forEach(k => delete db.quizzes[k]);
+    saveDb(db);
+    renderToday();
+}
+function openQuizCards(key) {
+    const lec = allLectures(loadDb()).find(l => l.key === key);
+    if (!lec) return;
+    const list = lec.items.filter(it => it.kind === 'tag');
+    const m = !list.length && lec.scholar ? matchLectureCards(lec.name) : null;
+    const query = list.length ? `(${list.map(itemQuery).join(' OR ')})` : m ? tagQuery(m.tag) : '';
+    if (query) ankiDo(() => anki('guiBrowse', { query }));
+}
+function hideLecture(key) {
+    const db = loadDb();
+    db.hiddenLectures = [...new Set([...(db.hiddenLectures || []), key])];
+    saveDb(db);
+    renderToday();
+}
 
 // ============================================================
 // BUTTON HANDLERS (event delegation)
@@ -2731,6 +3034,16 @@ document.addEventListener('click', e => {
             e.preventDefault();
             $('historyCard').open = true;
             $('historyCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            break;
+        case 'lec-hide':
+            hideLecture(el.dataset.quiz);
+            break;
+        case 'quiz-cards':
+            openQuizCards(el.dataset.quiz);
+            break;
+        case 'hist-all':
+            histShowAll = true;
+            renderDayHistory();
             break;
         case 'today-amboss-new':
             openNewVideoCards();
@@ -2806,8 +3119,8 @@ document.addEventListener('visibilitychange', () => {
     renderAll();
     renderLeeches();
     let v = 'dashboard';
-    try { v = location.hash === '#leeches' ? 'leeches' : (localStorage.getItem('view') || 'dashboard'); } catch {}
-    if (v === 'leeches') showView('leeches');
+    try { const h = location.hash.slice(1); v = ['leeches', 'history'].includes(h) ? h : (localStorage.getItem('view') || 'dashboard'); } catch {}
+    if (v !== 'dashboard') showView(v);
     renderPicker();
     await pullFromGitHub();   // load the GitHub copy first so a fresh sync isn't overwritten
     autoSync();
