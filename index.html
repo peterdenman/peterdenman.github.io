@@ -84,6 +84,11 @@
         .p1 { background: #fed7d7; color: #9b2c2c; }
         .p2 { background: #feebc8; color: #9c4221; }
         .p3 { background: #c6f6d5; color: #22543d; }
+        .badge.new { background: #edf2f7; color: #4a5568; }
+        .seg { display: inline-flex; border: 1px solid #cbd5e0; border-radius: 6px; overflow: hidden; margin: 0 0 10px; }
+        .seg button { white-space: nowrap; background: white; color: #4a5568; border: none; padding: 5px 12px; font-size: 0.85em; font-weight: 600; cursor: pointer; width: auto; margin: 0; border-radius: 0; }
+        .seg button + button { border-left: 1px solid #cbd5e0; }
+        .seg button.on { background: #2b6cb0; color: white; }
 
         /* Weak area cards */
         .area {
@@ -263,7 +268,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26m · Export all B&amp;B cards</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26o · Priority by lecture</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -303,14 +308,16 @@
                         <button class="btn-small hidden" id="clearStatsBtn" style="font-size:12px;" title="Remove these stats from the homepage">Remove</button>
                     </span>
                 </h2>
-                <p class="muted" style="margin-top:-4px;">
-                    Ranked from your AnKing review history. Weakness = 70% recent fail rate on established cards + 30% share of cards with 3+ lapses.
-                </p>
+                <div class="seg" id="prioViewSeg" role="tablist" aria-label="Rank by">
+                    <button data-prio-view="lecture">By lecture</button>
+                    <button data-prio-view="subject">By AnKing subject</button>
+                </div>
+                <p class="muted" id="prioDesc" style="margin-top:0;"></p>
                 <div id="priorityStatus" class="status-msg" style="margin:0 0 8px;"></div>
                 <div id="weakList"></div>
 
                 <details id="allAreasWrap" class="hidden">
-                    <summary>All subdivisions</summary>
+                    <summary id="allAreasSummary">All subdivisions</summary>
                     <div style="overflow-x:auto;"><table id="allAreasTable"></table></div>
                 </details>
             </div>
@@ -453,7 +460,7 @@
             </div>
         </details>
         <details class="card tool" id="notebookCard">
-            <summary class="tool-summary">AnKing Notebook <span class="tool-sub">stats and AMBOSS practice for any subdeck</span></summary>
+            <summary class="tool-summary">AnKing Notebook <span class="tool-sub">stats and AMBOSS practice for each lecture</span></summary>
             <div class="tool-body">
                 <div class="input-group">
                     <select id="areaSelect"></select>
@@ -759,8 +766,10 @@ function setAnkiStatus(ok, text) {
     el.textContent = `Anki: ${text}`;
     el.style.color = ok ? '#38a169' : '#a0aec0';
 }
-function progress(msg, isErr = false) {
-    for (const id of ['ankiProgress', 'priorityStatus']) {   // also shown on the Priority card, since Sync is tucked away
+function progress(msg, isErr = false, subjectOnly = false) {
+    // also shown on the Priority card (Sync is tucked away), except subject-only messages while it shows lectures
+    const ids = subjectOnly && typeof prioView !== 'undefined' && prioView === 'lecture' ? ['ankiProgress'] : ['ankiProgress', 'priorityStatus'];
+    for (const id of ids) {
         const el = $(id);
         el.textContent = msg;
         el.classList.toggle('status-err', isErr);
@@ -942,11 +951,13 @@ async function analyze({ manual = false } = {}) {
     try {
         if (!ankiTags && !(await connectAnki())) return;
         const s = readSettingsForm();
+        try { await analyzeLectures(s); } catch (err) { console.error('Lecture stats skipped', err); }
+        renderWeakAreas(); renderNotebookSelect(); renderNotebook(); renderToday(); renderHistory();
         const base = buildAreas(s);
         if (!base.length) {
             progress(s.mode === 'decks'
                 ? `“${s.deckRoot}” has no subdecks ${s.depth} level${s.depth > 1 ? 's' : ''} down. Try Broad, pick a different deck, or use AnKing tags with “Limit to deck” set to it.`
-                : `No tags found under ${s.root}::${s.family} at that detail level. Try another grouping.`, true);
+                : `No tags found under ${s.root}::${s.family} at that detail level. Try another grouping.`, true, true);
             return;
         }
 
@@ -967,7 +978,7 @@ async function analyze({ manual = false } = {}) {
         const counts = [];
         const batches = chunk(actions, 100);
         for (let i = 0; i < batches.length; i++) {
-            progress(`Reading review stats… ${Math.round((i / batches.length) * 100)}%`);
+            progress(`Reading review stats… ${Math.round((i / batches.length) * 100)}%`, false, true);
             const res = await ankiMulti(batches[i]);
             res.forEach(r => counts.push(Array.isArray(r) ? r.length : 0));
         }
@@ -989,7 +1000,7 @@ async function analyze({ manual = false } = {}) {
             };
         }).filter(a => a.total >= s.minCards);
 
-        if (!areas.length) { progress(`No areas have at least ${s.minCards} active cards yet. Lower the minimum or study a bit more first.`, true); return; }
+        if (!areas.length) { progress(`No areas have at least ${s.minCards} active cards yet. Lower the minimum or study a bit more first.`, true, true); return; }
 
         // Areas with real recent data rank ahead of low-data ones at equal score
         areas.sort((a, b) => (b.score - a.score) || (a.lowData - b.lowData));
@@ -1002,14 +1013,14 @@ async function analyze({ manual = false } = {}) {
 
         const top = areas.slice(0, TOP_AREAS_WITH_RESOURCES);
         for (let i = 0; i < top.length; i++) {
-            progress(`Matching AMBOSS topics… (${i + 1}/${top.length})`);
+            progress(`Matching AMBOSS topics… (${i + 1}/${top.length})`, false, true);
             Object.assign(top[i], await findResources(top[i], s));
         }
 
         // Save this week's review numbers to the long-term history (never blocks the main sync)
         let weekly = null;
         try {
-            progress('Saving this week to your history…');
+            progress('Saving this week to your history…', false, true);
             const thisWk = weekKey(Date.now()), prevWk = weekKey(Date.now() - 7 * 864e5);
             weekly = { data: await collectReviews(base, b => `${b.q} rated:14`, weekStartMs(prevWk)), replace: [thisWk, prevWk], thisWk };
         } catch (err) {
@@ -1028,9 +1039,9 @@ async function analyze({ manual = false } = {}) {
             areas
         };
         saveDb(db);
-        progress(`Done — analyzed ${n} subdivision${n === 1 ? '' : 's'}.`);
+        progress(`Done — analyzed ${n} subdivision${n === 1 ? '' : 's'}.`, false, true);
         renderAll();
-        if (!currentSelection()) selectNotebook('area:' + areas[0].path);
+        if (!currentSelection() && currentAreas.length) selectNotebook('area:' + currentAreas[0].path);
     } catch (err) {
         console.error(err);
         progress(ankiErrorText(err), true);
@@ -1318,11 +1329,116 @@ function timeAgo(iso) {
     if (h < 24) return `${h} h ago`;
     return `${Math.round(h / 24)} d ago`;
 }
-const prioLabel = { P1: 'P1 - High Priority', P2: 'P2 - Medium', P3: 'P3 - Low Priority' };
-const getSnap = () => loadDb().ankiSnapshot;
+const prioLabel = { P1: 'P1 - High Priority', P2: 'P2 - Medium', P3: 'P3 - Low Priority', new: 'Collecting reviews' };
+const getSnap = () => loadDb().ankiSnapshot;   // subject (AnKing tag / subdeck) stats
+// Priority and the Notebook show either lectures (default) or AnKing subjects
+let prioView = 'lecture';
+try { prioView = localStorage.getItem('prio_view') === 'subject' ? 'subject' : 'lecture'; } catch {}
+const viewSnap = () => { const db = loadDb(); return prioView === 'lecture' ? db.lectureSnapshot : db.ankiSnapshot; };
+const snapHistory = snap => !snap ? null : snap.kind === 'lecture' ? (loadDb().history || {}).lectures : historyFor(snap.settings);
+function setPrioView(v) {
+    prioView = v === 'subject' ? 'subject' : 'lecture';
+    try { localStorage.setItem('prio_view', prioView); } catch {}
+    renderWeakAreas();
+    renderNotebookSelect();
+    renderNotebook();
+    renderToday();
+}
+document.querySelectorAll('[data-prio-view]').forEach(b => b.addEventListener('click', () => setPrioView(b.dataset.prioView)));
+
+// ---------- lecture stats: each lecture's own cards (its picks, or its videos) ----------
+const MIN_LECTURE_REVIEWS = 20;   // review answers in the look-back window before a lecture is ranked
+let lectureStatsBusy = false;
+async function analyzeLectures(s) {
+    if (!ankiTags || lectureStatsBusy) return;
+    lectureStatsBusy = true;
+    try {
+        const lecs = lectureList(loadDb()).filter(l => l.unsusp && lectureQuery(l));
+        if (!lecs.length) {
+            const db = loadDb();
+            if (db.lectureSnapshot) { delete db.lectureSnapshot; saveDb(db); }
+            return;
+        }
+        const N = s.days || 30, since = Date.now() - N * 864e5;
+        const base = lecs.map(l => ({ path: 'lec:' + l.id, lecId: l.id, label: l.name, date: l.date, type: l.type || '', q: lectureQuery(l) }));
+        progress('Reading lecture stats…');
+        const PER = 4;
+        const res = [];
+        for (const batch of chunk(base.flatMap(b => [
+            { action: 'findCards', params: { query: `${b.q} -is:new` } },                          // cards studied at least once
+            { action: 'findCards', params: { query: `${b.q} -is:new -is:suspended` } },            // active
+            { action: 'findCards', params: { query: `${b.q} -is:new -is:suspended prop:lapses>=3` } },
+            { action: 'findCards', params: { query: `${b.q} -is:new -is:suspended prop:ivl>=21` } }
+        ]), 100)) res.push(...await ankiMulti(batch));
+        const studied = base.map((b, i) => (res[i * PER] || []));
+        const unique = [...new Set(studied.flat())];
+        const perCard = new Map();
+        for (const batch of chunk(unique, 500)) {
+            const revs = await anki('getReviewsOfCards', { cards: batch });
+            for (const [cid, list] of Object.entries(revs || {})) perCard.set(String(cid), (list || []).filter(r => r.type === 1));   // review answers (not learning steps)
+        }
+        const weeks = {}, thisWk = weekKey(Date.now());
+        const areas = base.map((b, i) => {
+            let rev = 0, again = 0;
+            studied[i].forEach(cid => (perCard.get(String(cid)) || []).forEach(r => {
+                const wk = weekKey(r.id);
+                const w = weeks[wk] = weeks[wk] || {};
+                const c = w[b.path] = w[b.path] || [0, 0];
+                c[0]++; if (r.ease === 1) c[1]++;
+                if (r.id >= since) { rev++; if (r.ease === 1) again++; }
+            }));
+            const total = (res[i * PER + 1] || []).length, struggling = (res[i * PER + 2] || []).length, mature = (res[i * PER + 3] || []).length;
+            const lowData = rev < MIN_LECTURE_REVIEWS;
+            const fail = rev ? again / rev : null;
+            const struggle = total ? struggling / total : 0;
+            return {
+                ...b, kind: 'lecture',
+                total, reviewed: rev, failed: again, struggling, mature,
+                retention: !lowData ? 1 - fail : null,
+                struggle, matureFrac: total ? mature / total : 0,
+                score: !lowData ? 0.7 * fail + 0.3 * struggle : 0, lowData
+            };
+        });
+        const ranked = areas.filter(a => !a.lowData).sort((a, b) => b.score - a.score);
+        const waiting = areas.filter(a => a.lowData).sort((a, b) => b.date.localeCompare(a.date));
+        ranked.forEach((a, i) => {
+            const r = i / ranked.length;
+            a.priority = r < 0.2 ? 'P1' : r < 0.5 ? 'P2' : 'P3';
+            if (a.retention >= 0.92 && a.struggle < 0.05) a.priority = 'P3';
+        });
+        waiting.forEach(a => { a.priority = 'new'; });
+        const all = [...ranked, ...waiting];
+        const prev = (loadDb().lectureSnapshot || {}).areas || [];
+        all.forEach(a => { const p = prev.find(x => x.path === a.path && x.q === a.q); if (p && p.amboss) { a.amboss = p.amboss; a.weakNotes = p.weakNotes; } });
+        for (const a of ranked.slice(0, TOP_AREAS_WITH_RESOURCES)) {
+            try { Object.assign(a, await findResources(a, { ...s, days: N })); } catch (err) { console.error(err); }
+        }
+        const db = loadDb();
+        db.lectureSnapshot = { kind: 'lecture', syncedAt: new Date().toISOString(), settings: { days: N }, areas: all };
+        db.history = db.history || {};
+        const h = db.history.lectures = { label: 'Lectures', areas: {}, weeks, cards: { ...(((db.history.lectures || {}).cards) || {}) } };
+        base.forEach(b => { h.areas[b.path] = b.label; });
+        h.cards[thisWk] = Object.fromEntries(all.map(a => [a.path, [a.total, a.mature, a.struggling]]));
+        saveDb(db);
+        progress(`Lecture stats updated: ${ranked.length} ranked${waiting.length ? `, ${waiting.length} still collecting reviews` : ''}.`);
+    } finally {
+        lectureStatsBusy = false;
+    }
+}
+async function refreshLectureStats() {
+    try { await analyzeLectures({ ...getSettings(), ...((getSnap() || {}).settings || {}) }); }
+    catch (err) { console.error(err); }
+    renderWeakAreas(); renderNotebookSelect(); renderNotebook(); renderToday(); renderHistory();
+}
 const lastSeg = label => label.split(' › ').pop();
 
 function statLine(a, days, h) {
+    if (a.kind === 'lecture') {
+        const ret = a.lowData
+            ? `<i>Collecting reviews: ${a.reviewed} of ${MIN_LECTURE_REVIEWS} so far in ${days}d</i>`
+            : `Retention <b>${pct(a.retention)}</b>${h ? trendBadge(retentionTrend(h, a.path)) : ''} (${a.reviewed} reviews in ${days}d)`;
+        return `${ret} · ${pct(a.struggle)} with 3+ lapses · ${a.total.toLocaleString()} active cards · ${escHtml(a.type || '')} ${escHtml(new Date(a.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}`;
+    }
     const ret = a.retention != null
         ? `Retention <b>${pct(a.retention)}</b>${h ? trendBadge(retentionTrend(h, a.path)) : ''} (${a.reviewed} established cards reviewed in ${days}d)`
         : `<i>Not enough recent reviews — ranked on lapses only</i>`;
@@ -1330,11 +1446,18 @@ function statLine(a, days, h) {
 }
 
 function renderWeakAreas() {
-    const snap = getSnap();
+    const lec = prioView === 'lecture';
+    document.querySelectorAll('[data-prio-view]').forEach(b => b.classList.toggle('on', b.dataset.prioView === prioView));
+    $('prioDesc').innerHTML = lec
+        ? `Each lecture is ranked from reviews of its own cards (the ones unsuspended for it). Weakness = 70% Again rate on reviews + 30% share of cards with 3+ lapses. A lecture is ranked once it has ${MIN_LECTURE_REVIEWS}+ reviews.`
+        : 'Ranked from your AnKing review history by subject. Weakness = 70% recent fail rate on established cards + 30% share of cards with 3+ lapses.';
+    const snap = viewSnap();
     const box = $('weakList');
     if (!snap || !snap.areas || !snap.areas.length) {
         currentAreas = [];
-        box.innerHTML = `<p class="muted">No Anki data yet. Open this page on the computer with Anki running and click <b>Refresh</b>.</p>`;
+        box.innerHTML = lec
+            ? `<p class="muted">No lecture stats yet. Lectures show up here once their B&amp;B cards are unsuspended; open this page with Anki running and click <b>Refresh</b>.</p>`
+            : `<p class="muted">No Anki data yet. Open this page on the computer with Anki running and click <b>Refresh</b>.</p>`;
         $('allAreasWrap').classList.add('hidden');
         $('lastSynced').textContent = '';
         $('clearStatsBtn').classList.add('hidden');
@@ -1342,12 +1465,14 @@ function renderWeakAreas() {
     }
     currentAreas = snap.areas;
     const days = snap.settings.days;
-    const hist = historyFor(snap.settings);
-    $('clearStatsBtn').classList.remove('hidden');
-    $('lastSynced').innerHTML = `Synced ${timeAgo(snap.syncedAt)} · ${escHtml(snap.settings.mode === 'decks' ? snap.settings.deckRoot : cleanSeg(snap.settings.family))} · last ${days}d`;
+    const hist = snapHistory(snap);
+    $('clearStatsBtn').classList.toggle('hidden', lec);
+    $('lastSynced').innerHTML = `Synced ${timeAgo(snap.syncedAt)} · ${lec ? 'lectures' : escHtml(snap.settings.mode === 'decks' ? snap.settings.deckRoot : cleanSeg(snap.settings.family))} · last ${days}d`;
     const maxScore = Math.max(...snap.areas.map(a => a.score), 0.01);
+    const shown = lec ? snap.areas.filter(a => !a.lowData).slice(0, TOP_SHOWN) : snap.areas.slice(0, TOP_SHOWN);
+    const waiting = lec ? snap.areas.filter(a => a.lowData) : [];
 
-    box.innerHTML = snap.areas.slice(0, TOP_SHOWN).map((a, i) => `
+    box.innerHTML = shown.map(a => { const i = snap.areas.indexOf(a); return `
         <div class="area ${a.priority} clickable" data-act="open" data-i="${i}">
             <div class="area-head">
                 <div class="area-title"><span class="area-rank">#${i + 1}</span>${escHtml(a.label)}</div>
@@ -1355,12 +1480,15 @@ function renderWeakAreas() {
             </div>
             <div class="area-stats">${statLine(a, days, hist)}</div>
             <div class="bar"><div style="width:${Math.round((a.score / maxScore) * 100)}%"></div></div>
-        </div>`).join('')
-        + `<p class="muted" style="margin:4px 0 0;">Click an area to open its stats and AMBOSS practice in the AnKing Notebook below.</p>`;
+        </div>`; }).join('')
+        + (lec && !shown.length ? `<p class="muted">No lecture has ${MIN_LECTURE_REVIEWS} reviews yet, so nothing is ranked. Lectures get ranked a few days after their cards are unsuspended.</p>` : '')
+        + (waiting.length ? `<p class="muted" style="margin:4px 0 0;">Collecting reviews: ${waiting.map(a => `<span style="cursor:pointer; color:#3182ce;" data-act="open" data-i="${snap.areas.indexOf(a)}">${escHtml(a.label)}</span> (${a.reviewed})`).join(', ')}</p>` : '')
+        + `<p class="muted" style="margin:4px 0 0;">Click ${lec ? 'a lecture' : 'an area'} to open its stats and AMBOSS practice in the AnKing Notebook below.</p>`;
 
     $('allAreasWrap').classList.remove('hidden');
+    $('allAreasSummary').textContent = lec ? 'All lectures' : 'All subdivisions';
     $('allAreasTable').innerHTML = `
-        <tr><th>#</th><th>Subdivision</th><th class="num">Active</th><th class="num">Retention</th><th class="num">3+ lapses</th><th>Priority</th></tr>
+        <tr><th>#</th><th>${lec ? 'Lecture' : 'Subdivision'}</th><th class="num">Active</th><th class="num">Retention</th><th class="num">3+ lapses</th><th>Priority</th></tr>
         ${snap.areas.map((a, i) => `
             <tr>
                 <td>${i + 1}</td>
@@ -1368,7 +1496,7 @@ function renderWeakAreas() {
                 <td class="num">${a.total.toLocaleString()}</td>
                 <td class="num">${pct(a.retention)}</td>
                 <td class="num">${pct(a.struggle)}</td>
-                <td><span class="badge ${a.priority.toLowerCase()}">${a.priority}</span></td>
+                <td><span class="badge ${a.priority.toLowerCase()}">${a.priority === 'new' ? '—' : a.priority}</span></td>
             </tr>`).join('')}`;
 }
 
@@ -1379,18 +1507,21 @@ let selectedKey = '';   // "area:<path>"
 try { selectedKey = localStorage.getItem('notebook_selected') || ''; } catch {}
 
 function renderNotebookSelect() {
-    const db = loadDb();
-    const areas = (db.ankiSnapshot && db.ankiSnapshot.areas) || [];
+    const lec = prioView === 'lecture';
+    const areas = ((viewSnap() || {}).areas) || [];
     const sel = $('areaSelect');
     if (!areas.length) {
-        sel.innerHTML = '<option value="">No subdecks yet</option>';
+        sel.innerHTML = `<option value="">${lec ? 'No lectures with stats yet' : 'No subdecks yet'}</option>`;
         sel.disabled = true;
         return;
     }
     sel.disabled = false;
-    let html = '<option value="">Choose a subdeck…</option>';
-    if (areas.length) html += `<optgroup label="Your subdecks (weakest first)">${areas.map((a, i) =>
+    let html = `<option value="">${lec ? 'Choose a lecture…' : 'Choose a subdeck…'}</option>`;
+    const ranked = lec ? areas.filter(a => !a.lowData) : areas, waiting = lec ? areas.filter(a => a.lowData) : [];
+    if (ranked.length) html += `<optgroup label="${lec ? 'Your lectures (weakest first)' : 'Your subdecks (weakest first)'}">${ranked.map((a, i) =>
         `<option value="area:${escHtml(a.path)}">#${i + 1} ${escHtml(a.label)} — ${a.priority}</option>`).join('')}</optgroup>`;
+    if (waiting.length) html += `<optgroup label="Collecting reviews">${waiting.map(a =>
+        `<option value="area:${escHtml(a.path)}">${escHtml(a.label)} (${a.reviewed} reviews)</option>`).join('')}</optgroup>`;
     sel.innerHTML = html;
     sel.value = selectedKey;
     if (sel.value !== selectedKey) { selectedKey = ''; sel.value = ''; }
@@ -1438,7 +1569,7 @@ function resourcesHtml(a, i) {
 }
 
 function historyBlock(a) {
-    const h = historyFor(getSnap().settings);
+    const h = snapHistory(viewSnap());
     const ser = h ? weeklySeries(h, a.path, 16) : [];
     if (ser.filter(p => p.v != null).length < 2) {
         return '<div class="muted" style="margin-top:10px;">Weekly history builds up here as you sync. <a href="#historyCard" data-act="open-history">Import past history</a> to fill it in now.</div>';
@@ -1456,28 +1587,35 @@ function renderNotebook() {
     const box = $('areaDetail');
     const sel = currentSelection();
     if (!sel) {
+        const lec = prioView === 'lecture';
         box.innerHTML = currentAreas.length
-            ? '<p class="muted" style="margin:0;">Pick a subdeck above, or click an area in the priority list.</p>'
+            ? `<p class="muted" style="margin:0;">Pick ${lec ? 'a lecture' : 'a subdeck'} above, or click one in the priority list.</p>`
+            : lec ? '<p class="muted" style="margin:0;">Lectures appear here once their cards are unsuspended and the page has synced with Anki (Refresh on the Priority card).</p>'
             : '<p class="muted" style="margin:0;">Run <b>Analyze my stats</b> to load your subdecks.</p>';
         return;
     }
     const { i, area: a } = sel;
     let html = '';
     {
-        const days = getSnap().settings.days;
+        const days = viewSnap().settings.days;
         const maxScore = Math.max(...currentAreas.map(x => x.score), 0.01);
+        const isLec = a.kind === 'lecture';
+        const lecObj = isLec ? lectureList(loadDb()).find(l => l.id === a.lecId) : null;
+        const rank = !isLec ? `<span class="area-rank">#${i + 1}</span>` : a.lowData ? '' : `<span class="area-rank">#${currentAreas.filter(x => !x.lowData).indexOf(a) + 1}</span>`;
         html += `
             <div class="area-head">
-                <div class="area-title"><span class="area-rank">#${i + 1}</span>${escHtml(a.label)}</div>
+                <div class="area-title">${rank}${escHtml(a.label)}</div>
                 <span class="badge ${a.priority.toLowerCase()}">${prioLabel[a.priority]}</span>
             </div>
+            ${isLec ? `<div class="muted" style="margin-top:4px;">${escHtml(a.type || '')} lecture · ${escHtml(new Date(a.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }))}${lecObj && pickedNotes(lecObj).length ? ` · ${pickedNotes(lecObj).length} notes picked` : ''}${lecObj && lecObj.unsusp ? ` · ${lecObj.unsusp.n.toLocaleString()} cards unsuspended` : ''}
+                ${lecObj ? ` · <button class="link-btn" data-act="lec-cards" data-id="${escHtml(lecObj.id)}">Open all its cards</button>` : ''}</div>` : ''}
             <div class="stat-grid">
-                <div class="stat"><div class="stat-v">${pct(a.retention)}</div><div class="stat-l">Retention (${days}d)</div></div>
+                <div class="stat"><div class="stat-v">${pct(a.retention)}</div><div class="stat-l">Retention (${days}d)${isLec ? `<br>${a.reviewed} reviews` : ''}</div></div>
                 <div class="stat"><div class="stat-v">${pct(a.struggle)}</div><div class="stat-l">3+ lapses</div></div>
                 <div class="stat"><div class="stat-v">${a.total.toLocaleString()}</div><div class="stat-l">Active cards</div></div>
                 <div class="stat"><div class="stat-v">${pct(a.matureFrac)}</div><div class="stat-l">Mature</div></div>
             </div>
-            ${a.retention == null ? '<div class="muted" style="margin-bottom:6px;"><i>Not enough recent reviews for a retention figure — ranked on lapses only.</i></div>' : ''}
+            ${a.retention == null ? `<div class="muted" style="margin-bottom:6px;"><i>${isLec ? `Not ranked yet: ${a.reviewed} of ${MIN_LECTURE_REVIEWS} reviews in the last ${days} days. Retention appears once its cards have come up for review.` : 'Not enough recent reviews for a retention figure — ranked on lapses only.'}</i></div>` : ''}
             <div class="bar"><div style="width:${Math.round((a.score / maxScore) * 100)}%"></div></div>
             ${historyBlock(a)}
             ${resourcesHtml(a, i)}`;
@@ -1493,14 +1631,15 @@ async function loadResourcesFor(i) {
     if (!a || loadingRes.has(a.path)) return;
     loadingRes.add(a.path);
     try {
-        const s = { ...getSettings(), ...getSnap().settings };
+        const key = a.kind === 'lecture' ? 'lectureSnapshot' : 'ankiSnapshot';
+        const s = { ...getSettings(), ...(((loadDb()[key]) || {}).settings || {}) };
         const r = await findResources(a, s);
         const db = loadDb();
-        const area = db.ankiSnapshot && db.ankiSnapshot.areas.find(x => x.path === a.path);
+        const area = db[key] && db[key].areas.find(x => x.path === a.path);
         if (!area) return;
         Object.assign(area, r);
         saveDb(db);
-        currentAreas = db.ankiSnapshot.areas;
+        if ((prioView === 'lecture') === (key === 'lectureSnapshot')) currentAreas = db[key].areas;
         renderNotebook();
     } catch (err) {
         console.error(err);
@@ -1870,6 +2009,7 @@ async function unsuspendLectures({ ids = null } = {}) {
     });
     saveDb(db);
     const total = done.reduce((s, r) => s + r.n, 0);
+    setTimeout(refreshLectureStats, 0);   // newly unsuspended lectures join the Priority list
     upMsg(`Unsuspended ${total.toLocaleString()} card${total === 1 ? '' : 's'} for ${escHtml(done.map(r => r.name).join(', '))}.`);
     renderUpcoming();
 }
@@ -2022,7 +2162,7 @@ async function exportAllBnb() {
     const vids = bnbVideos();
     if (!vids.length) { upMsg('No B&amp;B tags found in your AnKing deck.'); return; }
     const roots = [...new Set(vids.map(v => v.resRoot))];
-    const leafLabel = new Map(vids.map(v => [v.tag.toLowerCase(), v.label]));
+    const bnbLabel = t => { const segs = t.split('::'), r = resourceSeg(segs); return r && r.res.id === 'bnb' && segs.length > r.i + 1 ? labelFrom(segs.slice(r.i + 1)) : null; };
     exporting = true;
     $('bnbExportBtn').disabled = true;
     const t0 = Date.now();
@@ -2041,7 +2181,9 @@ async function exportAllBnb() {
                 const main = f.find(([n]) => /^(text|front|question)$/i.test(n)) || f[0];
                 const extra = f.find(([n]) => /^(extra|back|answer)$/i.test(n) && n !== (main && main[0]));
                 const tags = info.tags || [];
-                const videos = [...new Set(tags.map(t => leafLabel.get(t.toLowerCase())).filter(Boolean))];
+                const mine = tags.filter(t => bnbLabel(t));
+                const deepest = mine.filter(t => !mine.some(o => o !== t && o.toLowerCase().startsWith(t.toLowerCase() + '::')));
+                const videos = [...new Set(deepest.map(bnbLabel))];
                 const cards = info.cards || [];
                 out.push({
                     id: info.noteId,
@@ -2133,8 +2275,11 @@ function weighVector(counts, idf) {
 const dotVec = (a, b) => { let s = 0; const [small, big] = a.size < b.size ? [a, b] : [b, a]; small.forEach((x, t) => { const y = big.get(t); if (y) s += x * y; }); return s; };
 
 // Every B&B video in your collection: the deepest tag under #B&B
+// AnKing puts some of a video's cards in a "::Extra" sub-tag; that sub-tag belongs to the video, it isn't a video itself
+const isExtraTag = t => /^extra$/i.test(String(t).split('::').pop());
 function bnbVideos() {
-    const tags = (ankiTags || []).filter(t => { const r = resourceSeg(t.split('::')); return r && r.res.id === 'bnb'; });
+    const raw = (ankiTags || []).filter(t => { const r = resourceSeg(t.split('::')); return r && r.res.id === 'bnb'; });
+    const tags = [...new Map(raw.map(t => isExtraTag(t) ? t.split('::').slice(0, -1).join('::') : t).map(t => [t.toLowerCase(), t])).values()];
     const parents = new Set();
     tags.forEach(t => { const p = t.split('::'); for (let k = 1; k < p.length; k++) parents.add(p.slice(0, k).join('::').toLowerCase()); });
     return tags.filter(t => !parents.has(t.toLowerCase())).map(t => {
@@ -2597,22 +2742,23 @@ function renderToday() {
         }));
     }
 
-    // 4. AMBOSS on a weak area (rotates daily through your weakest areas)
-    const areas = (db.ankiSnapshot && db.ankiSnapshot.areas) || [];
+    // 4. AMBOSS on a weak area (rotates daily through your weakest lectures, else your weakest subjects)
+    const lecRanked = ((db.lectureSnapshot && db.lectureSnapshot.areas) || []).filter(a => !a.lowData);
+    const useLec = lecRanked.length > 0 && prioView === 'lecture';
+    const areas = useLec ? lecRanked : ((db.ankiSnapshot && db.ankiSnapshot.areas) || []);
     if (areas.length) {
         const pool = areas.filter(a => a.priority === 'P1');
         const cand = (pool.length ? pool : areas).slice(0, 5);
         const area = cand[dayNumber(today) % cand.length];
-        const i = areas.indexOf(area);
         const d = !!(db.todayLog && db.todayLog[today] && db.todayLog[today].weak);
         count(d);
         note('amboss-weak', `20 questions on ${area.label}`, d);
         rows.push(todayRow({
             kicker: 'AMBOSS · weak area',
             title: `20 questions on ${escHtml(area.label)}`,
-            detail: [area.retention != null ? `Retention ${pct(area.retention)}` : '', `${pct(area.struggle)} of cards with 3+ lapses`, cand.length > 1 ? `rotates daily through your ${cand.length} weakest areas` : ''].filter(Boolean).join(' · '),
+            detail: [area.retention != null ? `Retention ${pct(area.retention)}` : '', `${pct(area.struggle)} of cards with 3+ lapses`, cand.length > 1 ? `rotates daily through your ${cand.length} weakest ${useLec ? 'lectures' : 'areas'}` : ''].filter(Boolean).join(' · '),
             done: d, manual: 'weak',
-            actions: `<button class="btn-small" data-act="qbank" data-i="${i}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Open cards</button>`
+            actions: `<button class="btn-small" data-act="qbank-area" data-src="${useLec ? 'lecture' : 'subject'}" data-path="${escHtml(area.path)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Open cards</button>`
         }));
     }
 
@@ -2947,7 +3093,7 @@ document.addEventListener('click', e => {
     const el = e.target.closest('[data-act]');
     if (!el) return;
     const a = currentAreas[+el.dataset.i];
-    const snapSettings = (getSnap() || {}).settings || getSettings();
+    const snapSettings = { ...getSettings(), ...((viewSnap() || {}).settings || {}) };
 
     switch (el.dataset.act) {
         case 'open':
@@ -2956,6 +3102,12 @@ document.addEventListener('click', e => {
         case 'qbank':
             ankiDo(() => anki('guiBrowse', { query: weakQuery(a, snapSettings) }));
             break;
+        case 'qbank-area': {
+            const snap = el.dataset.src === 'lecture' ? loadDb().lectureSnapshot : getSnap();
+            const area = snap && snap.areas.find(x => x.path === el.dataset.path);
+            if (area) ankiDo(() => anki('guiBrowse', { query: weakQuery(area, { ...getSettings(), ...snap.settings }) }));
+            break;
+        }
         case 'lec-cards': {
             const l = lectureList(loadDb()).find(x => x.id === el.dataset.id);
             if (l) openLectureCards([l]);
@@ -3041,7 +3193,7 @@ async function autoSync() {
     const connected = await connectAnki({ silent: true });
     if (!connected) return;
     if (off) { progress('Connected. Auto-sync is off; click Refresh to update your stats.'); return; }
-    if (paused) { progress('Connected. Auto-sync is paused since you removed the stats; click Refresh to load them again.'); return; }
+    if (paused) { await refreshLectureStats(); progress('Connected. Subject stats are paused since you removed them; click Refresh to load them again.'); return; }
     await analyze();
 }
 // ...and again when you come back to the tab, if the last sync is getting old
