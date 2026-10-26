@@ -263,7 +263,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26k · Auto-unsuspend B&amp;B cards</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26l · Card picks</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -350,7 +350,11 @@
                 </form>
                 <div class="lec-opts">
                     <label class="lec-auto"><input type="checkbox" id="autoUnsuspendInput"> Unsuspend each lecture’s B&amp;B cards automatically on its due date</label>
-                    <button class="link-btn" id="lecImportBtn">Import lectures (.json)</button>
+                    <span>
+                        <button class="link-btn" id="lecExportBtn" title="Save the cards of these lectures’ B&amp;B videos to a file you send to Claude, who picks the ones that match each lecture">Export cards for review</button>
+                        <span class="muted">·</span>
+                        <button class="link-btn" id="lecImportBtn">Import lectures (.json)</button>
+                    </span>
                     <input type="file" id="lecImportInput" accept=".json,application/json" class="hidden">
                 </div>
                 <div id="upStatus" class="status-msg"></div>
@@ -1622,9 +1626,18 @@ function lectureTags(l) {
     const m = lectureCards(l);
     return m ? [m.tag] : [];
 }
+// Cards Claude picked for a lecture (note IDs); when there are picks, only those are unsuspended
+const pickedNotes = l => Array.isArray(l.picks) ? l.picks.filter(n => Number.isFinite(n)) : [];
+const waitingPicks = l => !!l.hold && !pickedNotes(l).length;
+function lectureQuery(l) {
+    const picks = pickedNotes(l);
+    if (picks.length) return `nid:${picks.join(',')}`;
+    const tags = lectureTags(l);
+    return tags.length ? `(${tags.map(tagQuery).join(' OR ')})` : '';
+}
 function openLectureCards(list) {
-    const tags = [...new Set(list.flatMap(lectureTags))];
-    if (tags.length) ankiDo(() => anki('guiBrowse', { query: `(${tags.map(tagQuery).join(' OR ')})` }));
+    const parts = [...new Set(list.map(lectureQuery).filter(Boolean))];
+    if (parts.length) ankiDo(() => anki('guiBrowse', { query: parts.length === 1 ? parts[0] : `(${parts.join(' OR ')})` }));
 }
 
 function upMsg(html) { $('upStatus').innerHTML = html; }
@@ -1698,8 +1711,10 @@ function lecRow(l, cls, connected) {
     const n = LEC_PARTS.filter(([k]) => l[k]).length;
     const vids = lecVideos(l);
     const m = vids.length ? null : lectureCards(l);
-    const hasCards = lectureTags(l).length > 0 || m;
-    const canUnsusp = pendingTags(l).length > 0;
+    const picks = pickedNotes(l);
+    const hasCards = lectureTags(l).length > 0 || picks.length > 0 || m;
+    const canUnsusp = hasPending(l, true);
+    const waiting = waitingPicks(l);
     const u = safeUrl(l.url);
     const when = cls === 'done' ? `Done ${new Date(lecDoneDay(l) + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : relDate(l.date);
     return `
@@ -1711,13 +1726,13 @@ function lecRow(l, cls, connected) {
                 <input type="date" class="up-date" data-lec-date="${escHtml(l.id)}" value="${escHtml(l.date)}" aria-label="Due date">
                 <span class="muted">· ${n} of ${LEC_PARTS.length} done${m ? ` · AnKing: ${escHtml(m.res.name)} ${escHtml(m.label)}` : ''}</span>
             </div>
-            ${vids.length ? `<div class="lec-vids">B&amp;B (${vids.length}): ${vids.map(v => v.tag ? `<span title="${escHtml(v.label || '')}">${escHtml(vidName(v))}</span>` : `<span class="vid-missing" title="Not found in your AnKing tags">${escHtml(vidName(v))} (not found)</span>`).join(', ')}${l.unsusp ? ` · <b>${l.unsusp.n.toLocaleString()} cards unsuspended ${escHtml(new Date(l.unsusp.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}</b>` : ''}</div>` : ''}
+            ${vids.length ? `<div class="lec-vids">B&amp;B (${vids.length}): ${vids.map(v => v.tag ? `<span title="${escHtml(v.label || '')}">${escHtml(vidName(v))}</span>` : `<span class="vid-missing" title="Not found in your AnKing tags">${escHtml(vidName(v))} (not found)</span>`).join(', ')}${picks.length ? ` · ${picks.length.toLocaleString()} notes picked` : waiting ? ' · <span class="vid-missing">waiting for card picks</span>' : ''}${l.unsusp ? ` · <b>${l.unsusp.n.toLocaleString()} cards unsuspended ${escHtml(new Date(l.unsusp.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}</b>` : ''}</div>` : ''}
             ${l.note ? `<div class="lec-vids muted">${escHtml(l.note)}</div>` : ''}
         </div>
         <div class="actions">
             ${u ? `<a class="btn-small" href="${escHtml(u)}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; border-radius:4px;">Watch</a>` : ''}
             <button class="btn-small" data-act="find-open" data-id="${escHtml(l.id)}" title="Find the B&amp;B videos for this lecture from its learning objectives and slides">${vids.length ? 'Edit videos' : 'Find videos'}</button>
-            ${canUnsusp ? `<button class="btn-small" data-act="lec-unsuspend" data-id="${escHtml(l.id)}" ${connected ? 'title="Unsuspend this lecture’s B&amp;B cards now"' : 'disabled title="Open Anki on this computer"'}>Unsuspend now</button>` : ''}
+            ${canUnsusp ? `<button class="btn-small" data-act="lec-unsuspend" data-id="${escHtml(l.id)}" ${connected ? `title="${waiting ? 'No card picks yet: unsuspends all cards of these videos' : 'Unsuspend this lecture’s cards now'}"` : 'disabled title="Open Anki on this computer"'}>${waiting ? 'Unsuspend whole videos' : 'Unsuspend now'}</button>` : ''}
             ${hasCards ? `<button class="btn-small" data-act="lec-cards" data-id="${escHtml(l.id)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>` : ''}
             <button class="btn-small" data-act="lec-remove" data-id="${escHtml(l.id)}" title="Remove this lecture">✕</button>
         </div>
@@ -1786,13 +1801,10 @@ function resolveLectureVideos() {
     const leaves = all.filter(e => leafSet.has(e.tag.toLowerCase()));
     const db = loadDb();
     let changed = false;
+    const fix = v => { const r = resolveVideo(v, leaves, all); if (r.tag !== v.tag) changed = true; return r; };
     lectureList(db).forEach(l => {
-        if (!lecVideos(l).length) return;
-        l.videos = l.videos.map(v => {
-            const r = resolveVideo(v, leaves, all);
-            if (r.tag !== v.tag) changed = true;
-            return r;
-        });
+        if (lecVideos(l).length) l.videos = l.videos.map(fix);
+        if (Array.isArray(l.candidates) && l.candidates.length) l.candidates = l.candidates.map(fix);
     });
     if (changed) saveDb(db);
     return changed;
@@ -1803,6 +1815,15 @@ function resolveLectureVideos() {
 // re-suspending cards in Anki afterwards is left alone.
 const autoUnsuspendOn = () => loadDb().autoUnsuspend !== false;
 // videos on a lecture whose cards haven't been unsuspended yet (e.g. one you attached after its day)
+// What's still to unsuspend: picked cards not done yet, else (unless waiting for picks) videos not done yet.
+// force: "Unsuspend now" on a lecture still waiting for picks unsuspends its whole videos.
+function pendingWork(l, force = false) {
+    const picks = pickedNotes(l);
+    if (picks.length) { const doneN = new Set((l.unsusp && l.unsusp.notes) || []); return { notes: picks.filter(n => !doneN.has(n)), tags: [] }; }
+    if (l.hold && !force) return { notes: [], tags: [] };
+    return { notes: [], tags: pendingTags(l) };
+}
+const hasPending = (l, force = false) => { const w = pendingWork(l, force); return w.notes.length + w.tags.length > 0; };
 const pendingTags = l => { const doneT = new Set(((l.unsusp && l.unsusp.tags) || (l.unsusp ? lectureTags(l) : [])).map(t => t.toLowerCase())); return lectureTags(l).filter(t => !doneT.has(t.toLowerCase())); };
 let unsuspending = false, unsuspendAgain = null;
 async function unsuspendLectures({ ids = null } = {}) {
@@ -1814,17 +1835,19 @@ async function unsuspendLectures({ ids = null } = {}) {
     if (!ids && !autoUnsuspendOn()) return;
     resolveLectureVideos();
     const today = todayKey();
-    const due = lectureList(loadDb()).filter(l => ids ? ids.includes(l.id) : l.date <= today).filter(l => pendingTags(l).length);
+    const due = lectureList(loadDb()).filter(l => ids ? ids.includes(l.id) : l.date <= today).filter(l => hasPending(l, !!ids));
     if (!due.length) return;
     unsuspending = true;
     const done = [];
     try {
         for (const l of due) {
-            const tags = pendingTags(l);
-            const query = `(${tags.map(tagQuery).join(' OR ')}) is:suspended -tag:leech`;
-            const cards = await anki('findCards', { query });
+            const { notes, tags } = pendingWork(l, !!ids);
+            let cards = [];
+            for (const part of chunk(notes, 200)) cards = cards.concat(await anki('findCards', { query: `nid:${part.join(',')} is:suspended -tag:leech` }));
+            if (tags.length) cards = cards.concat(await anki('findCards', { query: `(${tags.map(tagQuery).join(' OR ')}) is:suspended -tag:leech` }));
+            cards = [...new Set(cards)];
             if (cards.length) await anki('unsuspend', { cards });
-            done.push({ id: l.id, name: l.name, n: cards.length, tags });
+            done.push({ id: l.id, name: l.name, n: cards.length, tags, notes });
         }
     } catch (err) {
         console.error(err);
@@ -1838,13 +1861,13 @@ async function unsuspendLectures({ ids = null } = {}) {
     done.forEach(r => {
         const l = lectureList(db).find(x => x.id === r.id);
         if (!l) return;
-        const prev = l.unsusp || { n: 0, tags: [] };
-        l.unsusp = { date: prev.date || today, n: (prev.n || 0) + r.n, tags: [...new Set([...(prev.tags || []), ...r.tags])] };
+        const prev = l.unsusp || { n: 0, tags: [], notes: [] };
+        l.unsusp = { date: prev.date || today, n: (prev.n || 0) + r.n, tags: [...new Set([...(prev.tags || []), ...r.tags])], notes: [...new Set([...(prev.notes || []), ...r.notes])] };
         if (!l.watched) l.watched = today;   // the lecture's first Today row ticks itself off; AMBOSS follow-ups count from here
     });
     saveDb(db);
     const total = done.reduce((s, r) => s + r.n, 0);
-    upMsg(`Unsuspended ${total.toLocaleString()} B&amp;B card${total === 1 ? '' : 's'} for ${escHtml(done.map(r => r.name).join(', '))}.`);
+    upMsg(`Unsuspended ${total.toLocaleString()} card${total === 1 ? '' : 's'} for ${escHtml(done.map(r => r.name).join(', '))}.`);
     renderUpcoming();
 }
 $('autoUnsuspendInput').checked = autoUnsuspendOn();
@@ -1869,13 +1892,23 @@ async function importLectures() {
     const db = loadDb();
     const list = lectureList(db).slice();
     let added = 0, updated = 0;
+    let nPicks = 0;
+    const vidList = arr => (arr || []).map(v => typeof v === 'string' ? { name: v } : { name: v.name, section: v.section }).filter(v => v.name);
     incoming.forEach(x => {
-        const videos = (x.videos || []).map(v => typeof v === 'string' ? { name: v } : { name: v.name, section: v.section }).filter(v => v.name);
         const type = LECTURE_TYPES.includes(x.type) ? x.type : (x.type || '');
+        const changes = { type };
+        if ('videos' in x) changes.videos = vidList(x.videos);
+        if ('candidates' in x) changes.candidates = vidList(x.candidates);
+        if (x.note) changes.note = String(x.note);
+        if (Array.isArray(x.notes) && x.notes.length) {   // Claude's card picks
+            changes.picks = [...new Set(x.notes.map(Number).filter(Number.isFinite))];
+            changes.hold = false;
+            nPicks += changes.picks.length;
+        } else if (x.pick) changes.hold = true;           // wait for card picks before unsuspending anything
         const hit = list.find(l => l.name.toLowerCase() === String(x.name).toLowerCase() && l.date === x.date);
-        if (hit) { Object.assign(hit, { type: type || hit.type, videos, note: x.note || hit.note || '' }); updated++; }
+        if (hit) { Object.assign(hit, changes, { type: type || hit.type }); updated++; }
         else {
-            list.push({ id: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: String(x.name), url: safeUrl(x.url) || '', date: x.date, type, videos, note: x.note || '', added: new Date().toISOString() });
+            list.push({ id: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: String(x.name), url: safeUrl(x.url) || '', date: x.date, videos: [], note: '', ...changes, added: new Date().toISOString() });
             added++;
         }
     });
@@ -1884,13 +1917,101 @@ async function importLectures() {
     resolveLectureVideos();
     const vids = lectureList(loadDb()).filter(l => incoming.some(x => x.name.toLowerCase() === l.name.toLowerCase() && x.date === l.date)).flatMap(lecVideos);
     const missing = vids.filter(v => !v.tag);
-    upMsg(`Imported ${added + updated} lecture${added + updated === 1 ? '' : 's'}${updated ? ` (${updated} updated)` : ''}.`
+    const nWait = lectureList(loadDb()).filter(waitingPicks).length;
+    upMsg(`Imported ${added + updated} lecture${added + updated === 1 ? '' : 's'}${updated ? ` (${updated} updated)` : ''}${nPicks ? ` with ${nPicks.toLocaleString()} picked note${nPicks === 1 ? '' : 's'}` : ''}.`
+        + (nWait ? ` ${nWait} lecture${nWait === 1 ? ' is' : 's are'} waiting for card picks: click <b>Export cards for review</b> and send the file to Claude.` : '')
         + (!ankiTags ? ' Open this page with Anki running to match the videos to your AnKing cards.'
             : missing.length ? ` <span class="vid-missing">${missing.length} of ${vids.length} videos not found in your AnKing tags: ${escHtml(missing.map(v => v.name).join(', '))}. Use Edit videos on the lecture to pick them by name.</span>`
             : ` All ${vids.length} videos matched your AnKing cards.`));
     renderUpcoming();
     unsuspendLectures();
 }
+// ---------- export cards for Claude to pick from ----------
+// Lectures waiting for card picks (else today's lectures): every note of their B&B videos and candidate videos,
+// with its text, which video(s) it belongs to, and whether it's still suspended.
+function downloadJson(name, data) {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+const shortText = (html, max) => { const t = cleanCardText(html).replace(/\s+/g, ' ').trim(); return t.length > max ? t.slice(0, max - 1) + '…' : t; };
+let exporting = false;
+async function exportCards() {
+    if (exporting) return;
+    if (!ankiTags) { upMsg('Open this page on the computer with Anki running to export your cards.'); return; }
+    resolveLectureVideos();
+    const today = todayKey();
+    let lecs = lectureList(loadDb()).filter(waitingPicks), scope = 'waiting for card picks';
+    if (!lecs.length) { lecs = lectureList(loadDb()).filter(l => l.date === today); scope = 'due today'; }
+    if (!lecs.length) { upMsg('Nothing to export: no lectures are waiting for card picks or due today.'); return; }
+    const byTag = new Map();
+    const missing = [];
+    lecs.forEach(l => [...lecVideos(l), ...(l.candidates || [])].forEach(v => {
+        if (!v.tag) { missing.push(`${vidName(v)} (${l.name})`); return; }
+        const k = v.tag.toLowerCase();
+        if (!byTag.has(k)) byTag.set(k, { tag: v.tag, label: v.label || vidName(v), lectures: new Set() });
+        byTag.get(k).lectures.add(l.name);
+    }));
+    if (!byTag.size) { upMsg('These lectures have no B&B videos matched to your AnKing tags yet. Attach some with Edit videos first.'); return; }
+    exporting = true;
+    $('lecExportBtn').disabled = true;
+    try {
+        upMsg('Reading the cards from Anki…');
+        const notes = new Map();   // note id -> { videos:Set, lectures:Set }
+        for (const v of byTag.values()) {
+            (await anki('findNotes', { query: tagQuery(v.tag) })).forEach(id => {
+                if (!notes.has(id)) notes.set(id, { videos: new Set(), lectures: new Set() });
+                const n = notes.get(id);
+                n.videos.add(v.label);
+                v.lectures.forEach(x => n.lectures.add(x));
+            });
+        }
+        const suspended = new Set(await anki('findCards', { query: `(${[...byTag.values()].map(v => tagQuery(v.tag)).join(' OR ')}) is:suspended` }));
+        const out = [];
+        const ids = [...notes.keys()];
+        for (let b = 0; b < ids.length; b += 250) {
+            upMsg(`Reading the cards from Anki… ${Math.round((b / ids.length) * 100)}%`);
+            const infos = await anki('notesInfo', { notes: ids.slice(b, b + 250) });
+            infos.forEach(info => {
+                if (!info || !info.fields) return;
+                const f = Object.entries(info.fields).sort((a, c) => a[1].order - c[1].order);
+                const main = f.find(([n]) => /^(text|front|question)$/i.test(n)) || f[0];
+                const extra = f.find(([n]) => /^(extra|back|answer)$/i.test(n) && n !== (main && main[0]));
+                const meta = notes.get(info.noteId);
+                const cards = info.cards || [];
+                out.push({
+                    id: info.noteId,
+                    text: main ? shortText(main[1].value, 600) : '',
+                    extra: extra ? shortText(extra[1].value, 300) : '',
+                    video: [...meta.videos].join(' | '),
+                    lectures: [...meta.lectures],
+                    suspended: cards.length ? cards.every(c => suspended.has(c)) : null,
+                    leech: (info.tags || []).some(t => t.toLowerCase() === 'leech')
+                });
+            });
+        }
+        out.sort((a, c) => a.video.localeCompare(c.video) || a.id - c.id);
+        const dates = [...new Set(lecs.map(l => l.date))].sort();
+        downloadJson(`cards_${dates[0]}${dates.length > 1 ? '_to_' + dates[dates.length - 1] : ''}.json`, {
+            format: 'study-tracker-cards-v1',
+            exported: new Date().toISOString(),
+            lectures: lecs.map(l => ({ name: l.name, date: l.date, type: l.type, videos: lecVideos(l).filter(v => v.tag).map(v => v.label), candidates: (l.candidates || []).filter(v => v.tag).map(v => v.label) })),
+            notes: out
+        });
+        upMsg(`Exported ${out.length.toLocaleString()} notes from ${byTag.size} B&amp;B video${byTag.size === 1 ? '' : 's'} for ${lecs.length} lecture${lecs.length === 1 ? '' : 's'} (${scope}). Send the file to Claude along with the slides.`
+            + (missing.length ? ` <span class="vid-missing">Not found in your AnKing tags, so not included: ${escHtml(missing.join(', '))}.</span>` : ''));
+    } catch (err) {
+        console.error(err);
+        upMsg(escHtml(ankiErrorText(err)));
+    } finally {
+        exporting = false;
+        $('lecExportBtn').disabled = false;
+    }
+}
+$('lecExportBtn').addEventListener('click', exportCards);
+
 $('lecImportBtn').addEventListener('click', () => $('lecImportInput').click());
 $('lecImportInput').addEventListener('change', importLectures);
 
@@ -2349,8 +2470,9 @@ function renderToday() {
     lecs.slice(0, LEC_MAX).forEach(l => {
         const late = l.date < today ? `<span class="${lecDone(l) ? '' : 'stuck'}">${daysBetween(l.date, today)}d overdue</span> · ` : '';
         const u = safeUrl(l.url), vids = lecVideos(l);
-        const tags = lectureTags(l), hasCards = tags.length > 0;
-        const cardsMode = vids.length > 0;   // lectures with B&B videos: the first row is their cards, unsuspended for you
+        const tags = lectureTags(l), picks = pickedNotes(l), waiting = waitingPicks(l);
+        const hasCards = tags.length > 0 || picks.length > 0;
+        const cardsMode = vids.length > 0 || picks.length > 0;   // lectures with B&B cards: the first row is their cards, unsuspended for you
         const missing = vids.filter(v => !v.tag);
         LEC_PARTS.forEach(([part, label0]) => {
             const label = part === 'watched' && cardsMode ? 'B&B cards' : label0;
@@ -2359,14 +2481,16 @@ function renderToday() {
             log.push({ k: part === 'watched' ? (cardsMode ? 'cards' : 'watch') : 'quiz', t: part === 'watched' ? l.name : `${label} · ${l.name}`, d, lec: l.id, p: part });
             let detail = late + escHtml(l.type || '');
             if (part === 'watched' && cardsMode) {
-                detail += ` · ${escHtml(vids.map(vidName).join(', '))}`
-                    + (l.unsusp ? ` · ${l.unsusp.n ? `${l.unsusp.n.toLocaleString()} cards unsuspended` : 'already unsuspended'}`
-                        : !tags.length ? ''
+                detail += (vids.length ? ` · ${escHtml(vids.map(vidName).join(', '))}` : '')
+                    + (picks.length ? ` · ${picks.length.toLocaleString()} notes picked` : '')
+                    + (l.unsusp && !hasPending(l) ? ` · ${l.unsusp.n ? `${l.unsusp.n.toLocaleString()} cards unsuspended` : 'already unsuspended'}`
+                        : waiting ? ' · <span class="vid-missing">waiting for card picks: Export cards for review (in Lectures) and send the file to Claude</span>'
+                        : !hasCards ? ''
                         : autoUnsuspendOn() ? ' · unsuspend automatically when this page is open with Anki' : '')
                     + (missing.length ? ` · <span class="vid-missing">not found in your AnKing tags: ${escHtml(missing.map(vidName).join(', '))}</span>` : '');
             }
             if (part === 'watched' && l.note) detail += `<div class="muted">${escHtml(l.note)}</div>`;
-            const auto = part === 'watched' && cardsMode && tags.length;
+            const auto = part === 'watched' && cardsMode && hasCards;
             rows.push(todayRow({
                 kicker: label,
                 title: escHtml(l.name),
@@ -2376,7 +2500,7 @@ function renderToday() {
                     ? `<input type="checkbox" ${d ? 'checked' : ''} disabled aria-label="${d ? 'Done' : 'Not done yet'}" title="Ticks itself off when the cards are unsuspended">`
                     : `<input type="checkbox" data-lec="${escHtml(l.id)}" data-part="${part}" ${d ? 'checked' : ''} aria-label="Mark ${escHtml(label)} done">`,
                 actions: part !== 'watched' ? '' : (u ? `<a class="btn-small" href="${escHtml(u)}" target="_blank" rel="noopener noreferrer">Watch</a>` : '')
-                    + (auto && pendingTags(l).length ? `<button class="btn-small" data-act="lec-unsuspend" data-id="${escHtml(l.id)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Unsuspend now</button>` : '')
+                    + (auto && hasPending(l, true) ? `<button class="btn-small" data-act="lec-unsuspend" data-id="${escHtml(l.id)}" ${connected ? (waiting ? 'title="No card picks yet: unsuspends all cards of these videos"' : '') : 'disabled title="Open Anki on this computer"'}>${waiting ? 'Unsuspend whole videos' : 'Unsuspend now'}</button>` : '')
                     + (hasCards ? `<button class="btn-small" data-act="lec-cards" data-id="${escHtml(l.id)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>` : '')
             }));
         });
