@@ -169,6 +169,12 @@
         .quiz-check { display: inline-flex; align-items: center; gap: 6px; color: #2d3748; font-size: 1.05em; cursor: pointer; }
         .quiz-check input { width: auto; margin: 0; }
         .quiz-check.done { color: #a0aec0; text-decoration: line-through; }
+        .task-form { display: flex; gap: 6px; margin-top: 10px; }
+        .task-form input[type=text] { flex: 1; min-width: 0; margin: 0; }
+        .task-form input[type=date] { width: auto; margin: 0; }
+        .task-form button { width: auto; flex-shrink: 0; }
+        @media (max-width: 600px) { .task-form { flex-wrap: wrap; } .task-form input[type=text] { flex-basis: 100%; } .task-form input[type=date] { flex: 1; } }
+        .task-later { display: inline-flex; align-items: baseline; gap: 4px; margin-right: 10px; }
         .today-foot { font-size: 0.82em; color: #718096; margin-top: 8px; line-height: 1.6; }
         @media (max-width: 600px) {
             .today-row { flex-wrap: wrap; }
@@ -295,7 +301,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26t · Quizzes tab</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26v · Your own tasks</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -321,6 +327,11 @@
             <span id="todaySummary" style="font-size:0.6em; color:#718096; font-weight:normal;"></span>
         </h2>
         <div id="todayList"></div>
+        <form id="taskForm" class="task-form" autocomplete="off">
+            <input type="text" id="taskText" placeholder="Add your own task…" maxlength="200" aria-label="Task">
+            <input type="date" id="taskDate" aria-label="Day">
+            <button type="submit" class="btn-small">Add</button>
+        </form>
     </div>
 
     <div class="grid">
@@ -535,7 +546,7 @@
                         <input type="text" id="gemModelInput" spellcheck="false">
                     </label>
                     <label class="field">Quiz days after the lecture
-                        <input type="text" id="gemDaysInput" placeholder="3, 10">
+                        <input type="text" id="gemDaysInput" placeholder="1, 7">
                     </label>
                     <label class="field">Most quizzes per day
                         <input type="number" id="gemMaxInput" min="1" max="10">
@@ -2102,7 +2113,7 @@ const DEFAULT_QUIZ_PROMPT = "You are an expert medical education assessment spec
 // ============================================================
 const GEM_KEY = 'gemini_key';
 const QUIZ_SLOTS = [['slides', 'Lecture slides'], ['practice', 'Practice quiz'], ['readiness', 'Readiness quiz']];
-const QUIZ_DEFAULTS = { model: 'gemini-3.8-flash', days: [3, 10], max: 2, prompt: DEFAULT_QUIZ_PROMPT };
+const QUIZ_DEFAULTS = { model: 'gemini-3.8-flash', days: [1, 7], max: 2, prompt: DEFAULT_QUIZ_PROMPT };
 const QUIZ_KEEP_DAYS = 60;              // finished quizzes keep their questions this long, then only the score
 const INLINE_BUDGET = 14 * 1024 * 1024; // PDF bytes sent as-is per request (Gemini's ~20 MB request limit, after base64)
 const PDFJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
@@ -2111,6 +2122,7 @@ const PDFJS_WORKER_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/
 const gemKey = () => { try { return localStorage.getItem(GEM_KEY) || ''; } catch { return ''; } };
 function quizSettings(db = loadDb()) {
     const q = db.quizSettings || {};
+    if (!q.v && Array.isArray(q.days) && q.days.join(',') === '3,10') q.days = QUIZ_DEFAULTS.days;   // saved before the schedule changed to 1, 7
     const days = Array.isArray(q.days) && q.days.length ? q.days.filter(n => Number.isFinite(n) && n >= 0) : QUIZ_DEFAULTS.days;
     return {
         model: (q.model || QUIZ_DEFAULTS.model).trim(),
@@ -2586,6 +2598,7 @@ $('gemSaveBtn').addEventListener('click', () => {
     const days = [...new Set($('gemDaysInput').value.split(/[^\d]+/).filter(Boolean).map(Number))].sort((a, b) => a - b);
     const db = loadDb();
     db.quizSettings = {
+        v: 2,
         model: $('gemModelInput').value.trim() || QUIZ_DEFAULTS.model,
         days: days.length ? days : QUIZ_DEFAULTS.days,
         max: Math.max(1, Math.min(10, parseInt($('gemMaxInput').value, 10) || QUIZ_DEFAULTS.max)),
@@ -2654,7 +2667,7 @@ document.addEventListener('change', e => {
 // ============================================================
 // TODAY — reviews, each lecture (video + practice quiz + readiness quiz), AMBOSS follow-ups, AMBOSS on a weak area
 // ============================================================
-const FOLLOW_UP_DAYS = [2, 14];   // AMBOSS questions this many days after you watch a lecture's video
+const FOLLOW_UP_DAYS = [3, 14];   // AMBOSS questions this many days after a lecture (Gemini quizzes default to days 1 and 7, so each lecture is quizzed at ~1, 3, 7, 14)
 const dayNumber = key => Math.floor(Date.parse(key + 'T00:00:00Z') / 864e5);
 
 async function loadTodayStats() {
@@ -2723,6 +2736,34 @@ function newCardPace(lectures, today) {
     const days = Math.max(1, Math.min(7, daysBetween(first, today) + 1));
     return Math.round(recent.reduce((s, l) => s + (l.unsusp.n || 0), 0) / days);
 }
+
+// ---------- your own tasks on Today ----------
+function addTask(e) {
+    e.preventDefault();
+    const text = $('taskText').value.trim().replace(/\s+/g, ' ');
+    if (!text) { $('taskText').focus(); return; }
+    const date = $('taskDate').value || todayKey();
+    const db = loadDb();
+    const today = todayKey();
+    db.tasks = (Array.isArray(db.tasks) ? db.tasks : []).filter(t => !(t.done && daysBetween(t.done, today) > 30));   // drop old finished tasks
+    db.tasks.push({ id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), text, date, added: new Date().toISOString() });
+    saveDb(db);
+    $('taskText').value = '';
+    $('taskDate').value = today;
+    $('taskText').focus();
+    renderToday();
+}
+function setTask(id, fn) {
+    const db = loadDb();
+    db.tasks = Array.isArray(db.tasks) ? db.tasks : [];
+    fn(db);
+    saveDb(db);
+    renderToday();
+}
+const toggleTask = (id, on) => setTask(id, db => { const t = db.tasks.find(x => x.id === id); if (t) t.done = on ? todayKey() : null; });
+const removeTask = id => setTask(id, db => { db.tasks = db.tasks.filter(x => x.id !== id); });
+$('taskForm').addEventListener('submit', addTask);
+$('taskDate').value = todayKey();
 
 function todayRow({ kicker, title, detail = '', done = false, manual = null, actions = '', check = '' }) {
     const box = check || (manual
@@ -2847,7 +2888,7 @@ function renderToday() {
         }));
     });
 
-    // 3. AMBOSS on new lectures: 2 days and 2 weeks after you watch the video
+    // 3. AMBOSS on new lectures: 3 days and 2 weeks after the lecture
     const fuDue = [], fuToday = [];
     lectures.forEach(l => {
         if (!l.watched) return;
@@ -2899,11 +2940,31 @@ function renderToday() {
 
     renderQuizTab({ rows: quizRows, due: quizCount.due, done: quizCount.done, qq, lectures, today });
 
+    // 5. Your own tasks: today's, unfinished earlier ones, and ones you ticked today
+    const tasks = Array.isArray(db.tasks) ? db.tasks : [];
+    tasks.filter(t => t.date <= today && (!t.done || t.done === today))
+        .sort((a, b) => a.date.localeCompare(b.date) || (a.added || '').localeCompare(b.added || ''))
+        .forEach(t => {
+            const d = !!t.done;
+            count(d);
+            note('task', t.text, d);
+            rows.push(todayRow({
+                kicker: 'Task',
+                title: escHtml(t.text),
+                detail: t.date < today ? `<span class="${d ? '' : 'stuck'}">${daysBetween(t.date, today)}d overdue</span>` : '',
+                done: d,
+                check: `<input type="checkbox" data-task="${escHtml(t.id)}" ${d ? 'checked' : ''} aria-label="Mark done">`,
+                actions: `<button class="btn-small" data-act="task-remove" data-id="${escHtml(t.id)}" title="Remove this task" aria-label="Remove task">✕</button>`
+            }));
+        });
+    const laterTasks = tasks.filter(t => t.date > today && !t.done).sort((a, b) => a.date.localeCompare(b.date));
+
     const extras = [];
     const nl = newLeechCount();
     if (nl) extras.push(`<b>${nl} new leech${nl === 1 ? '' : 'es'}</b> since you last checked. <a href="#" data-act="open-leeches">Review ${nl === 1 ? 'it' : 'them'} in Leeches</a>; fixing leeches early saves review time.`);
     if (qq.waiting) extras.push(`${qq.waiting} more lecture quiz${qq.waiting === 1 ? '' : 'zes'} waiting; ${qq.waiting === 1 ? 'it shows' : 'they show'} on the next days, a few at a time.`);
     if (moreLecs > 0) extras.push(`${moreLecs} more lecture${moreLecs === 1 ? '' : 's'} due; they’ll show here as you finish these.`);
+    if (laterTasks.length) extras.push(`Your tasks for later: ${laterTasks.slice(0, 6).map(t => `<span class="task-later">${escHtml(t.text)} <span class="muted">(${escHtml(relDate(t.date))})</span><button class="link-btn" data-act="task-remove" data-id="${escHtml(t.id)}" aria-label="Remove task">✕</button></span>`).join('')}${laterTasks.length > 6 ? ` +${laterTasks.length - 6} more` : ''}`);
     if (tmrLecs.length) extras.push(`Tomorrow: ${escHtml(tmrLecs.map(l => l.name).join(', '))}. Previewing before the lecture helps it stick.`);
     if (rows.some(r => r.includes('Open cards'))) extras.push('“Open cards” shows them in Anki’s Browse window: select all, then Start Qbank Session (AMBOSS add-on).');
 
@@ -2954,6 +3015,7 @@ function openNewVideoCards() {
 document.addEventListener('change', e => {
     const t = e.target;
     if (t.dataset && t.dataset.today) toggleToday(t.dataset.today, t.checked);
+    if (t.dataset && t.dataset.task) toggleTask(t.dataset.task, t.checked);
     if (t.dataset && t.dataset.lec && t.dataset.part) toggleLecturePart(t.dataset.lec, t.dataset.part, t.checked);
 });
 
@@ -3138,7 +3200,7 @@ $('leechFilter').addEventListener('change', e => {
 // HISTORY — each day's Today list, plus Anki's own review counts
 // ============================================================
 const DAY_LOG_DAYS = 180;
-const KICKERS = { reviews: 'Reviews', watch: 'Watch', cards: 'B&B cards', quiz: 'Quiz', scholarrx: 'Lecture', lecture: 'Questions · lecture', 'amboss-new': 'AMBOSS · new', 'amboss-weak': 'AMBOSS · weak area', newcards: 'New cards', lecquiz: 'Lecture quiz' };
+const KICKERS = { reviews: 'Reviews', watch: 'Watch', cards: 'B&B cards', quiz: 'Quiz', scholarrx: 'Lecture', lecture: 'Questions · lecture', 'amboss-new': 'AMBOSS · new', 'amboss-weak': 'AMBOSS · weak area', newcards: 'New cards', lecquiz: 'Lecture quiz', task: 'Task' };
 
 async function loadReviewHistory() {
     if (!ankiTags) return;
@@ -3255,6 +3317,9 @@ document.addEventListener('click', e => {
         }
         case 'lec-remove':
             removeLecture(el.dataset.id);
+            break;
+        case 'task-remove':
+            removeTask(el.dataset.id);
             break;
         case 'lec-undo':
             undoRemove();
