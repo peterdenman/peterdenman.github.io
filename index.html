@@ -206,6 +206,8 @@
         input.up-date { width: auto; padding: 2px 4px; font-size: 1em; }
         .up-when { font-weight: bold; }
         .stuck { color: #c53030; font-weight: bold; }
+        .started-all { color: #276749; }
+        .nc-warn { color: #c53030; margin-top: 3px; }
         .link-btn { flex: 0 0 auto; background: none; border: none; padding: 0 2px; color: #3182ce; font-weight: normal; font-size: 1em; text-decoration: underline; cursor: pointer; }
         .up-when.due { color: #c53030; }
         .up-when.soon { color: #c05621; }
@@ -250,7 +252,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26p · Card picks only</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26q · New-card backlog</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -1724,6 +1726,13 @@ function toggleLecturePart(id, part, on) {
     setLecture(id, changes);
 }
 
+// "212 of 340 cards started", from the last new-card check
+function startedText(l) {
+    const nc = loadDb().newCards, p = nc && nc.per && nc.per[l.id];
+    if (!p || !p.total) return '';
+    const started = p.total - p.waiting;
+    return ` · <span class="${p.waiting ? '' : 'started-all'}">${started === p.total ? `all ${p.total.toLocaleString()} cards started` : `${started.toLocaleString()} of ${p.total.toLocaleString()} cards started`}</span>`;
+}
 function lecRow(l, cls, connected) {
     const n = LEC_PARTS.filter(([k]) => l[k]).length;
     const picks = pickedNotes(l);
@@ -1740,7 +1749,7 @@ function lecRow(l, cls, connected) {
                 <input type="date" class="up-date" data-lec-date="${escHtml(l.id)}" value="${escHtml(l.date)}" aria-label="Due date">
                 <span class="muted">· ${n} of ${LEC_PARTS.length} done</span>
             </div>
-            ${picks.length || l.unsusp ? `<div class="lec-vids">${picks.length ? `${picks.length.toLocaleString()} notes picked` : ''}${l.unsusp ? `${picks.length ? ' · ' : ''}<b>${l.unsusp.n.toLocaleString()} cards unsuspended ${escHtml(new Date(l.unsusp.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}</b>` : ''}</div>` : '<div class="lec-vids muted">No cards picked yet</div>'}
+            ${picks.length || l.unsusp ? `<div class="lec-vids">${picks.length ? `${picks.length.toLocaleString()} notes picked` : ''}${l.unsusp ? `${picks.length ? ' · ' : ''}<b>${l.unsusp.n.toLocaleString()} cards unsuspended ${escHtml(new Date(l.unsusp.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}</b>` : ''}${startedText(l)}</div>` : '<div class="lec-vids muted">No cards picked yet</div>'}
             ${l.note ? `<div class="lec-vids muted">${escHtml(l.note)}</div>` : ''}
         </div>
         <div class="actions">
@@ -1840,6 +1849,7 @@ async function unsuspendLectures({ ids = null } = {}) {
     saveDb(db);
     const total = done.reduce((s, r) => s + r.n, 0);
     setTimeout(refreshLectureStats, 0);   // newly unsuspended lectures join the Priority list
+    setTimeout(loadNewCardStats, 0);
     upMsg(`Unsuspended ${total.toLocaleString()} card${total === 1 ? '' : 's'} for ${escHtml(done.map(r => r.name).join(', '))}.`);
     renderUpcoming();
 }
@@ -1999,6 +2009,59 @@ async function loadTodayStats() {
         saveDb(db);
         renderToday();
     } catch (err) { console.error(err); }
+    loadNewCardStats();
+}
+
+// ---------- new lecture cards: unsuspended for a lecture but never studied ----------
+// Per lecture: cards started vs total. Overall: cards waiting, learned today, and your deck's new-cards/day limit,
+// so a backlog building up is visible.
+let newStatsBusy = false;
+async function loadNewCardStats() {
+    if (!ankiTags || newStatsBusy) return;
+    const lecs = lectureList(loadDb()).filter(l => l.unsusp && lectureQuery(l));
+    if (!lecs.length) return;
+    newStatsBusy = true;
+    try {
+        const per = {}, waitingIds = new Set();
+        for (const group of chunk(lecs, 25)) {
+            const res = await ankiMulti(group.flatMap(l => [
+                { action: 'findCards', params: { query: `${lectureQuery(l)} -is:suspended` } },
+                { action: 'findCards', params: { query: `${lectureQuery(l)} -is:suspended is:new` } }
+            ]));
+            group.forEach((l, k) => {
+                const total = res[2 * k] || [], waiting = res[2 * k + 1] || [];
+                per[l.id] = { total: total.length, waiting: waiting.length };
+                waiting.forEach(c => waitingIds.add(c));
+            });
+        }
+        const all = `(${lecs.map(lectureQuery).join(' OR ')})`;
+        const learned = await anki('findCards', { query: `${all} introduced:1` });
+        // the deck your lecture cards live in, its new-cards/day limit, and how many new cards Anki has left for today
+        let deck = null, limit = null, leftToday = null;
+        const sample = waitingIds.size ? [...waitingIds].slice(0, 50) : (await anki('findCards', { query: `${all} -is:suspended` })).slice(0, 50);
+        if (sample.length) {
+            const counts = new Map();
+            (await anki('cardsInfo', { cards: sample })).forEach(c => { if (c && c.deckName) counts.set(c.deckName, (counts.get(c.deckName) || 0) + 1); });
+            deck = [...counts].sort((a, b) => b[1] - a[1]).map(x => x[0])[0] || null;
+        }
+        if (deck) {
+            try { const conf = await anki('getDeckConfig', { deck }); if (conf && conf.new && Number.isFinite(conf.new.perDay)) limit = conf.new.perDay; } catch (err) { console.error(err); }
+            try { const st = await anki('getDeckStats', { decks: [deck] }); const v = st && Object.values(st)[0]; if (v && Number.isFinite(v.new_count)) leftToday = v.new_count; } catch (err) { console.error(err); }
+        }
+        const db = loadDb();
+        db.newCards = { date: todayKey(), at: new Date().toISOString(), waiting: waitingIds.size, learnedToday: learned.length, deck, limit, leftToday, per };
+        saveDb(db);
+        renderUpcoming();
+    } catch (err) { console.error(err); }
+    finally { newStatsBusy = false; }
+}
+// Lecture cards unsuspended per day lately (last 7 days, or since your first lecture if that's sooner)
+function newCardPace(lectures, today) {
+    const recent = lectures.filter(l => l.unsusp && l.unsusp.date && daysBetween(l.unsusp.date, today) < 7);
+    if (!recent.length) return null;
+    const first = lectures.filter(l => l.unsusp && l.unsusp.date).map(l => l.unsusp.date).sort()[0];
+    const days = Math.max(1, Math.min(7, daysBetween(first, today) + 1));
+    return Math.round(recent.reduce((s, l) => s + (l.unsusp.n || 0), 0) / days);
 }
 
 function todayRow({ kicker, title, detail = '', done = false, manual = null, actions = '', check = '' }) {
@@ -2038,6 +2101,33 @@ function renderToday() {
             : `${st.done.toLocaleString()} reviewed today · updated ${new Date(st.at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`,
         done: revDone
     }));
+
+    // 1b. New lecture cards waiting to be learned
+    const nc = db.newCards;
+    if (nc && lectures.some(l => l.unsusp)) {
+        const fresh = nc.date === today;
+        const pace = newCardPace(lectures, today);
+        const ncDone = fresh && (nc.waiting === 0 || nc.leftToday === 0 || (nc.limit > 0 && nc.learnedToday >= nc.limit));
+        const ncTitle = nc.waiting ? `${nc.waiting.toLocaleString()} lecture card${nc.waiting === 1 ? '' : 's'} waiting to learn` : 'All lecture cards started';
+        count(ncDone);
+        note('newcards', ncTitle, ncDone);
+        const bits = [];
+        if (fresh) bits.push(`${nc.learnedToday.toLocaleString()} learned today`);
+        if (fresh && nc.leftToday != null) bits.push(nc.leftToday ? `${nc.leftToday.toLocaleString()} new left in today’s Anki queue` : 'today’s Anki new-card queue is done');
+        if (nc.limit != null) bits.push(`limit ${nc.limit}/day${nc.deck ? ` in ${escHtml(nc.deck.split('::').pop())}` : ''}`);
+        if (nc.waiting && nc.limit > 0) { const days = Math.ceil(nc.waiting / nc.limit); bits.push(`~${days} day${days === 1 ? '' : 's'} to get through at that limit`); }
+        if (pace) bits.push(`you’re adding ~${pace.toLocaleString()}/day`);
+        if (!fresh) bits.push('updates when this page is open with Anki');
+        let warn = '';
+        if (nc.limit === 0 && nc.waiting) warn = 'Your deck’s New cards/day is 0, so Anki won’t show any of these. Raise it in the deck’s options.';
+        else if (nc.limit != null && pace && pace > nc.limit) warn = `You’re adding about ${pace.toLocaleString()} new cards a day but Anki only shows ${nc.limit}, so the backlog grows by ~${(pace - nc.limit).toLocaleString()} a day. To keep up, raise New cards/day in ${nc.deck ? escHtml(nc.deck.split('::').pop()) : 'your deck'}’s options to at least ${pace.toLocaleString()}.`;
+        rows.push(todayRow({
+            kicker: 'New cards',
+            title: ncTitle,
+            detail: bits.join(' · ') + (warn ? `<div class="nc-warn">${warn}</div>` : ''),
+            done: ncDone
+        }));
+    }
 
     // 2. Lectures due today (and unfinished overdue ones): the video, a practice quiz and a readiness quiz
     const lecs = lectures.filter(l => l.date <= today && (!lecDone(l) || LEC_PARTS.some(([k]) => l[k] === today)))
@@ -2365,7 +2455,7 @@ $('leechFilter').addEventListener('change', e => {
 // HISTORY — each day's Today list, plus Anki's own review counts
 // ============================================================
 const DAY_LOG_DAYS = 180;
-const KICKERS = { reviews: 'Reviews', watch: 'Watch', cards: 'B&B cards', quiz: 'Quiz', scholarrx: 'Lecture', lecture: 'Questions · lecture', 'amboss-new': 'AMBOSS · new', 'amboss-weak': 'AMBOSS · weak area' };
+const KICKERS = { reviews: 'Reviews', watch: 'Watch', cards: 'B&B cards', quiz: 'Quiz', scholarrx: 'Lecture', lecture: 'Questions · lecture', 'amboss-new': 'AMBOSS · new', 'amboss-weak': 'AMBOSS · weak area', newcards: 'New cards' };
 
 async function loadReviewHistory() {
     if (!ankiTags) return;
