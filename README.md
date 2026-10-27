@@ -1,114 +1,49 @@
 # Study Tracker
 
-A minimal, fast web page that ties together Anki (AnKing), AMBOSS, Boards & Beyond and Bootcamp. UWorld support is coming.
+Daily checklist, Anki (AnKing) stats, B&B cards for each lecture, AMBOSS and Gemini practice questions. It syncs through your GitHub account, so it works on your phone and computer.
 
-- **Today**: a daily checklist of Anki reviews; for each lecture due that day, its B&B cards, practice quiz and readiness quiz; AMBOSS questions on lectures you watched recently; and AMBOSS questions on your weakest area.
-- **Priority**: ranks your weakest lectures (or AnKing subjects) from your Anki review history.
-- **Lectures**: your lectures, each with a due date, a type (Biochem, Genetics, Pharm, Immuno or Path), an optional video link, and the B&B cards Claude picked from its slides.
-- **History**: every day's Today list, what you finished, and your daily review counts.
-- **Quizzes**: a tab with today's AMBOSS and Gemini quizzes, what's coming in the next 7 days, every lecture's Gemini quizzes with scores, and the Gemini settings. Quizzes also stay on Today.
-- **Leeches**: a separate tab for the cards Anki keeps suspending, so you can fix them.
+The only change the page makes in Anki is unsuspending the cards picked for each lecture on its due date. Everything else is read-only.
 
-Your data saves automatically to a file in your GitHub account, so the dashboard stays in sync on your phone, tablet and computer. The only change the page makes in Anki is unsuspending the cards Claude picked for each lecture on its due date. You can turn that off; everything else is read-only. Refreshing stats needs the computer where Anki is open; your phone shows the latest synced view.
+## Set up (once)
 
-## How to set it up
-
-### 1. Create your repository and add the page
-
-1. Log in at [github.com](https://github.com/).
-2. Click the **+** icon (top right) → **New repository**.
-3. Repository name: `med-school-tracker`.
-4. Leave it **Public**. GitHub Pages is free only for public repositories; a private repo needs a paid plan. Your saved study data (`database.json`) will be publicly readable. Your GitHub token is never saved in the repository.
-5. Tick **Add a README file**, then click **Create repository**.
-6. Click **Add file** → **Upload files**, drag in `index.html` from this project, and click **Commit changes**. The file must be named exactly `index.html`. Uploading is easier than pasting the code, because the file is large.
-
-### 2. Create your save file (optional)
-
-The page creates `database.json` on its first save. To create it yourself:
-
-1. In your repository, click **Add file** → **Create new file**.
-2. Name it exactly `database.json`.
-3. Type just `{}` in the file box.
-4. Click **Commit changes**.
-
-### 3. Put the page on the web (GitHub Pages)
-
-1. In your repository, open the **Settings** tab.
-2. In the left sidebar, under **Code and automation**, click **Pages**.
-3. Under **Build and deployment**, set **Source** to **Deploy from a branch**.
-4. Under **Branch**, choose **main**, leave the folder as **/ (root)**, and click **Save**.
-5. Wait 1–2 minutes and refresh. GitHub shows your live link at the top, for example `https://yourusername.github.io/med-school-tracker/`. Bookmark it on your phone and computer.
-
-### 4. Get a GitHub key (token) so the page can save
-
-1. On GitHub, click your profile picture (top right) → **Settings**.
-2. At the bottom of the left sidebar, click **Developer settings**.
-3. Click **Personal access tokens** → **Fine-grained tokens** → **Generate new token**.
-4. Name it `Study Tracker Sync`.
-5. **Expiration**: pick a longer period than the 30-day default, such as the end of your semester. When the token expires, syncing stops until you make a new one.
-6. **Repository access**: choose **Only select repositories** and pick `med-school-tracker`.
-7. Under **Permissions** → **Repository permissions**, set **Contents** to **Read and write**.
-8. Click **Generate token** and copy it right away (it starts with `github_pat_`). GitHub only shows it once.
-
-### 5. Connect the page to GitHub
-
-Open your bookmarked link and fill in the two boxes at the top right:
-
-- **GitHub Token**: the `github_pat_...` key from step 4.
-- **username/repo**: your username and repository, for example `peterdenman/med-school-tracker`.
-
-The status under the title changes to **Sync: Connected**, or to **Sync: Connected (file will be created)** if you skipped step 2. The token is saved only in that browser, so enter it once on each device you use.
-
-### 6. Connect the page to Anki (on your computer)
-
-1. In Anki: **Tools → Add-ons → Get Add-ons**, enter `2055492159` (AnkiConnect), and restart Anki.
-2. Use **Chrome, Edge or Firefox** on the same computer as Anki, and keep Anki open.
-3. Open your page. The first time, Anki shows a permission popup for the site; click **Yes**. If the browser asks to allow access to devices on your local network, allow that too.
-4. Still not connecting? In Anki, open **Tools → Add-ons → AnkiConnect → Config** and add your site to `webCorsOriginList`. Use only the start of the address, with no repository name and no trailing slash:
+1. **Make the repository.** On [github.com](https://github.com/), click **+** → **New repository**, name it `med-school-tracker`, leave it **Public** (GitHub Pages is free only for public repos, so your saved study data is publicly readable), and click **Create repository**. Then **Add file** → **Upload files** and upload `index.html`.
+2. **Turn on GitHub Pages.** In the repository, go to **Settings** → **Pages**, set **Source** to **Deploy from a branch**, choose **main** and **/ (root)**, and click **Save**. After a minute or two, your link appears there, for example `https://yourusername.github.io/med-school-tracker/`. Bookmark it.
+3. **Make a GitHub token.** Profile picture → **Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained tokens** → **Generate new token**. Give it access to **only** `med-school-tracker`, set **Contents** to **Read and write**, and pick an expiration date at the end of your semester. Copy the token (`github_pat_…`).
+4. **Connect.** Open your link and fill in the two boxes at the top: the token, and `username/med-school-tracker`. It should say **Sync: Connected**. Do this once on each device; the token is never saved in the repository.
+5. **Connect Anki** (on your computer). In Anki, go to **Tools → Add-ons → Get Add-ons**, enter `2055492159` (AnkiConnect), and restart Anki. Open the page in Chrome, Edge or Firefox with Anki running, and click **Yes** on Anki's popup. If it still won't connect, add your site to AnkiConnect's config (**Tools → Add-ons → AnkiConnect → Config**) and restart Anki:
    ```json
-   "webCorsOriginList": [
-       "http://localhost",
-       "https://yourusername.github.io"
-   ]
+   "webCorsOriginList": ["http://localhost", "https://yourusername.github.io"]
    ```
-   Click **OK** and restart Anki.
+6. **Optional:** the [AMBOSS Anki add-on](https://amboss.com/us/anki/qbank) turns any **Open cards** button into an AMBOSS Qbank session: in Anki's Browse window, select all and click **Start Qbank Session**.
 
-From then on, the page connects and refreshes your stats whenever you open it with Anki running. Connection settings and first-time help are under **AnKing Sync** at the bottom of the page.
+## Daily routine
 
-### 7. Recommended
+1. **Send Claude the day's lecture slides.** Claude sends back a lectures file with the B&B cards that match each lecture. Import it with **Import lectures (.json)** in the Lectures card.
+2. **On the lecture's day**, open the page on your computer with Anki running. The picked cards are unsuspended automatically; leeches stay suspended. Or click **Unsuspend now** on a lecture to do it early.
+3. **Work down Today.** Reviews and the B&B cards row tick themselves off; tick the rest yourself. Anything you don't finish stays on Today, marked overdue.
 
-- **AnKing Step deck (v12, via AnkiHub)**: the B&B and Bootcamp video tags come from the current version.
-- **[AMBOSS Anki add-on](https://amboss.com/us/anki/qbank)**: the **Open cards** buttons show cards in Anki's Browse window. There you select all and click **Start Qbank Session** to get AMBOSS questions on exactly those cards.
+Claude needs your B&B cards once: click **Export all B&B cards** and send Claude the file. Do it again after a big AnkiHub update or in a new conversation with Claude.
 
-## Using it
+## What's on the page
 
-- **Each day's lectures**: send Claude the day's slides. Claude searches your B&B cards (from **Export all B&B cards**, below) and sends back a lectures file listing each lecture with its date, type and the notes that match its slides. Import it with **Import lectures (.json)** under the Add lecture button. Importing a lecture with the same name and date again updates it instead of adding a copy.
-- **Adding a lecture by hand**: in the **Lectures** card, type the lecture name, paste its video link (optional), pick the due date and type, and click **Add lecture** (or press Enter). If you paste only a link, the name is taken from it. A lecture added by hand has no cards until you import picks for it (same name and date).
-- **On the due date**, Today adds three rows for the lecture: **B&B cards** (or **Watch** for a lecture with no cards picked), **Practice quiz** and **Readiness quiz**. Tick the quizzes off yourself. Anything you don't finish stays on Today, marked overdue, until you tick it. A lecture moves to **Done** in the Lectures card once all three are ticked.
-- **Changing or removing**: change a lecture's due date with the date box on its row. Click **✕** to remove it; **Undo** brings it back.
-- **Automatic unsuspend**: on a lecture's due date, the page unsuspends its picked notes as soon as it's open on the computer with Anki running. Leech cards stay suspended, and a note's cloze cards are unsuspended together. The lecture's **B&B cards** row on Today then ticks itself off and shows how many cards were unsuspended. Each note is unsuspended once, so if you re-suspend cards in Anki the page leaves them alone. To unsuspend a lecture early, click **Unsuspend now** on its row. To stop automatic unsuspending, untick **Unsuspend each lecture's picked cards automatically** under the Add lecture button; **Unsuspend now** still works. **Cards** opens a lecture's cards in Anki's Browse window.
-- **New-card backlog**: unsuspended cards are new cards, and Anki only shows as many per day as your deck's **New cards/day** setting allows. Today's **New cards** row shows how many lecture cards you haven't started yet, how many you learned today, your deck's limit, and how many days the backlog takes at that limit. It ticks itself off when Anki's new-card queue for the day is done. If you're adding cards faster than your limit lets you learn them, it says so in red and tells you what to raise the limit to. Each lecture's row also shows how many of its cards you've started. The limit is read from the deck's options preset; if you set a different limit for just that deck in Anki's deck options, the page doesn't see it.
-- **Lecture quizzes (Gemini)**: practice questions written from your own slides, a few at a time.
-  1. On the **Quizzes** tab, open **Gemini settings**, paste your Gemini API key and click **Save**. The key is saved only in that browser and is never synced or put in your repository. Your prompt is already filled in; edit it there anytime (**Reset prompt** restores it). **Model** is the Gemini model to use, **Quiz days after the lecture** sets when each quiz shows up (default 3 and 10 days, so two quizzes per lecture), and **Most quizzes per day** caps how many show on Today (default 2).
-  2. On a lecture's row in Lectures, click **Quiz** (or, on the Quizzes tab, pick it from **Add quizzes for a lecture…**) and add the lecture slides, the practice quiz and the readiness quiz (PDF, PowerPoint .pptx or Word .docx). PDF is best: Gemini sees the slides' images and tables. From PowerPoint only the text and speaker notes are sent. Once all three are in, the page sends them with your prompt to Gemini and saves the questions. To write quizzes from the slides alone, click **Write quizzes now**. The same panel lists each quiz with its status (waiting, being written, ready, or why it failed) and an **Open** button, so you can check the questions or take a quiz before its day.
-  3. On a quiz's day, Today shows a **Lecture quiz** row with **Start**. Answer each question to see the correct answer, the mechanistic pathway, why each distractor is wrong and the slide it came from. Keyboard: A–E to answer, Enter for next. The row ticks itself off when you finish, and the score shows on the lecture's row. Quizzes beyond the daily cap wait for the next day, oldest first; a lecture's second quiz waits until its first is done and is written to test different facts.
-  - The **Quizzes** tab shows the same quiz rows as Today (with a count of quizzes still due on the tab), the AMBOSS follow-ups and lecture quizzes coming up in the next 7 days, and every lecture's quizzes with their dates, scores and **Open**/**Review** buttons. A quiz that hasn't been written yet doesn't take one of the day's slots.
-  - Only lectures you add files to get quizzes. The files stay on the computer you added them on; the questions and scores sync, so you can take quizzes on your phone. If writing fails (bad key, quota), the lecture's row says so and the page tries again later; **Save** in Gemini settings retries right away.
-  - AI-written questions can have a wrong answer key. Check the cited slide when one looks off.
-  - Protect your key: in Google Cloud Console (**APIs & Services → Credentials**), restrict it to the Generative Language API and to your site (`https://yourusername.github.io/*`).
-  - Finished quizzes keep their questions for 60 days, then only the score, to keep your save file small.
-- **Export all B&B cards**: saves every B&B card in your collection (its text, note ID and video) to one file, `bnb_cards_<date>.json`, of several megabytes. Send it to Claude once. After that, Claude can search all of B&B by topic and send back a picks file from just your slides; you don't need to export each day. Export again after a big AnkiHub update, and send it again at the start of a new conversation with Claude.
-- **AMBOSS follow-ups**: 2 days and 2 weeks after a lecture's cards are unsuspended (or you tick **Watch**), Today adds AMBOSS questions on that lecture. **Open cards** opens its cards in Anki for an AMBOSS Qbank session.
-- **Each day**: work down the **Today** list. Reviews tick off when you're caught up in Anki; tick everything else yourself.
-- **History**: the **History** tab keeps each day's Today list with what you finished, a 4-week overview, your streak of fully finished days, and Anki's review count for each day.
-- **Weak areas (by lecture)**: Priority ranks your lectures by default. Each lecture is scored from reviews of its own cards, the ones unsuspended for it: 70% Again rate on reviews in the look-back window plus 30% share of cards with 3+ lapses. A lecture is ranked once it has 20+ reviews. Until then it's listed under **Collecting reviews**, which usually takes a few days after its cards are unsuspended. Switch to **By AnKing subject** for the old subject ranking, which is handy for Step 1 prep. Stats refresh when you open the page with Anki running, or when you click **Refresh**.
-- **AnKing Notebook**: follows the same switch. Pick a lecture to see its retention, lapses, active and mature cards, weekly retention chart and AMBOSS topics. **Start Qbank session** opens that lecture's weak cards in Anki for an AMBOSS session; **Open all its cards** opens every card. Today's **AMBOSS · weak area** row rotates through your weakest lectures. **Progress Over Time** has a **Lectures** history too.
-- **Leeches**: the **Leeches** tab lists cards Anki tagged as leeches (and suspended), grouped by subject, plus "almost leeches" with 5+ lapses. Click **Open** to edit a card in Anki, rewrite it, then unsuspend it there. The Today panel tells you when new leeches appear.
+- **Today**: your Anki reviews, new lecture cards waiting to learn, each lecture's B&B cards, practice quiz and readiness quiz, AMBOSS and Gemini quizzes, and your own tasks.
+  - **New cards** shows how many lecture cards you haven't started, and warns in red if you're adding cards faster than your deck's **New cards/day** limit can keep up.
+  - **Your own tasks**: type anything in the box under the list, pick a day, and press **Add**.
+- **Quizzes** tab: today's quizzes, what's coming in the next 7 days, every lecture's Gemini quizzes with scores, and the Gemini settings. Each lecture gets quizzed at about 1, 3, 7 and 14 days: Gemini on days 1 and 7, AMBOSS on days 3 and 14.
+- **Priority**: your weakest lectures, ranked from reviews of their own cards (70% Again rate + 30% cards with 3+ lapses). A lecture is ranked once it has 20 reviews. Switch to **By AnKing subject** for Step 1 prep.
+- **Lectures**: add, re-date or remove lectures (**✕**, with **Undo**). **Cards** opens a lecture's cards in Anki. **Quiz** adds files for Gemini quizzes.
+- **AnKing Notebook** and **Progress Over Time** (bottom of the page): stats, weekly retention and AMBOSS practice for each lecture.
+- **History** tab: each day's checklist, your streak and your daily review counts.
+- **Leeches** tab: cards Anki keeps suspending. Click **Open** to fix one in Anki, then unsuspend it there.
+
+## Gemini quizzes
+
+1. On the **Quizzes** tab, open **Gemini settings**, paste your API key and click **Save**. The key stays in that browser only. Your prompt is filled in; edit it anytime.
+2. On a lecture, click **Quiz** and add the slides, practice quiz and readiness quiz (PDF, .pptx or .docx; PDF is best because Gemini sees the images). The questions are written automatically once all three are in, or click **Write quizzes now** to use the slides alone.
+3. Quizzes show on Today and the Quizzes tab on their days, at most 2 a day. **Open** in the lecture's Quiz panel lets you take one early.
+
+The files stay on the computer you added them on; the questions and scores sync to your phone. AI-written questions can have a wrong answer key, so each one names its source slide. In Google Cloud Console, restrict your key to the Generative Language API and your `github.io` address.
 
 ## Updating the page
 
-1. In your repository, click `index.html` → the pencil (edit) icon, or upload the new file over the old one, and commit.
-2. Wait 1–2 minutes for GitHub Pages to update. Check the **Actions** tab for a green check.
-3. Hard-refresh the page (Ctrl+Shift+R, or Cmd+Shift+R on Mac). The small **Version** line under the title shows which version is live.
-
-Your data in `database.json` is kept when you update the page.
+Upload the new `index.html` over the old one in your repository, wait a minute or two, then hard-refresh (Ctrl+Shift+R, or Cmd+Shift+R on Mac). The **Version** line under the title shows which version is live. Your saved data is kept.
