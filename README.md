@@ -1,6 +1,6 @@
 # Study Tracker
 
-A minimal, fast web page that ties together Anki (AnKing), AMBOSS, Boards & Beyond and Bootcamp. UWorld support is coming.
+A minimal, fast web page that ties together Anki (AnKing), AMBOSS, Boards & Beyond and Bootcamp. 
 
 - **Today**: a daily checklist of Anki reviews; for each lecture due that day, its B&B cards, practice quiz and readiness quiz; AMBOSS questions on lectures you watched recently; and AMBOSS questions on your weakest area.
 - **Priority**: ranks your weakest lectures (or AnKing subjects) from your Anki review history.
