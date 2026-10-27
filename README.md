@@ -2,12 +2,13 @@
 
 A minimal, fast web page that ties together Anki (AnKing), AMBOSS, Boards & Beyond and Bootcamp. UWorld support is coming.
 
-- **Today**: a daily checklist of Anki reviews, videos to watch, AMBOSS questions on newly unsuspended videos, and AMBOSS questions on your weakest area.
-- **Priority**: ranks your weakest subjects from your Anki review history.
-- **Upcoming Unsuspends**: plans which videos and cards to unsuspend and when. Import a B&B schedule spreadsheet, or match a lecture PDF to its videos.
+- **Today**: a daily checklist of Anki reviews; for each lecture due that day, its B&B cards, practice quiz and readiness quiz; AMBOSS questions on lectures you watched recently; and AMBOSS questions on your weakest area.
+- **Priority**: ranks your weakest lectures (or AnKing subjects) from your Anki review history.
+- **Lectures**: your lectures, each with a due date, a type (Biochem, Genetics, Pharm, Immuno or Path), an optional video link, and the B&B cards Claude picked from its slides.
+- **History**: every day's Today list, what you finished, and your daily review counts.
 - **Leeches**: a separate tab for the cards Anki keeps suspending, so you can fix them.
 
-Your data saves automatically to a file in your GitHub account, so the dashboard stays in sync on your phone, tablet and computer. Anything that changes cards (refreshing stats, unsuspending) needs the computer where Anki is open; your phone shows the latest synced view.
+Your data saves automatically to a file in your GitHub account, so the dashboard stays in sync on your phone, tablet and computer. The only change the page makes in Anki is unsuspending the cards Claude picked for each lecture on its due date. You can turn that off; everything else is read-only. Refreshing stats needs the computer where Anki is open; your phone shows the latest synced view.
 
 ## How to set it up
 
@@ -80,10 +81,18 @@ From then on, the page connects and refreshes your stats whenever you open it wi
 
 ## Using it
 
-- **Plan the semester**: in **Upcoming Unsuspends**, click **Import B&B schedule (.xlsx)** to schedule every video for its lecture day. You can also use **Match a lecture PDF**, or **+ Add videos or cards** to pick videos by hand.
-- **Each day**: work down the **Today** list. Reviews and videos tick themselves off from Anki; tick the AMBOSS rows yourself when you finish them.
-- **Weak areas**: click **Refresh** on the Priority card to re-rank your subjects. Click any area to see its stats and AMBOSS practice in the **AnKing Notebook** section.
-- **Leeches**: the **Leeches** tab lists cards Anki tagged as leeches (and suspended), grouped by subject, plus "almost leeches" with 5+ lapses. Open each card in Anki to rewrite it, then unsuspend it or reset it. The Today panel tells you when new leeches appear.
+- **Each day's lectures**: send Claude the day's slides. Claude searches your B&B cards (from **Export all B&B cards**, below) and sends back a lectures file listing each lecture with its date, type and the notes that match its slides. Import it with **Import lectures (.json)** under the Add lecture button. Importing a lecture with the same name and date again updates it instead of adding a copy.
+- **Adding a lecture by hand**: in the **Lectures** card, type the lecture name, paste its video link (optional), pick the due date and type, and click **Add lecture** (or press Enter). If you paste only a link, the name is taken from it. A lecture added by hand has no cards until you import picks for it (same name and date).
+- **On the due date**, Today adds three rows for the lecture: **B&B cards** (or **Watch** for a lecture with no cards picked), **Practice quiz** and **Readiness quiz**. Tick the quizzes off yourself. Anything you don't finish stays on Today, marked overdue, until you tick it. A lecture moves to **Done** in the Lectures card once all three are ticked.
+- **Changing or removing**: change a lecture's due date with the date box on its row. Click **✕** to remove it; **Undo** brings it back.
+- **Automatic unsuspend**: on a lecture's due date, the page unsuspends its picked notes as soon as it's open on the computer with Anki running. Leech cards stay suspended, and a note's cloze cards are unsuspended together. The lecture's **B&B cards** row on Today then ticks itself off and shows how many cards were unsuspended. Each note is unsuspended once, so if you re-suspend cards in Anki the page leaves them alone. To unsuspend a lecture early, click **Unsuspend now** on its row. To stop automatic unsuspending, untick **Unsuspend each lecture's picked cards automatically** under the Add lecture button; **Unsuspend now** still works. **Cards** opens a lecture's cards in Anki's Browse window.
+- **Export all B&B cards**: saves every B&B card in your collection (its text, note ID and video) to one file, `bnb_cards_<date>.json`, of several megabytes. Send it to Claude once. After that, Claude can search all of B&B by topic and send back a picks file from just your slides; you don't need to export each day. Export again after a big AnkiHub update, and send it again at the start of a new conversation with Claude.
+- **AMBOSS follow-ups**: 2 days and 2 weeks after a lecture's cards are unsuspended (or you tick **Watch**), Today adds AMBOSS questions on that lecture. **Open cards** opens its cards in Anki for an AMBOSS Qbank session.
+- **Each day**: work down the **Today** list. Reviews tick off when you're caught up in Anki; tick everything else yourself.
+- **History**: the **History** tab keeps each day's Today list with what you finished, a 4-week overview, your streak of fully finished days, and Anki's review count for each day.
+- **Weak areas (by lecture)**: Priority ranks your lectures by default. Each lecture is scored from reviews of its own cards, the ones unsuspended for it: 70% Again rate on reviews in the look-back window plus 30% share of cards with 3+ lapses. A lecture is ranked once it has 20+ reviews. Until then it's listed under **Collecting reviews**, which usually takes a few days after its cards are unsuspended. Switch to **By AnKing subject** for the old subject ranking, which is handy for Step 1 prep. Stats refresh when you open the page with Anki running, or when you click **Refresh**.
+- **AnKing Notebook**: follows the same switch. Pick a lecture to see its retention, lapses, active and mature cards, weekly retention chart and AMBOSS topics. **Start Qbank session** opens that lecture's weak cards in Anki for an AMBOSS session; **Open all its cards** opens every card. Today's **AMBOSS · weak area** row rotates through your weakest lectures. **Progress Over Time** has a **Lectures** history too.
+- **Leeches**: the **Leeches** tab lists cards Anki tagged as leeches (and suspended), grouped by subject, plus "almost leeches" with 5+ lapses. Click **Open** to edit a card in Anki, rewrite it, then unsuspend it there. The Today panel tells you when new leeches appear.
 
 ## Updating the page
 
