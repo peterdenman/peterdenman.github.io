@@ -208,6 +208,36 @@
         .stuck { color: #c53030; font-weight: bold; }
         .started-all { color: #276749; }
         .nc-warn { color: #c53030; margin-top: 3px; }
+        .hint { font-weight: normal; color: #718096; font-size: 0.9em; }
+        .qf-panel { border: 1px solid #bee3f8; background: #f7fbff; border-radius: 6px; padding: 10px 12px; margin: -2px 0 8px; font-size: 0.85em; }
+        .qf-row { display: grid; grid-template-columns: 110px 1fr; gap: 4px 10px; align-items: center; padding: 5px 0; border-bottom: 1px solid #e2e8f0; }
+        .qf-row input[type=file] { grid-column: 2; width: 100%; font-size: 0.95em; }
+        .qf-label { font-weight: 600; color: #2d3748; grid-row: span 2; }
+        .qf-file { overflow-wrap: anywhere; }
+        .qf-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 8px; color: #4a5568; }
+        @media (max-width: 600px) { .qf-row { grid-template-columns: 1fr; } .qf-label { grid-row: auto; } .qf-row input[type=file] { grid-column: 1; } }
+        .quiz-overlay { position: fixed; inset: 0; background: rgba(26, 32, 44, 0.55); z-index: 1000; display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 24px 12px; }
+        body.quiz-open { overflow: hidden; }
+        .qz-box { background: white; border-radius: 8px; max-width: 760px; width: 100%; padding: 16px 20px 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
+        .qz-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 0.9em; color: #4a5568; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 10px; }
+        .qz-count { font-size: 0.8em; color: #718096; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+        .qz-stem { font-size: 1em; line-height: 1.5; color: #1a202c; margin-bottom: 10px; white-space: pre-wrap; }
+        .qz-opt { display: block; width: 100%; text-align: left; border: 1px solid #cbd5e0; background: white; border-radius: 6px; padding: 9px 12px; margin: 6px 0; cursor: pointer; font: inherit; font-size: 0.95em; color: #1a202c; line-height: 1.4; }
+        .qz-opt:hover:not([disabled]) { border-color: #4299e1; background: #f7fbff; }
+        .qz-opt[disabled] { cursor: default; background: white; color: #1a202c; opacity: 1; }
+        .qz-opt.correct, .qz-opt.correct[disabled] { border-color: #38a169; background: #f0fff4; }
+        .qz-opt.wrong, .qz-opt.wrong[disabled] { border-color: #e53e3e; background: #fff5f5; }
+        .qz-opt.dim[disabled] { color: #718096; }
+        .qz-exp { margin-top: 10px; padding: 10px 12px; background: #f7fafc; border-radius: 6px; font-size: 0.9em; line-height: 1.5; color: #2d3748; }
+        .qz-exp p { margin: 6px 0 0; } .qz-exp ul { margin: 6px 0 0; padding-left: 18px; } .qz-exp li { margin-bottom: 3px; }
+        .qz-right { color: #276749; font-weight: 600; } .qz-wrong { color: #c53030; font-weight: 600; }
+        .qz-nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 14px; }
+        .qz-nav button { width: auto; }
+        .qz-score { font-size: 1.5em; font-weight: bold; color: #2d3748; margin: 6px 0 10px; }
+        .qz-list { display: flex; flex-direction: column; gap: 4px; }
+        .qz-item { text-align: left; border: 1px solid #e2e8f0; background: white; border-radius: 4px; padding: 7px 10px; cursor: pointer; font: inherit; font-size: 0.85em; color: #2d3748; }
+        .qz-item.ok { border-left: 4px solid #38a169; } .qz-item.bad { border-left: 4px solid #e53e3e; }
+        @media (max-width: 600px) { .quiz-overlay { padding: 0; } .qz-box { border-radius: 0; min-height: 100%; padding: 14px 14px 18px; } }
         .link-btn { flex: 0 0 auto; background: none; border: none; padding: 0 2px; color: #3182ce; font-weight: normal; font-size: 1em; text-decoration: underline; cursor: pointer; }
         .up-when.due { color: #c53030; }
         .up-when.soon { color: #c05621; }
@@ -252,7 +282,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26q · New-card backlog</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26r · Lecture quizzes</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -432,6 +462,44 @@
                 </div>
             </div>
         </details>
+        <details class="card tool" id="quizCard">
+            <summary class="tool-summary">Lecture Quizzes <span class="tool-sub">Gemini practice questions from your slides</span></summary>
+            <div class="tool-body">
+                <div class="settings-grid">
+                    <label class="field full">Gemini API key <span class="hint">saved only in this browser, never synced</span>
+                        <input type="password" id="gemKeyInput" autocomplete="off" spellcheck="false" placeholder="AIza…">
+                    </label>
+                    <label class="field">Model
+                        <input type="text" id="gemModelInput" spellcheck="false">
+                    </label>
+                    <label class="field">Quiz days after the lecture
+                        <input type="text" id="gemDaysInput" placeholder="3, 10">
+                    </label>
+                    <label class="field">Most quizzes per day
+                        <input type="number" id="gemMaxInput" min="1" max="10">
+                    </label>
+                    <label class="field full">Your prompt <span class="hint">the page adds the lecture files and asks for the answer in a format it can read</span>
+                        <textarea id="gemPromptInput" rows="12" spellcheck="false"></textarea>
+                    </label>
+                </div>
+                <div class="btn-group">
+                    <button class="btn-primary" id="gemSaveBtn">Save</button>
+                    <button class="btn-small" id="gemResetPromptBtn">Reset prompt</button>
+                </div>
+                <div id="gemStatus" class="status-msg"></div>
+                <details class="help">
+                    <summary>How it works</summary>
+                    <ol>
+                        <li>On a lecture's row, click <b>Quiz</b> and add the lecture slides, the practice quiz and the readiness quiz (PDF, PowerPoint .pptx or Word .docx). PDF works best: Gemini sees the images and tables. From PowerPoint, only the text and speaker notes are sent.</li>
+                        <li>Once all three are in, the page sends them with your prompt to Gemini and saves one quiz for each day in <b>Quiz days after the lecture</b>. The slides are the source; the two quizzes only set the style.</li>
+                        <li>On those days, Today shows a <b>Lecture quiz</b> row. At most <b>Most quizzes per day</b> show at once; the rest wait for the next day. A lecture's second quiz is written to test different facts than its first.</li>
+                        <li>The files stay on the computer you added them on; the questions and your scores sync, so you can take the quizzes on your phone.</li>
+                        <li>AI-written questions can have a wrong answer key. Each question names the slide it comes from, so you can check one that looks off.</li>
+                        <li>Protect your key: in Google Cloud Console, restrict it to the Gemini API and to your site's address.</li>
+                    </ol>
+                </details>
+            </div>
+        </details>
         <details class="card tool" id="historyCard">
             <summary class="tool-summary">Progress Over Time <span class="tool-sub">weekly retention history</span></summary>
             <div class="tool-body">
@@ -489,6 +557,7 @@
     </div>
 </div>
 
+<div id="quizOverlay" class="quiz-overlay hidden"></div>
 <script>
 // ============================================================
 // CONSTANTS — tweak these if a link doesn't land where you want
@@ -1749,16 +1818,17 @@ function lecRow(l, cls, connected) {
                 <input type="date" class="up-date" data-lec-date="${escHtml(l.id)}" value="${escHtml(l.date)}" aria-label="Due date">
                 <span class="muted">· ${n} of ${LEC_PARTS.length} done</span>
             </div>
-            ${picks.length || l.unsusp ? `<div class="lec-vids">${picks.length ? `${picks.length.toLocaleString()} notes picked` : ''}${l.unsusp ? `${picks.length ? ' · ' : ''}<b>${l.unsusp.n.toLocaleString()} cards unsuspended ${escHtml(new Date(l.unsusp.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}</b>` : ''}${startedText(l)}</div>` : '<div class="lec-vids muted">No cards picked yet</div>'}
+            ${picks.length || l.unsusp ? `<div class="lec-vids">${picks.length ? `${picks.length.toLocaleString()} notes picked` : ''}${l.unsusp ? `${picks.length ? ' · ' : ''}<b>${l.unsusp.n.toLocaleString()} cards unsuspended ${escHtml(new Date(l.unsusp.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}</b>` : ''}${startedText(l)}${quizLine(l)}</div>` : `<div class="lec-vids muted">No cards picked yet${quizLine(l)}</div>`}
             ${l.note ? `<div class="lec-vids muted">${escHtml(l.note)}</div>` : ''}
         </div>
         <div class="actions">
             ${u ? `<a class="btn-small" href="${escHtml(u)}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; border-radius:4px;">Watch</a>` : ''}
             ${canUnsusp ? `<button class="btn-small" data-act="lec-unsuspend" data-id="${escHtml(l.id)}" ${connected ? 'title="Unsuspend this lecture’s picked cards now"' : 'disabled title="Open Anki on this computer"'}>Unsuspend now</button>` : ''}
             ${hasCards ? `<button class="btn-small" data-act="lec-cards" data-id="${escHtml(l.id)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>` : ''}
+            <button class="btn-small" data-act="quiz-files" data-id="${escHtml(l.id)}" title="Add the slides and quizzes for Gemini practice questions">Quiz</button>
             <button class="btn-small" data-act="lec-remove" data-id="${escHtml(l.id)}" title="Remove this lecture">✕</button>
         </div>
-    </div>`;
+    </div>${quizPanelId === l.id ? quizPanel(l) : ''}`;
 }
 
 let upDoneOpen = false;
@@ -1769,6 +1839,7 @@ function renderUpcoming() {
         lectureList(db).forEach(l => { delete l.videos; delete l.candidates; delete l.hold; });
         saveDb(db);
     }
+    if (pruneQuizzes(db)) saveDb(db);
     $('autoUnsuspendInput').checked = db.autoUnsuspend !== false;
     const list = lectureList(db);
     const connected = !!ankiTags;
@@ -1991,6 +2062,495 @@ function bnbVideos() {
     }).filter(Boolean).sort((a, b) => a.tag.localeCompare(b.tag, undefined, { numeric: true, sensitivity: 'base' }));
 }
 
+const DEFAULT_QUIZ_PROMPT = "You are an expert medical education assessment specialist designing high-yield practice questions for a pre-clinical medical school curriculum.\n\nGenerate a 10-question multiple-choice practice quiz based EXCLUSIVELY on the knowledge contained within the attached Lecture Materials.\n\n---\n\n### CRITICAL SCOPE & SOURCE CONSTRAINTS:\n\n1. **Strict Source Grounding (Zero Hallucination / No Outside Syllabi):**\n   - Every question vignette, correct answer, and distractor must be solvable SOLELY using facts, anatomical relationships, pathophysiology, mechanisms, and clinical notes present in the attached LECTURE MATERIALS.\n   - Do NOT introduce outside diseases, drug classes, or diagnostic pathways that are absent from the provided slides.\n\n2. **Structural Calibration vs. Content Isolation:**\n   - The attached Reference Practice Quizzes are provided SOLELY to calibrate:\n     * Question style, vignette pacing, and tone (e.g., acute vs. insidious presentation, physical exam layout, phrasing of lead-in stems).\n     * Question depth (e.g., Step 1 / Step 2 reasoning instead of simple 1st-order recall).\n   - DO NOT copy, rephrase, or lightly adapt the clinical scenarios, patient presentations, or exact facts tested in the Reference Practice Quizzes. Every single question must test fresh material synthesized directly from the Lecture Materials.\n\n---\n\n### TOPIC COVERAGE & ANTI-REPETITION DIRECTIVE:\n\nTo avoid repetitive questions and ensure the entire deck is evaluated:\n\n1. **Dynamic Section Partitioning:** Scan the attached lecture materials from start to finish. Divide the entire document into 5 distinct, sequential sections or overarching themes (e.g., Section 1: Intro/Foundational Principles; Section 2: Anatomical/Histological/Physiological Mechanisms; Section 3: Clinical Presentation/Pathology; Section 4: Diagnostics/Localization/Workup; Section 5: Nuances, Exceptions, and Secondary Complications).\n2. **Quota Enforcement:** Write exactly 2 questions per section.\n3. **No Redundant Targets:** No two questions may evaluate the same primary anatomical structure, identical mechanism of action, or same diagnostic endpoint.\n\n---\n\n### QUESTION DESIGN RULES:\n\n1. **Clinical Vignette Lead-In:** Present a realistic, concise clinical vignette (2–4 sentences including patient demographics, pertinent positives/negatives, labs, exam, or procedural findings).\n2. **Mandatory Second-Order Reasoning:**\n   - *Step 1:* Identify the underlying lesion, abnormal physiology, biochemical step, or culprit structure from the vignette.\n   - *Step 2:* Apply that identification to answer a secondary question (e.g., \"What is the embryonic precursor?\", \"Which downstream compensatory mechanism will be observed?\", \"Which physical exam maneuver confirms this finding?\", or \"Which adjacent structure is at greatest risk?\").\n3. **Plausible Distractors (A through E):**\n   - 5 options per question.\n   - Distractors must represent closely related physiological counter-mechanisms, adjacent structures, or the incomplete answer to Step 1 alone. No throwaway, absurd, or grammatically obvious choices.\n\n---\n\n### OUTPUT FORMAT:\n\nFor each question, output:\n\n**Question [Number]**\n**Vignette and Lead-in Question**\n**Options (A–E)**\n**Correct Answer:** [Letter and explicit text]\n**Mechanistic Pathway:** Step 1 (finding identification) -> Step 2 (deductive conclusion), derived directly from slide content.\n**Distractor Rationale:** A concise 1-sentence breakdown of why each distractor is incorrect.\n**Slide Source Topic:** The slide number, title, or objective where this fact is taught.";
+// ============================================================
+// LECTURE QUIZZES (Gemini) — practice questions written from a lecture's slides, with the two quizzes as style references.
+// Files stay on the device they were uploaded on (IndexedDB); the generated questions sync like everything else.
+// ============================================================
+const GEM_KEY = 'gemini_key';
+const QUIZ_SLOTS = [['slides', 'Lecture slides'], ['practice', 'Practice quiz'], ['readiness', 'Readiness quiz']];
+const QUIZ_DEFAULTS = { model: 'gemini-3.8-flash', days: [3, 10], max: 2, prompt: DEFAULT_QUIZ_PROMPT };
+const QUIZ_KEEP_DAYS = 60;              // finished quizzes keep their questions this long, then only the score
+const INLINE_BUDGET = 14 * 1024 * 1024; // PDF bytes sent as-is per request (Gemini's ~20 MB request limit, after base64)
+const PDFJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
+const PDFJS_WORKER_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+const gemKey = () => { try { return localStorage.getItem(GEM_KEY) || ''; } catch { return ''; } };
+function quizSettings(db = loadDb()) {
+    const q = db.quizSettings || {};
+    const days = Array.isArray(q.days) && q.days.length ? q.days.filter(n => Number.isFinite(n) && n >= 0) : QUIZ_DEFAULTS.days;
+    return {
+        model: (q.model || QUIZ_DEFAULTS.model).trim(),
+        days: days.length ? days : QUIZ_DEFAULTS.days,
+        max: Number.isFinite(q.max) && q.max > 0 ? q.max : QUIZ_DEFAULTS.max,
+        prompt: q.prompt && q.prompt.trim() ? q.prompt : QUIZ_DEFAULTS.prompt
+    };
+}
+
+// ---------- files on this device (IndexedDB) ----------
+let idbHandle = null;
+function idbOpen() {
+    if (!idbHandle) idbHandle = new Promise((resolve, reject) => {
+        const r = indexedDB.open('study_tracker_files', 1);
+        r.onupgradeneeded = () => r.result.createObjectStore('files');
+        r.onsuccess = () => resolve(r.result);
+        r.onerror = () => reject(r.error);
+    });
+    return idbHandle;
+}
+async function idbDo(mode, fn) {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('files', mode), req = fn(tx.objectStore('files'));
+        tx.oncomplete = () => resolve(req && req.result);
+        tx.onerror = () => reject(tx.error);
+    });
+}
+const idbPut = (key, val) => idbDo('readwrite', st => st.put(val, key));
+const idbGet = key => idbDo('readonly', st => st.get(key));
+const idbDel = key => idbDo('readwrite', st => st.delete(key));
+const idbKeys = () => idbDo('readonly', st => st.getAllKeys());
+let localQuizFiles = new Set();         // "lectureId|slot" saved on this device
+async function loadLocalQuizFiles() {
+    try {
+        const keys = await idbKeys();
+        const ids = new Set(lectureList(loadDb()).map(l => l.id));
+        for (const k of keys) if (!ids.has(String(k).split('|')[0])) await idbDel(k);   // lecture removed
+        localQuizFiles = new Set(keys.filter(k => ids.has(String(k).split('|')[0])));
+    } catch (err) { console.error(err); }
+}
+const hasLocalSlides = l => localQuizFiles.has(`${l.id}|slides`);
+const quizOn = l => !!(l.quiz && l.quiz.files && l.quiz.files.slides);
+
+// ---------- reading the files ----------
+async function loadPdfJs() {
+    if (!window.pdfjsLib) {
+        await new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = PDFJS_URL;
+            s.onload = resolve;
+            s.onerror = () => reject(new Error("Couldn't load the PDF reader. Check your internet connection."));
+            document.head.appendChild(s);
+        });
+    }
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
+    return window.pdfjsLib;
+}
+async function pdfToPages(blob) {
+    const lib = await loadPdfJs();
+    const pdf = await lib.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) }).promise;
+    const pages = [];
+    for (let i = 1; i <= pdf.numPages; i++) pages.push((await (await pdf.getPage(i)).getTextContent()).items.map(it => it.str).join(' '));
+    return pages;
+}
+// Minimal zip reader (.pptx / .docx): -> { names, read(name) }
+async function openZip(buf) {
+    const dv = new DataView(buf), u8 = new Uint8Array(buf), dec = new TextDecoder();
+    let eocd = -1;
+    for (let i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 65557); i--) {
+        if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    }
+    if (eocd < 0) throw new Error("That file couldn't be opened. Save it as PDF and try again.");
+    const entries = new Map();
+    let p = dv.getUint32(eocd + 16, true);
+    for (let n = dv.getUint16(eocd + 10, true); n > 0 && dv.getUint32(p, true) === 0x02014b50; n--) {
+        const nlen = dv.getUint16(p + 28, true);
+        entries.set(dec.decode(u8.subarray(p + 46, p + 46 + nlen)), {
+            method: dv.getUint16(p + 10, true), size: dv.getUint32(p + 20, true), off: dv.getUint32(p + 42, true)
+        });
+        p += 46 + nlen + dv.getUint16(p + 30, true) + dv.getUint16(p + 32, true);
+    }
+    return {
+        names: [...entries.keys()],
+        read: async name => {
+            const e = entries.get(name);
+            if (!e) return null;
+            const start = e.off + 30 + dv.getUint16(e.off + 26, true) + dv.getUint16(e.off + 28, true);
+            const data = u8.subarray(start, start + e.size);
+            if (e.method === 0) return dec.decode(data);
+            if (e.method !== 8) throw new Error('This file uses a compression the page can’t read. Save it as PDF and try again.');
+            return new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+        }
+    };
+}
+const xmlText = (xml, tag) => [...new DOMParser().parseFromString(xml, 'application/xml').getElementsByTagNameNS('*', tag)];
+async function pptxToText(blob) {
+    const zip = await openZip(await blob.arrayBuffer());
+    const num = n => +(n.match(/(\d+)\.xml$/) || [0, 0])[1];
+    const slides = zip.names.filter(n => /^ppt\/slides\/slide\d+\.xml$/.test(n)).sort((a, b) => num(a) - num(b));
+    const out = [];
+    for (const n of slides) {
+        const body = xmlText(await zip.read(n), 'p').map(pp => [...pp.getElementsByTagNameNS('*', 't')].map(t => t.textContent).join('')).filter(Boolean).join('\n');
+        const notesXml = await zip.read(`ppt/notesSlides/notesSlide${num(n)}.xml`);
+        const notes = notesXml ? xmlText(notesXml, 't').map(t => t.textContent).join(' ').trim() : '';
+        out.push(`[Slide ${num(n)}]\n${body}${notes ? `\n(Speaker notes: ${notes})` : ''}`);
+    }
+    return out.join('\n\n');
+}
+async function docxToText(blob) {
+    const zip = await openZip(await blob.arrayBuffer());
+    const xml = await zip.read('word/document.xml');
+    if (!xml) throw new Error('That Word file has no text the page can read.');
+    return xmlText(xml, 'p').map(pp => [...pp.getElementsByTagNameNS('*', 't')].map(t => t.textContent).join('')).filter(Boolean).join('\n');
+}
+const blobToBase64 = blob => new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(',')[1]);
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+});
+// One file -> Gemini request parts. PDFs go as-is (images and tables included) while they fit; otherwise as text.
+async function fileParts(f, budget) {
+    const name = f.name || 'file';
+    if (/\.pdf$/i.test(name) || f.type === 'application/pdf') {
+        if (f.blob.size <= budget.left) {
+            budget.left -= f.blob.size;
+            return [{ inline_data: { mime_type: 'application/pdf', data: await blobToBase64(f.blob) } }];
+        }
+        return [{ text: (await pdfToPages(f.blob)).map((t, i) => `[Page ${i + 1}]\n${t}`).join('\n\n') }];
+    }
+    if (/\.pptx$/i.test(name)) return [{ text: await pptxToText(f.blob) }];
+    if (/\.docx$/i.test(name)) return [{ text: await docxToText(f.blob) }];
+    if (/\.(txt|md)$/i.test(name) || /^text\//.test(f.type)) return [{ text: await f.blob.text() }];
+    throw new Error(`${name}: use PDF, PowerPoint (.pptx), Word (.docx) or a text file.`);
+}
+
+// ---------- asking Gemini ----------
+const QUIZ_FORMAT = `=== HOW TO RETURN THE QUIZ ===
+Follow every instruction above, including the number of questions, but return the quiz as JSON only (no Markdown, no other text), in exactly this shape:
+{"questions":[{"vignette":"the clinical vignette and lead-in question","options":["option A text","option B text","option C text","option D text","option E text"],"answer":"C","pathway":"Step 1 (...) -> Step 2 (...)","rationale":{"A":"why A is incorrect","B":"why B is incorrect","D":"why D is incorrect","E":"why E is incorrect"},"source":"slide number, title or objective"}]}
+- "options": exactly 5 strings in order A to E, without the letters.
+- "answer": the single letter of the correct option.
+- "pathway": the Mechanistic Pathway.
+- "rationale": the Distractor Rationale, one sentence per incorrect option, keyed by letter.
+- "source": the Slide Source Topic.`;
+
+function cleanQuestions(raw) {
+    const list = Array.isArray(raw) ? raw : raw && Array.isArray(raw.questions) ? raw.questions : [];
+    return list.map(q => {
+        if (!q || typeof q !== 'object') return null;
+        const options = (Array.isArray(q.options) ? q.options : []).map(o => String(typeof o === 'object' && o ? (o.text || '') : o).replace(/^\s*\(?[A-E][).:]\s+/, '').trim());
+        let answer = String(q.answer || q.correct || '').trim().toUpperCase().charAt(0);
+        if (!/^[A-E]$/.test(answer)) { const i = options.findIndex(o => o && String(q.answer || '').includes(o)); answer = i >= 0 ? 'ABCDE'[i] : ''; }
+        const vignette = String(q.vignette || q.question || q.stem || '').trim();
+        if (!vignette || options.length !== 5 || options.some(o => !o) || !answer) return null;
+        let rationale = q.rationale || q.distractors || {};
+        if (Array.isArray(rationale)) rationale = Object.fromEntries(rationale.map((r, i) => r && typeof r === 'object' ? [String(r.letter || 'ABCDE'[i]).charAt(0).toUpperCase(), String(r.why || r.text || '')] : ['ABCDE'[i], String(r || '')]));
+        else if (typeof rationale === 'string') rationale = { _: rationale };
+        return { v: vignette, o: options, a: answer, p: String(q.pathway || q.mechanism || '').trim(), r: rationale, s: String(q.source || q.slide || '').trim() };
+    }).filter(Boolean);
+}
+function geminiError(status, body) {
+    const msg = (body && body.error && body.error.message) || '';
+    if (status === 400 && /api key/i.test(msg)) return 'Gemini didn’t accept your API key. Check it in Lecture Quizzes.';
+    if (status === 403) return `Gemini refused the request (${msg || 'permission denied'}). If you restricted the key, allow this site’s address.`;
+    if (status === 404) return `Gemini doesn’t know the model “${quizSettings().model}”. Check the model name in Lecture Quizzes.`;
+    if (status === 429) return 'Gemini’s rate limit or daily quota is used up. The page tries again later.';
+    if (status >= 500) return 'Gemini had a server error. The page tries again later.';
+    return `Gemini error ${status}${msg ? `: ${msg}` : ''}`;
+}
+async function askGemini(parts) {
+    const key = gemKey();
+    if (!key) throw new Error('Add your Gemini API key in Lecture Quizzes first.');
+    const s = quizSettings();
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(s.model)}:generateContent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        body: JSON.stringify({ contents: [{ role: 'user', parts }], generationConfig: { responseMimeType: 'application/json' } })
+    });
+    let body = null;
+    try { body = await res.json(); } catch {}
+    if (!res.ok) throw new Error(geminiError(res.status, body));
+    const cand = body && body.candidates && body.candidates[0];
+    if (!cand) throw new Error(`Gemini returned no quiz${body && body.promptFeedback && body.promptFeedback.blockReason ? ` (blocked: ${body.promptFeedback.blockReason})` : ''}.`);
+    const text = ((cand.content && cand.content.parts) || []).filter(p => !p.thought && typeof p.text === 'string').map(p => p.text).join('');
+    if (cand.finishReason === 'MAX_TOKENS') throw new Error('Gemini’s answer was cut off before the quiz was finished. Try again, or ask for fewer questions in your prompt.');
+    const json = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
+    let parsed;
+    try { parsed = JSON.parse(json); } catch { throw new Error('Gemini’s answer wasn’t a readable quiz. The page tries again later.'); }
+    return cleanQuestions(parsed);
+}
+async function quizFiles(l) {
+    const out = {};
+    for (const [slot] of QUIZ_SLOTS) { const f = await idbGet(`${l.id}|${slot}`); if (f) out[slot] = f; }
+    return out;
+}
+async function buildQuizRound(l, k) {
+    const files = await quizFiles(l);
+    if (!files.slides) throw new Error('The lecture slides aren’t saved on this device.');
+    const budget = { left: INLINE_BUDGET };
+    const parts = [{ text: quizSettings().prompt }, { text: `\n\n=== LECTURE MATERIALS: ${l.name} ===` }];
+    parts.push(...await fileParts(files.slides, budget));
+    for (const slot of ['practice', 'readiness']) {
+        if (!files[slot]) continue;
+        parts.push({ text: `\n\n=== REFERENCE PRACTICE QUIZ (${slot === 'practice' ? 'practice quiz' : 'readiness quiz'}): style and depth calibration only; do not reuse its scenarios or facts ===` });
+        parts.push(...await fileParts(files[slot], budget));
+    }
+    const used = ((l.quiz && l.quiz.rounds) || []).filter((r, i) => i !== k && r && Array.isArray(r.q)).flatMap(r => r.q.map(q => q.v));
+    if (used.length) parts.push({ text: `\n\n=== ALREADY USED ===\nThese questions were already used for this lecture in an earlier quiz. Test different facts and write new vignettes:\n${used.map((v, i) => `${i + 1}. ${v.slice(0, 220)}`).join('\n')}` });
+    parts.push({ text: '\n\n' + QUIZ_FORMAT });
+    const qs = await askGemini(parts);
+    if (!qs.length) throw new Error('Gemini’s quiz had no usable questions. The page tries again later.');
+    return qs;
+}
+function setQuiz(id, fn) {
+    const db = loadDb();
+    const l = lectureList(db).find(x => x.id === id);
+    if (!l) return null;
+    l.quiz = l.quiz || { files: {}, rounds: [] };
+    l.quiz.rounds = l.quiz.rounds || [];
+    fn(l.quiz, l);
+    saveDb(db);
+    return l;
+}
+// Rounds still needing questions, for lectures whose slides are on this device
+function roundsToBuild() {
+    const n = quizSettings().days.length, out = [];
+    lectureList(loadDb()).forEach(l => {
+        if (!quizOn(l) || !hasLocalSlides(l) || !l.quiz.auto) return;
+        for (let k = 0; k < n; k++) { const r = l.quiz.rounds[k]; if (!r || !Array.isArray(r.q) || !r.q.length) { if (!(r && r.doneAt)) out.push({ id: l.id, k }); } }
+    });
+    return out;
+}
+let quizBuilding = null, quizBuildAgain = false;
+async function ensureQuizzes(retryFailed = false) {
+    if (!gemKey()) return;
+    if (quizBuilding) { quizBuildAgain = true; return; }
+    const todo = roundsToBuild();
+    if (!todo.length) return;
+    for (const { id, k } of todo) {
+        const l = lectureList(loadDb()).find(x => x.id === id);
+        if (!l) continue;
+        const r = l.quiz.rounds[k];
+        if (r && r.failedAt && !retryFailed && Date.now() - Date.parse(r.failedAt) < 30 * 60 * 1000) continue;   // wait a while after a failure
+        quizBuilding = { id, k };
+        renderUpcoming();
+        try {
+            const qs = await buildQuizRound(l, k);
+            setQuiz(id, quiz => { quiz.rounds[k] = { q: qs, at: new Date().toISOString(), model: quizSettings().model, ans: [] }; });
+            gemMsg(`Wrote ${qs.length} questions for ${escHtml(l.name)} (quiz ${k + 1}).`);
+        } catch (err) {
+            console.error(err);
+            setQuiz(id, quiz => { quiz.rounds[k] = { ...(quiz.rounds[k] || {}), err: String(err.message || err), failedAt: new Date().toISOString() }; });
+            gemMsg(escHtml(err.message || String(err)), true);
+            if (/API key|quota|rate limit|model/i.test(String(err.message))) break;   // later rounds would fail the same way
+        }
+    }
+    quizBuilding = null;
+    renderUpcoming();
+    if (quizBuildAgain) { quizBuildAgain = false; setTimeout(ensureQuizzes, 0); }
+}
+function gemMsg(html, err = false) { const st = $('gemStatus'); if (st) { st.innerHTML = html; st.classList.toggle('status-err', err); } }
+
+// ---------- uploads (on a lecture's row) ----------
+let quizPanelId = null;
+async function saveQuizFile(id, slot, file) {
+    if (!file) return;
+    if (/\.(ppt|doc)$/i.test(file.name)) { upMsg('Old .ppt and .doc files can’t be read. Save them as .pptx/.docx or PDF.'); return; }
+    try {
+        await idbPut(`${id}|${slot}`, { name: file.name, type: file.type, blob: file, added: new Date().toISOString() });
+        localQuizFiles.add(`${id}|${slot}`);
+    } catch (err) { console.error(err); upMsg('This browser couldn’t save the file (private window or storage full).'); return; }
+    const l = setQuiz(id, quiz => {
+        quiz.files = quiz.files || {};
+        quiz.files[slot] = { name: file.name, size: file.size };
+        if (QUIZ_SLOTS.every(([s]) => quiz.files[s])) quiz.auto = true;   // all three in: write the quizzes
+    });
+    renderUpcoming();
+    if (l && l.quiz.auto) ensureQuizzes();
+}
+function quizPanel(l) {
+    const f = (l.quiz && l.quiz.files) || {};
+    const here = slot => localQuizFiles.has(`${l.id}|${slot}`);
+    const rows = QUIZ_SLOTS.map(([slot, label]) => `
+        <label class="qf-row"><span class="qf-label">${label}</span>
+            <span class="qf-file">${f[slot] ? `${escHtml(f[slot].name)}${here(slot) ? '' : ' <span class="muted">(on another device)</span>'}` : '<span class="muted">none</span>'}</span>
+            <input type="file" data-qslot="${slot}" data-id="${escHtml(l.id)}" accept=".pdf,.pptx,.docx,.txt,application/pdf">
+        </label>`).join('');
+    const ready = quizOn(l) && hasLocalSlides(l);
+    return `<div class="qf-panel">${rows}
+        <div class="qf-foot">${!gemKey() ? 'Add your Gemini API key in <b>Lecture Quizzes</b> (below) to write quizzes.' : ready ? (l.quiz.auto ? 'Quizzes are written automatically.' : 'Add both quizzes and the questions are written automatically, or write them now from the slides alone.') : 'Add the lecture slides (PDF or .pptx; PDF keeps images).'}
+            ${ready && gemKey() ? `<button class="btn-small" data-act="quiz-gen" data-id="${escHtml(l.id)}">${(l.quiz.rounds || []).some(r => r && r.q) ? 'Rewrite unfinished quizzes' : 'Write quizzes now'}</button>` : ''}</div></div>`;
+}
+document.addEventListener('change', e => {
+    const t = e.target;
+    if (t.dataset && t.dataset.qslot && t.files && t.files[0]) saveQuizFile(t.dataset.id, t.dataset.qslot, t.files[0]);
+});
+
+// ---------- schedule: which quizzes show on Today ----------
+// Each lecture with slides gets a quiz on each day in "days after the lecture"; at most `max` quizzes a day,
+// oldest first; the rest wait for the next day. A lecture's second quiz waits until its first is done.
+function quizQueue(lectures, today) {
+    const s = quizSettings(), items = [];
+    lectures.forEach(l => {
+        if (!quizOn(l)) return;
+        s.days.forEach((n, k) => {
+            const r = (l.quiz.rounds || [])[k] || {};
+            const prevDone = k === 0 || ((l.quiz.rounds || [])[k - 1] || {}).doneAt;
+            items.push({ l, k, due: addDays(l.date, n), r, prevDone });
+        });
+    });
+    const doneToday = items.filter(x => x.r.doneAt === today);
+    const open = items.filter(x => !x.r.doneAt && x.prevDone && x.due <= today)
+        .sort((a, b) => ((b.r.ans || []).length > 0) - ((a.r.ans || []).length > 0) || a.due.localeCompare(b.due) || a.l.date.localeCompare(b.l.date) || a.k - b.k);
+    const slots = Math.max(0, s.max - doneToday.length);
+    return { show: [...doneToday, ...open.slice(0, slots)], waiting: Math.max(0, open.length - slots), total: s.days.length };
+}
+function quizStatus(l, k) {
+    const r = ((l.quiz && l.quiz.rounds) || [])[k] || {};
+    if (r.doneAt) return `${r.score} / ${r.n} correct`;
+    if (quizBuilding && quizBuilding.id === l.id && quizBuilding.k === k) return 'Gemini is writing it…';
+    if (r.q && r.q.length) return `${r.q.length} questions${(r.ans || []).filter(Boolean).length ? ` · ${(r.ans || []).filter(Boolean).length} answered` : ''}`;
+    if (r.err) return `<span class="nc-warn">${escHtml(r.err)}</span>`;
+    if (!hasLocalSlides(l)) return 'Written on the device where you added the slides, next time it opens this page';
+    if (!gemKey()) return 'Add your Gemini API key in Lecture Quizzes';
+    return 'Waiting to be written';
+}
+// Line on a lecture's row
+function quizLine(l) {
+    if (!quizOn(l)) return '';
+    const s = quizSettings();
+    return ' · Quizzes: ' + s.days.map((n, k) => {
+        const r = (l.quiz.rounds || [])[k] || {};
+        const when = new Date(addDays(l.date, n) + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        return r.doneAt ? `${when} ${r.score}/${r.n}` : `${when}${r.q ? '' : quizBuilding && quizBuilding.id === l.id && quizBuilding.k === k ? ' (writing…)' : r.err ? ' (failed)' : ' (not written yet)'}`;
+    }).join(', ');
+}
+
+// ---------- taking a quiz ----------
+let quizView = null;   // { id, k, i }
+function openQuiz(id, k) {
+    const l = lectureList(loadDb()).find(x => x.id === id);
+    const r = l && ((l.quiz && l.quiz.rounds) || [])[k];
+    if (!r || !r.q || !r.q.length) return;
+    const ans = r.ans || [];
+    const first = r.q.findIndex((_, i) => !ans[i]);
+    quizView = { id, k, i: first < 0 ? 0 : first, summary: first < 0 };
+    renderQuiz();
+}
+function closeQuiz() { quizView = null; $('quizOverlay').classList.add('hidden'); document.body.classList.remove('quiz-open'); renderUpcoming(); }
+function answerQuiz(letter) {
+    const { id, k, i } = quizView;
+    const today = todayKey();
+    setQuiz(id, quiz => {
+        const r = quiz.rounds[k];
+        r.ans = r.ans || [];
+        if (r.ans[i]) return;
+        r.ans[i] = letter;
+        if (r.q.every((_, j) => r.ans[j])) {
+            r.doneAt = today;
+            r.n = r.q.length;
+            r.score = r.q.filter((q, j) => r.ans[j] === q.a).length;
+        }
+    });
+    renderQuiz();
+}
+function renderQuiz() {
+    const box = $('quizOverlay');
+    if (!quizView) { box.classList.add('hidden'); return; }
+    const l = lectureList(loadDb()).find(x => x.id === quizView.id);
+    const r = l && l.quiz && l.quiz.rounds[quizView.k];
+    if (!r || !r.q) { closeQuiz(); return; }
+    const ans = r.ans || [], n = r.q.length;
+    const head = `<div class="qz-head"><span><b>${escHtml(l.name)}</b> · quiz ${quizView.k + 1}</span><button class="link-btn" data-act="qz-close">Close</button></div>`;
+    let html;
+    if (quizView.summary) {
+        const right = r.q.filter((q, j) => ans[j] === q.a).length;
+        html = `${head}<div class="qz-score">${right} / ${n} correct</div>
+            <div class="qz-list">${r.q.map((q, j) => `<button class="qz-item ${ans[j] ? (ans[j] === q.a ? 'ok' : 'bad') : ''}" data-act="qz-goto" data-i="${j}">${ans[j] ? (ans[j] === q.a ? '✓' : '✗') : '·'} ${j + 1}. ${escHtml(q.v.slice(0, 110))}${q.v.length > 110 ? '…' : ''}</button>`).join('')}</div>
+            <div class="qz-nav"><span></span><button class="btn-primary" data-act="qz-close">Done</button></div>`;
+    } else {
+        const i = quizView.i, q = r.q[i], picked = ans[i];
+        const opts = q.o.map((o, j) => {
+            const L = 'ABCDE'[j];
+            const cls = !picked ? '' : L === q.a ? 'correct' : L === picked ? 'wrong' : 'dim';
+            return `<button class="qz-opt ${cls}" data-act="qz-pick" data-l="${L}" ${picked ? 'disabled' : ''}><b>${L}.</b> ${escHtml(o)}</button>`;
+        }).join('');
+        const why = picked ? `<div class="qz-exp">
+            <div class="${picked === q.a ? 'qz-right' : 'qz-wrong'}">${picked === q.a ? 'Correct.' : `Incorrect. The answer is ${q.a}.`} ${escHtml(q.o['ABCDE'.indexOf(q.a)])}</div>
+            ${q.p ? `<p><b>Mechanistic pathway:</b> ${escHtml(q.p)}</p>` : ''}
+            ${Object.keys(q.r || {}).length ? `<ul>${Object.entries(q.r).filter(([L, t]) => t).sort().map(([L, t]) => `<li>${L === '_' ? '' : `<b>${escHtml(L)}.</b> `}${escHtml(t)}</li>`).join('')}</ul>` : ''}
+            ${q.s ? `<p class="muted"><b>Slide source:</b> ${escHtml(q.s)}</p>` : ''}</div>` : '';
+        html = `${head}<div class="qz-count">Question ${i + 1} of ${n}</div>
+            <div class="qz-stem">${escHtml(q.v)}</div>${opts}${why}
+            <div class="qz-nav"><button class="btn-small" data-act="qz-prev" ${i === 0 ? 'disabled' : ''}>Back</button>
+            ${i < n - 1 ? `<button class="btn-primary" data-act="qz-next">Next</button>` : `<button class="btn-primary" data-act="qz-end">${r.doneAt ? 'See score' : 'Finish'}</button>`}</div>`;
+    }
+    box.innerHTML = `<div class="qz-box" role="dialog" aria-modal="true" aria-label="Lecture quiz">${html}</div>`;
+    box.classList.remove('hidden');
+    document.body.classList.add('quiz-open');
+    box.scrollTop = 0;
+}
+document.addEventListener('keydown', e => {
+    if (!quizView) return;
+    if (e.key === 'Escape') { closeQuiz(); return; }
+    if (quizView.summary) return;
+    const k = e.key.toUpperCase();
+    if (/^[A-E]$/.test(k)) { const b = document.querySelector(`#quizOverlay [data-l="${k}"]:not([disabled])`); if (b) b.click(); }
+    if (e.key === 'ArrowRight' || e.key === 'Enter') { const b = document.querySelector('#quizOverlay [data-act="qz-next"], #quizOverlay [data-act="qz-end"]'); if (b) b.click(); }
+    if (e.key === 'ArrowLeft') { const b = document.querySelector('#quizOverlay [data-act="qz-prev"]:not([disabled])'); if (b) b.click(); }
+});
+function quizClick(act, el) {
+    switch (act) {
+        case 'quiz-files': quizPanelId = quizPanelId === el.dataset.id ? null : el.dataset.id; renderUpcoming(); return true;
+        case 'quiz-gen':
+            setQuiz(el.dataset.id, quiz => {
+                quiz.auto = true;
+                quiz.rounds = (quiz.rounds || []).map(r => r && r.doneAt ? r : r && (r.ans || []).some(Boolean) ? r : null);   // keep finished and started quizzes
+            });
+            quizBuildAgain = !!quizBuilding;
+            ensureQuizzes();
+            return true;
+        case 'quiz-open': openQuiz(el.dataset.id, +el.dataset.k); return true;
+        case 'qz-close': closeQuiz(); return true;
+        case 'qz-pick': answerQuiz(el.dataset.l); return true;
+        case 'qz-next': quizView.i++; renderQuiz(); return true;
+        case 'qz-prev': quizView.i--; renderQuiz(); return true;
+        case 'qz-end': quizView.summary = true; renderQuiz(); return true;
+        case 'qz-goto': quizView.summary = false; quizView.i = +el.dataset.i; renderQuiz(); return true;
+    }
+    return false;
+}
+// Finished quizzes older than QUIZ_KEEP_DAYS keep only their score
+function pruneQuizzes(db) {
+    let changed = false;
+    const today = todayKey();
+    lectureList(db).forEach(l => (l.quiz && l.quiz.rounds || []).forEach(r => {
+        if (r && r.doneAt && r.q && daysBetween(r.doneAt, today) > QUIZ_KEEP_DAYS) { delete r.q; delete r.ans; changed = true; }
+    }));
+    return changed;
+}
+
+// ---------- settings ----------
+function fillQuizSettings() {
+    const s = quizSettings();
+    $('gemKeyInput').value = gemKey();
+    $('gemModelInput').value = s.model;
+    $('gemDaysInput').value = s.days.join(', ');
+    $('gemMaxInput').value = s.max;
+    $('gemPromptInput').value = s.prompt;
+}
+$('gemSaveBtn').addEventListener('click', () => {
+    const key = $('gemKeyInput').value.trim();
+    try { key ? localStorage.setItem(GEM_KEY, key) : localStorage.removeItem(GEM_KEY); } catch {}
+    const days = [...new Set($('gemDaysInput').value.split(/[^\d]+/).filter(Boolean).map(Number))].sort((a, b) => a - b);
+    const db = loadDb();
+    db.quizSettings = {
+        model: $('gemModelInput').value.trim() || QUIZ_DEFAULTS.model,
+        days: days.length ? days : QUIZ_DEFAULTS.days,
+        max: Math.max(1, Math.min(10, parseInt($('gemMaxInput').value, 10) || QUIZ_DEFAULTS.max)),
+        prompt: $('gemPromptInput').value.trim() === DEFAULT_QUIZ_PROMPT.trim() ? '' : $('gemPromptInput').value
+    };
+    saveDb(db);
+    fillQuizSettings();
+    gemMsg(key ? 'Saved. The key stays in this browser only.' : 'Saved. No API key on this device, so quizzes aren’t written here.');
+    renderUpcoming();
+    ensureQuizzes(true);
+});
+$('gemResetPromptBtn').addEventListener('click', () => { $('gemPromptInput').value = DEFAULT_QUIZ_PROMPT; gemMsg('Prompt reset. Click Save to keep it.'); });
+fillQuizSettings();
+loadLocalQuizFiles().then(() => renderUpcoming());
+
 // ============================================================
 // TODAY — reviews, each lecture (video + practice quiz + readiness quiz), AMBOSS follow-ups, AMBOSS on a weak area
 // ============================================================
@@ -2168,6 +2728,23 @@ function renderToday() {
     const moreLecs = lecs.length - LEC_MAX;
     const tmrLecs = lectures.filter(l => l.date === tomorrow);
 
+    // 2b. Lecture quizzes (Gemini), a few a day
+    const qq = quizQueue(lectures, today);
+    qq.show.forEach(({ l, k, r }) => {
+        const d = !!r.doneAt;
+        count(d);
+        note('lecquiz', `${l.name}${qq.total > 1 ? ` · quiz ${k + 1}` : ''}`, d);
+        const ready = r.q && r.q.length;
+        rows.push(todayRow({
+            kicker: 'Lecture quiz',
+            title: escHtml(l.name) + (qq.total > 1 ? ` <span class="muted">· quiz ${k + 1} of ${qq.total}</span>` : ''),
+            detail: `${escHtml(l.type || '')} · ${quizStatus(l, k)}`,
+            done: d,
+            check: `<input type="checkbox" ${d ? 'checked' : ''} disabled aria-label="${d ? 'Done' : 'Not done yet'}" title="Ticks itself off when you finish the quiz">`,
+            actions: ready ? `<button class="btn-small" data-act="quiz-open" data-id="${escHtml(l.id)}" data-k="${k}">${d ? 'Review' : (r.ans || []).some(Boolean) ? 'Resume' : 'Start'}</button>` : ''
+        }));
+    });
+
     // 3. AMBOSS on new lectures: 2 days and 2 weeks after you watch the video
     const fuDue = [], fuToday = [];
     lectures.forEach(l => {
@@ -2221,6 +2798,7 @@ function renderToday() {
     const extras = [];
     const nl = newLeechCount();
     if (nl) extras.push(`<b>${nl} new leech${nl === 1 ? '' : 'es'}</b> since you last checked. <a href="#" data-act="open-leeches">Review ${nl === 1 ? 'it' : 'them'} in Leeches</a>; fixing leeches early saves review time.`);
+    if (qq.waiting) extras.push(`${qq.waiting} more lecture quiz${qq.waiting === 1 ? '' : 'zes'} waiting; ${qq.waiting === 1 ? 'it shows' : 'they show'} on the next days, a few at a time.`);
     if (moreLecs > 0) extras.push(`${moreLecs} more lecture${moreLecs === 1 ? '' : 's'} due; they’ll show here as you finish these.`);
     if (tmrLecs.length) extras.push(`Tomorrow: ${escHtml(tmrLecs.map(l => l.name).join(', '))}. Previewing before the lecture helps it stick.`);
     if (rows.some(r => r.includes('Open cards'))) extras.push('“Open cards” shows them in Anki’s Browse window: select all, then Start Qbank Session (AMBOSS add-on).');
@@ -2455,7 +3033,7 @@ $('leechFilter').addEventListener('change', e => {
 // HISTORY — each day's Today list, plus Anki's own review counts
 // ============================================================
 const DAY_LOG_DAYS = 180;
-const KICKERS = { reviews: 'Reviews', watch: 'Watch', cards: 'B&B cards', quiz: 'Quiz', scholarrx: 'Lecture', lecture: 'Questions · lecture', 'amboss-new': 'AMBOSS · new', 'amboss-weak': 'AMBOSS · weak area', newcards: 'New cards' };
+const KICKERS = { reviews: 'Reviews', watch: 'Watch', cards: 'B&B cards', quiz: 'Quiz', scholarrx: 'Lecture', lecture: 'Questions · lecture', 'amboss-new': 'AMBOSS · new', 'amboss-weak': 'AMBOSS · weak area', newcards: 'New cards', lecquiz: 'Lecture quiz' };
 
 async function loadReviewHistory() {
     if (!ankiTags) return;
@@ -2548,6 +3126,7 @@ async function ankiDo(fn) {
 document.addEventListener('click', e => {
     const el = e.target.closest('[data-act]');
     if (!el) return;
+    if (quizClick(el.dataset.act, el)) return;
     const a = currentAreas[+el.dataset.i];
     const snapSettings = { ...getSettings(), ...((viewSnap() || {}).settings || {}) };
 
@@ -2659,6 +3238,7 @@ window.addEventListener('focus', refreshOnReturn);
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
     refreshOnReturn();
+    ensureQuizzes();
     const snap = getSnap();
     const ageMin = snap ? (Date.now() - new Date(snap.syncedAt)) / 60000 : Infinity;
     if (ageMin >= RESYNC_AFTER_MINUTES) autoSync();
@@ -2673,6 +3253,9 @@ document.addEventListener('visibilitychange', () => {
     if (v !== 'dashboard') showView(v);
     await pullFromGitHub();   // load the GitHub copy first so a fresh sync isn't overwritten
     autoSync();
+    await loadLocalQuizFiles();
+    renderUpcoming();
+    ensureQuizzes();          // write any quizzes still missing for lectures whose slides are on this device
 })();
 </script>
 </body>
