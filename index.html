@@ -131,7 +131,8 @@
         .hist-row.done .hist-mark { color: #38a169; font-weight: bold; }
         .hist-title { min-width: 0; overflow-wrap: anywhere; }
         @media (max-width: 600px) { .hist-row { flex-wrap: wrap; } .hist-row .today-kicker { min-width: 0; } }
-        .tabs { display: flex; gap: 4px; margin: -10px 0 18px; border-bottom: 1px solid #e2e8f0; }
+        .tabs { display: flex; gap: 4px; margin: -10px 0 18px; border-bottom: 1px solid #e2e8f0; overflow-x: auto; scrollbar-width: none; }
+        @media (max-width: 600px) { .tabs { gap: 0; } .tab { padding: 8px 6px; font-size: 0.9em; } }
         .tab { flex: 0 0 auto; background: none; color: #718096; border-radius: 0; padding: 8px 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
         .tab.active { color: #1a202c; border-bottom-color: #3182ce; }
         .leech-group { margin-bottom: 16px; }
@@ -208,12 +209,20 @@
         .stuck { color: #c53030; font-weight: bold; }
         .started-all { color: #276749; }
         .nc-warn { color: #c53030; margin-top: 3px; }
-        .hint { font-weight: normal; color: #718096; font-size: 0.9em; }
+        .qhint { font-weight: normal; color: #718096; font-size: 0.9em; }
         .qf-panel { border: 1px solid #bee3f8; background: #f7fbff; border-radius: 6px; padding: 10px 12px; margin: -2px 0 8px; font-size: 0.85em; }
         .qf-row { display: grid; grid-template-columns: 110px 1fr; gap: 4px 10px; align-items: center; padding: 5px 0; border-bottom: 1px solid #e2e8f0; }
         .qf-row input[type=file] { grid-column: 2; width: 100%; font-size: 0.95em; }
         .qf-label { font-weight: 600; color: #2d3748; grid-row: span 2; }
         .qf-file { overflow-wrap: anywhere; }
+        .tab-badge { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 5px; border-radius: 9px; background: #3182ce; color: white; font-size: 0.72em; line-height: 18px; text-align: center; }
+        .qt-lec { border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; background: #f7fafc; }
+        .qt-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .qt-name { font-weight: 600; color: #1a202c; }
+        .qt-coming { margin-top: 12px; font-size: 0.85em; color: #4a5568; }
+        .qt-coming ul { margin: 4px 0 0; padding-left: 18px; }
+        .qt-coming li { margin-bottom: 2px; }
+        .qt-add { margin: 0 0 10px; max-width: 420px; }
         .qf-quizzes { padding-top: 6px; }
         .qf-quiz { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 5px 0; border-bottom: 1px solid #e2e8f0; color: #2d3748; }
         .qf-quiz .btn-small { flex-shrink: 0; }
@@ -286,7 +295,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26s · Quiz panel</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26t · Quizzes tab</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -298,6 +307,7 @@
 
     <nav class="tabs" aria-label="Views">
         <button class="tab active" data-view="dashboard">Dashboard</button>
+        <button class="tab" data-view="quizzes">Quizzes<span class="tab-badge hidden" id="quizBadge"></span></button>
         <button class="tab" data-view="history">History</button>
         <button class="tab" data-view="leeches">Leeches</button>
     </nav>
@@ -466,45 +476,6 @@
                 </div>
             </div>
         </details>
-        <details class="card tool" id="quizCard">
-            <summary class="tool-summary">Lecture Quizzes <span class="tool-sub">Gemini practice questions from your slides</span></summary>
-            <div class="tool-body">
-                <div class="settings-grid">
-                    <label class="field full">Gemini API key <span class="hint">saved only in this browser, never synced</span>
-                        <input type="password" id="gemKeyInput" autocomplete="off" spellcheck="false" placeholder="AIza…">
-                    </label>
-                    <label class="field">Model
-                        <input type="text" id="gemModelInput" spellcheck="false">
-                    </label>
-                    <label class="field">Quiz days after the lecture
-                        <input type="text" id="gemDaysInput" placeholder="3, 10">
-                    </label>
-                    <label class="field">Most quizzes per day
-                        <input type="number" id="gemMaxInput" min="1" max="10">
-                    </label>
-                    <label class="field full">Your prompt <span class="hint">the page adds the lecture files and asks for the answer in a format it can read</span>
-                        <textarea id="gemPromptInput" rows="12" spellcheck="false"></textarea>
-                    </label>
-                </div>
-                <div class="btn-group">
-                    <button class="btn-primary" id="gemSaveBtn">Save</button>
-                    <button class="btn-small" id="gemResetPromptBtn">Reset prompt</button>
-                </div>
-                <div id="gemStatus" class="status-msg"></div>
-                <details class="help">
-                    <summary>How it works</summary>
-                    <ol>
-                        <li>On a lecture's row, click <b>Quiz</b> and add the lecture slides, the practice quiz and the readiness quiz (PDF, PowerPoint .pptx or Word .docx). PDF works best: Gemini sees the images and tables. From PowerPoint, only the text and speaker notes are sent.</li>
-                        <li>Once all three are in, the page sends them with your prompt to Gemini and saves one quiz for each day in <b>Quiz days after the lecture</b>. The slides are the source; the two quizzes only set the style.</li>
-                        <li>The lecture's <b>Quiz</b> panel shows each quiz's status as it's written, with <b>Open</b> to check or take it early.</li>
-                        <li>On those days, Today shows a <b>Lecture quiz</b> row. At most <b>Most quizzes per day</b> show at once; the rest wait for the next day. A lecture's second quiz is written to test different facts than its first.</li>
-                        <li>The files stay on the computer you added them on; the questions and your scores sync, so you can take the quizzes on your phone.</li>
-                        <li>AI-written questions can have a wrong answer key. Each question names the slide it comes from, so you can check one that looks off.</li>
-                        <li>Protect your key: in Google Cloud Console, restrict it to the Gemini API and to your site's address.</li>
-                    </ol>
-                </details>
-            </div>
-        </details>
         <details class="card tool" id="historyCard">
             <summary class="tool-summary">Progress Over Time <span class="tool-sub">weekly retention history</span></summary>
             <div class="tool-body">
@@ -537,6 +508,63 @@
     </div>
 
     <!-- LEECHES VIEW -->
+    <div id="viewQuizzes" class="hidden">
+        <div class="card">
+            <h2 style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;">
+                <span>Quizzes today</span>
+                <span id="quizTabSummary" style="font-size:0.6em; color:#718096; font-weight:normal;"></span>
+            </h2>
+            <div id="quizToday"></div>
+            <div id="quizComing"></div>
+        </div>
+        <div class="card">
+            <h2 style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;">
+                <span>Lecture quizzes</span>
+                <span id="quizLecSummary" style="font-size:0.6em; color:#718096; font-weight:normal;"></span>
+            </h2>
+            <div id="quizLectures"></div>
+        </div>
+        <details class="card tool" id="quizCard">
+            <summary class="tool-summary">Gemini settings <span class="tool-sub">API key, model, schedule and your prompt</span></summary>
+            <div class="tool-body">
+                <div class="settings-grid">
+                    <label class="field full">Gemini API key <span class="qhint">saved only in this browser, never synced</span>
+                        <input type="password" id="gemKeyInput" autocomplete="off" spellcheck="false" placeholder="AIza…">
+                    </label>
+                    <label class="field">Model
+                        <input type="text" id="gemModelInput" spellcheck="false">
+                    </label>
+                    <label class="field">Quiz days after the lecture
+                        <input type="text" id="gemDaysInput" placeholder="3, 10">
+                    </label>
+                    <label class="field">Most quizzes per day
+                        <input type="number" id="gemMaxInput" min="1" max="10">
+                    </label>
+                    <label class="field full">Your prompt <span class="qhint">the page adds the lecture files and asks for the answer in a format it can read</span>
+                        <textarea id="gemPromptInput" rows="12" spellcheck="false"></textarea>
+                    </label>
+                </div>
+                <div class="btn-group">
+                    <button class="btn-primary" id="gemSaveBtn">Save</button>
+                    <button class="btn-small" id="gemResetPromptBtn">Reset prompt</button>
+                </div>
+                <div id="gemStatus" class="status-msg"></div>
+                <details class="help">
+                    <summary>How it works</summary>
+                    <ol>
+                        <li>On a lecture's row in Lectures, click <b>Quiz</b> (or pick the lecture under <b>Lecture quizzes</b> on this tab) and add the lecture slides, the practice quiz and the readiness quiz (PDF, PowerPoint .pptx or Word .docx). PDF works best: Gemini sees the images and tables. From PowerPoint, only the text and speaker notes are sent.</li>
+                        <li>Once all three are in, the page sends them with your prompt to Gemini and saves one quiz for each day in <b>Quiz days after the lecture</b>. The slides are the source; the two quizzes only set the style.</li>
+                        <li>The lecture's <b>Quiz</b> panel shows each quiz's status as it's written, with <b>Open</b> to check or take it early.</li>
+                        <li>On those days, Today shows a <b>Lecture quiz</b> row. At most <b>Most quizzes per day</b> show at once; the rest wait for the next day. A lecture's second quiz is written to test different facts than its first.</li>
+                        <li>The files stay on the computer you added them on; the questions and your scores sync, so you can take the quizzes on your phone.</li>
+                        <li>AI-written questions can have a wrong answer key. Each question names the slide it comes from, so you can check one that looks off.</li>
+                        <li>Protect your key: in Google Cloud Console, restrict it to the Gemini API and to your site's address.</li>
+                    </ol>
+                </details>
+            </div>
+        </details>
+    </div>
+
     <div id="viewLeeches" class="hidden">
         <div class="card">
             <h2 style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;">
@@ -2247,16 +2275,16 @@ function cleanQuestions(raw) {
 }
 function geminiError(status, body) {
     const msg = (body && body.error && body.error.message) || '';
-    if (status === 400 && /api key/i.test(msg)) return 'Gemini didn’t accept your API key. Check it in Lecture Quizzes.';
+    if (status === 400 && /api key/i.test(msg)) return 'Gemini didn’t accept your API key. Check it in Gemini settings on the Quizzes tab.';
     if (status === 403) return `Gemini refused the request (${msg || 'permission denied'}). If you restricted the key, allow this site’s address.`;
-    if (status === 404) return `Gemini doesn’t know the model “${quizSettings().model}”. Check the model name in Lecture Quizzes.`;
+    if (status === 404) return `Gemini doesn’t know the model “${quizSettings().model}”. Check the model name in Gemini settings on the Quizzes tab.`;
     if (status === 429) return 'Gemini’s rate limit or daily quota is used up. The page tries again later.';
     if (status >= 500) return 'Gemini had a server error. The page tries again later.';
     return `Gemini error ${status}${msg ? `: ${msg}` : ''}`;
 }
 async function askGemini(parts) {
     const key = gemKey();
-    if (!key) throw new Error('Add your Gemini API key in Lecture Quizzes first.');
+    if (!key) throw new Error('Add your Gemini API key in Gemini settings on the Quizzes tab first.');
     const s = quizSettings();
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(s.model)}:generateContent`, {
         method: 'POST',
@@ -2367,7 +2395,7 @@ async function saveQuizFile(id, slot, file) {
     renderUpcoming();
     if (l && l.quiz.auto) ensureQuizzes();
 }
-function quizPanel(l) {
+function quizPanel(l, withRounds = true) {
     const f = (l.quiz && l.quiz.files) || {};
     const here = slot => localQuizFiles.has(`${l.id}|${slot}`);
     const rows = QUIZ_SLOTS.map(([slot, label]) => `
@@ -2376,18 +2404,22 @@ function quizPanel(l) {
             <input type="file" data-qslot="${slot}" data-id="${escHtml(l.id)}" accept=".pdf,.pptx,.docx,.txt,application/pdf">
         </label>`).join('');
     const ready = quizOn(l) && hasLocalSlides(l);
+    const list = withRounds ? quizRoundsHtml(l) : '';
+    const msg = quizMsgs.get(l.id);
+    return `<div class="qf-panel">${rows}${list}${msg ? `<div class="qf-msg${msg.err ? ' status-err' : ''}">${msg.html}</div>` : ''}
+        <div class="qf-foot">${!gemKey() ? 'Add your Gemini API key in <b>Gemini settings</b> on the Quizzes tab to write quizzes.' : ready ? (l.quiz.auto ? 'Quizzes are written automatically.' : 'Add both quizzes and the questions are written automatically, or write them now from the slides alone.') : 'Add the lecture slides (PDF or .pptx; PDF keeps images).'}
+            ${ready && gemKey() ? `<button class="btn-small" data-act="quiz-gen" data-id="${escHtml(l.id)}">${(l.quiz.rounds || []).some(r => r && r.q) ? 'Rewrite unfinished quizzes' : 'Write quizzes now'}</button>` : ''}</div></div>`;
+}
+// Each of a lecture's quizzes: when it shows on Today, its status, and Open / Review
+function quizRoundsHtml(l) {
     const s = quizSettings();
-    const list = quizOn(l) ? `<div class="qf-quizzes">${s.days.map((n, k) => {
+    return quizOn(l) ? `<div class="qf-quizzes">${s.days.map((n, k) => {
         const r = (l.quiz.rounds || [])[k] || {};
         const when = new Date(addDays(l.date, n) + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
         const has = r.q && r.q.length;
         const btn = has ? `<button class="btn-small" data-act="quiz-open" data-id="${escHtml(l.id)}" data-k="${k}">${r.doneAt ? 'Review' : (r.ans || []).some(Boolean) ? 'Resume' : 'Open'}</button>` : '';
-        return `<div class="qf-quiz"><span><b>Quiz ${k + 1}</b> · on Today ${escHtml(when)} · ${quizStatus(l, k)}</span>${btn}</div>`;
+        return `<div class="qf-quiz"><span><b>Quiz ${k + 1}</b> · ${r.doneAt ? 'done' : 'due'} ${escHtml(r.doneAt ? new Date(r.doneAt + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : when)} · ${quizStatus(l, k)}</span>${btn}</div>`;
     }).join('')}</div>` : '';
-    const msg = quizMsgs.get(l.id);
-    return `<div class="qf-panel">${rows}${list}${msg ? `<div class="qf-msg${msg.err ? ' status-err' : ''}">${msg.html}</div>` : ''}
-        <div class="qf-foot">${!gemKey() ? 'Add your Gemini API key in <b>Lecture Quizzes</b> (below) to write quizzes.' : ready ? (l.quiz.auto ? 'Quizzes are written automatically.' : 'Add both quizzes and the questions are written automatically, or write them now from the slides alone.') : 'Add the lecture slides (PDF or .pptx; PDF keeps images).'}
-            ${ready && gemKey() ? `<button class="btn-small" data-act="quiz-gen" data-id="${escHtml(l.id)}">${(l.quiz.rounds || []).some(r => r && r.q) ? 'Rewrite unfinished quizzes' : 'Write quizzes now'}</button>` : ''}</div></div>`;
 }
 document.addEventListener('change', e => {
     const t = e.target;
@@ -2397,6 +2429,7 @@ document.addEventListener('change', e => {
 // ---------- schedule: which quizzes show on Today ----------
 // Each lecture with slides gets a quiz on each day in "days after the lecture"; at most `max` quizzes a day,
 // oldest first; the rest wait for the next day. A lecture's second quiz waits until its first is done.
+// A quiz that hasn't been written yet doesn't take a slot (its lecture shows why on the Quizzes tab).
 function quizQueue(lectures, today) {
     const s = quizSettings(), items = [];
     lectures.forEach(l => {
@@ -2408,7 +2441,7 @@ function quizQueue(lectures, today) {
         });
     });
     const doneToday = items.filter(x => x.r.doneAt === today);
-    const open = items.filter(x => !x.r.doneAt && x.prevDone && x.due <= today)
+    const open = items.filter(x => !x.r.doneAt && x.prevDone && x.due <= today && x.r.q && x.r.q.length)   // only written quizzes take a slot
         .sort((a, b) => ((b.r.ans || []).length > 0) - ((a.r.ans || []).length > 0) || a.due.localeCompare(b.due) || a.l.date.localeCompare(b.l.date) || a.k - b.k);
     const slots = Math.max(0, s.max - doneToday.length);
     return { show: [...doneToday, ...open.slice(0, slots)], waiting: Math.max(0, open.length - slots), total: s.days.length };
@@ -2420,7 +2453,7 @@ function quizStatus(l, k) {
     if (r.q && r.q.length) return `${r.q.length} questions${(r.ans || []).filter(Boolean).length ? ` · ${(r.ans || []).filter(Boolean).length} answered` : ''}`;
     if (r.err) return `<span class="nc-warn">${escHtml(r.err)}</span>`;
     if (!hasLocalSlides(l)) return 'Written on the device where you added the slides, next time it opens this page';
-    if (!gemKey()) return 'Add your Gemini API key in Lecture Quizzes';
+    if (!gemKey()) return 'Add your Gemini API key in Gemini settings (Quizzes tab)';
     return 'Waiting to be written';
 }
 // Line on a lecture's row
@@ -2567,6 +2600,56 @@ $('gemSaveBtn').addEventListener('click', () => {
 $('gemResetPromptBtn').addEventListener('click', () => { $('gemPromptInput').value = DEFAULT_QUIZ_PROMPT; gemMsg('Prompt reset. Click Save to keep it.'); });
 fillQuizSettings();
 loadLocalQuizFiles().then(() => renderUpcoming());
+
+// ---------- the Quizzes tab ----------
+function renderQuizTab({ rows, due, done, qq, lectures, today }) {
+    const left = due - done;
+    $('quizBadge').textContent = left;
+    $('quizBadge').classList.toggle('hidden', !left);
+    $('quizTabSummary').textContent = due ? `${done} of ${due} done` : '';
+    const foot = [];
+    if (qq.waiting) foot.push(`${qq.waiting} more lecture quiz${qq.waiting === 1 ? '' : 'zes'} waiting; ${qq.waiting === 1 ? 'it shows' : 'they show'} on the next days, a few at a time.`);
+    if (rows.some(r => r.includes('Open cards'))) foot.push('“Open cards” shows them in Anki’s Browse window: select all, then Start Qbank Session (AMBOSS add-on).');
+    $('quizToday').innerHTML = (rows.length ? rows.join('') : '<p class="muted" style="margin:4px 0;">No quizzes due today.</p>')
+        + (foot.length ? `<div class="today-foot">${foot.join('<br>')}</div>` : '');
+
+    // next 7 days
+    const up = [];
+    lectures.forEach(l => {
+        if (quizOn(l)) quizSettings().days.forEach((n, k) => {
+            const d = addDays(l.date, n), r = (l.quiz.rounds || [])[k] || {};
+            if (!r.doneAt && d > today && daysBetween(today, d) <= 7) up.push({ d, kind: 'Lecture quiz', text: `${l.name} · quiz ${k + 1}` });
+        });
+        if (l.watched) FOLLOW_UP_DAYS.forEach((n, k) => {
+            const d = addDays(l.watched, n);
+            if (!(l.fu || [])[k] && d > today && daysBetween(today, d) <= 7) up.push({ d, kind: 'AMBOSS · new', text: `${l.name} (${k === 0 ? `${n}-day` : `${Math.round(n / 7)}-week`} check)` });
+        });
+    });
+    up.sort((a, b) => a.d.localeCompare(b.d) || a.text.localeCompare(b.text));
+    $('quizComing').innerHTML = up.length ? `<div class="qt-coming"><span class="res-title">Next 7 days</span><ul>${up.map(x => `<li><b>${escHtml(relDate(x.d))}</b> · ${x.kind} · ${escHtml(x.text)}</li>`).join('')}</ul>
+        <span class="muted">Lecture quizzes may slide a day or two when more than ${quizSettings().max} fall on the same day.</span></div>` : '';
+
+    // every lecture's Gemini quizzes
+    const withQ = lectures.filter(l => quizOn(l) || quizPanelId === l.id).sort((a, b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name));
+    const finished = withQ.flatMap(l => (l.quiz && l.quiz.rounds || []).filter(r => r && r.doneAt && r.n));
+    const avg = finished.length ? Math.round(100 * finished.reduce((s, r) => s + r.score, 0) / finished.reduce((s, r) => s + r.n, 0)) : null;
+    $('quizLecSummary').textContent = finished.length ? `${finished.length} finished · ${avg}% correct` : '';
+    const others = lectures.filter(l => !quizOn(l) && quizPanelId !== l.id).sort((a, b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name));
+    const add = others.length ? `<select id="quizAddSelect" class="qt-add" aria-label="Add quizzes for a lecture"><option value="">Add quizzes for a lecture…</option>${others.map(l => `<option value="${escHtml(l.id)}">${escHtml(l.name)} (${escHtml(new Date(l.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))})</option>`).join('')}</select>` : '';
+    $('quizLectures').innerHTML = add + (withQ.length ? withQ.map(l => {
+        const done = (l.quiz && l.quiz.rounds || []).filter(r => r && r.doneAt && r.n);
+        const pctL = done.length ? Math.round(100 * done.reduce((s, r) => s + r.score, 0) / done.reduce((s, r) => s + r.n, 0)) : null;
+        return `<div class="qt-lec">
+            <div class="qt-head"><span><span class="res-badge">${escHtml(l.type || '')}</span><span class="qt-name">${escHtml(l.name)}</span> <span class="muted">· lecture ${escHtml(new Date(l.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}${pctL != null ? ` · ${pctL}% correct` : ''}</span></span>
+                <button class="btn-small" data-act="quiz-files" data-id="${escHtml(l.id)}">${quizPanelId === l.id ? 'Hide files' : 'Files'}</button></div>
+            ${quizRoundsHtml(l)}
+            ${quizPanelId === l.id ? quizPanel(l, false) : ''}
+        </div>`;
+    }).join('') : '<p class="muted" style="margin:4px 0;">No lecture quizzes yet. Pick a lecture above (or click <b>Quiz</b> on its row in Lectures) and add its slides and quizzes.</p>');
+}
+document.addEventListener('change', e => {
+    if (e.target.id === 'quizAddSelect' && e.target.value) { quizPanelId = e.target.value; renderUpcoming(); }
+});
 
 // ============================================================
 // TODAY — reviews, each lecture (video + practice quiz + readiness quiz), AMBOSS follow-ups, AMBOSS on a weak area
@@ -2745,14 +2828,16 @@ function renderToday() {
     const moreLecs = lecs.length - LEC_MAX;
     const tmrLecs = lectures.filter(l => l.date === tomorrow);
 
-    // 2b. Lecture quizzes (Gemini), a few a day
+    // 2b. Lecture quizzes (Gemini), a few a day. Quiz rows also go on the Quizzes tab.
+    const quizRows = [], quizCount = { due: 0, done: 0 };
+    const qpush = (d, html) => { rows.push(html); quizRows.push(html); quizCount.due++; if (d) quizCount.done++; };
     const qq = quizQueue(lectures, today);
     qq.show.forEach(({ l, k, r }) => {
         const d = !!r.doneAt;
         count(d);
         note('lecquiz', `${l.name}${qq.total > 1 ? ` · quiz ${k + 1}` : ''}`, d);
         const ready = r.q && r.q.length;
-        rows.push(todayRow({
+        qpush(d, todayRow({
             kicker: 'Lecture quiz',
             title: escHtml(l.name) + (qq.total > 1 ? ` <span class="muted">· quiz ${k + 1} of ${qq.total}</span>` : ''),
             detail: `${escHtml(l.type || '')} · ${quizStatus(l, k)}`,
@@ -2783,7 +2868,7 @@ function renderToday() {
         const names = fuList.slice(0, 4).map(x => `${escHtml(x.l.name)} <span class="muted">(${x.k === 0 ? `${FOLLOW_UP_DAYS[0]}-day` : `${Math.round(FOLLOW_UP_DAYS[1] / 7)}-week`} check)</span>`).join(', ')
             + (fuList.length > 4 ? `, +${fuList.length - 4} more` : '');
         const hasCards = fuList.some(x => lecHasCards(x.l));
-        rows.push(todayRow({
+        qpush(d, todayRow({
             kicker: 'AMBOSS · new',
             title,
             detail: names,
@@ -2803,7 +2888,7 @@ function renderToday() {
         const d = !!(db.todayLog && db.todayLog[today] && db.todayLog[today].weak);
         count(d);
         note('amboss-weak', `20 questions on ${area.label}`, d);
-        rows.push(todayRow({
+        qpush(d, todayRow({
             kicker: 'AMBOSS · weak area',
             title: `20 questions on ${escHtml(area.label)}`,
             detail: [area.retention != null ? `Retention ${pct(area.retention)}` : '', `${pct(area.struggle)} of cards with 3+ lapses`, cand.length > 1 ? `rotates daily through your ${cand.length} weakest ${useLec ? 'lectures' : 'areas'}` : ''].filter(Boolean).join(' · '),
@@ -2811,6 +2896,8 @@ function renderToday() {
             actions: `<button class="btn-small" data-act="qbank-area" data-src="${useLec ? 'lecture' : 'subject'}" data-path="${escHtml(area.path)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Open cards</button>`
         }));
     }
+
+    renderQuizTab({ rows: quizRows, due: quizCount.due, done: quizCount.done, qq, lectures, today });
 
     const extras = [];
     const nl = newLeechCount();
@@ -3024,11 +3111,12 @@ function markLeechesSeen() {
 
 // ---------- tabs ----------
 function showView(name) {
-    const views = { dashboard: 'viewDashboard', history: 'viewHistory', leeches: 'viewLeeches' };
+    const views = { dashboard: 'viewDashboard', quizzes: 'viewQuizzes', history: 'viewHistory', leeches: 'viewLeeches' };
     if (!views[name]) name = 'dashboard';
     Object.entries(views).forEach(([k, id]) => $(id).classList.toggle('hidden', k !== name));
     const leeches = name === 'leeches';
     if (name === 'history') { renderDayHistory(); loadReviewHistory(); }
+    if (name === 'quizzes') renderToday();
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === name));
     try { localStorage.setItem('view', name); } catch {}
     if (leeches) {
@@ -3266,7 +3354,7 @@ document.addEventListener('visibilitychange', () => {
     renderAll();
     renderLeeches();
     let v = 'dashboard';
-    try { const h = location.hash.slice(1); v = ['leeches', 'history'].includes(h) ? h : (localStorage.getItem('view') || 'dashboard'); } catch {}
+    try { const h = location.hash.slice(1); v = ['leeches', 'history', 'quizzes'].includes(h) ? h : (localStorage.getItem('view') || 'dashboard'); } catch {}
     if (v !== 'dashboard') showView(v);
     await pullFromGitHub();   // load the GitHub copy first so a fresh sync isn't overwritten
     autoSync();
