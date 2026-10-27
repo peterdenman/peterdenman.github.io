@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Master Focus Dashboard</title>
+    <title> Focus Dashboard</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -470,7 +470,7 @@
                         <li>Keep Anki open and use this page in Chrome, Edge or Firefox on the <b>same computer</b>.</li>
                         <li>Open this page with Anki running. The first time, Anki shows a permission popup for this site; click <b>Yes</b>. After that the page connects and syncs by itself every time you open it (and again if you come back after 15+ minutes). If the browser asks to let the page access devices on your local network, allow it.</li>
                         <li>Still blocked? In Anki open <b>Tools → Add-ons → AnkiConnect → Config</b> and add your site's address (e.g. <code>https://username.github.io</code>) to <code>webCorsOriginList</code>, then restart Anki.</li>
-                        <li>For one-click AMBOSS practice, install the <a href="https://amboss.com/us/anki/qbank" target="_blank" rel="noopener noreferrer">AMBOSS Anki add-on</a>. The notebook's <b>Start Qbank session</b> button opens your weak cards in Anki's Browse window, where the add-on turns them into a matching Qbank session.</li>
+                        <li>For one-click  practice, install the <a href="https://amboss.com/us/anki/qbank" target="_blank" rel="noopener noreferrer">AMBOSS Anki add-on</a>. The notebook's <b>Start Qbank session</b> button opens your weak cards in Anki's Browse window, where the add-on turns them into a matching Qbank session.</li>
                         <li>After each analysis, results sync to GitHub, so your phone shows the latest snapshot even without Anki.</li>
                     </ol>
                 </details>
@@ -2938,7 +2938,7 @@ function renderToday() {
         const area = cand[dayNumber(today) % cand.length];
         const d = !!(db.todayLog && db.todayLog[today] && db.todayLog[today].weak);
         count(d);
-        note('amboss-weak', `20 questions on ${area.label}`, d);
+        note('amboss-weak', `10 questions on ${area.label}`, d);
         qpush(d, todayRow({
             kicker: 'AMBOSS · weak area',
             title: `20 questions on ${escHtml(area.label)}`,
