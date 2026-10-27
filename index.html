@@ -214,6 +214,10 @@
         .qf-row input[type=file] { grid-column: 2; width: 100%; font-size: 0.95em; }
         .qf-label { font-weight: 600; color: #2d3748; grid-row: span 2; }
         .qf-file { overflow-wrap: anywhere; }
+        .qf-quizzes { padding-top: 6px; }
+        .qf-quiz { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 5px 0; border-bottom: 1px solid #e2e8f0; color: #2d3748; }
+        .qf-quiz .btn-small { flex-shrink: 0; }
+        .qf-msg { padding-top: 6px; color: #276749; }
         .qf-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 8px; color: #4a5568; }
         @media (max-width: 600px) { .qf-row { grid-template-columns: 1fr; } .qf-label { grid-row: auto; } .qf-row input[type=file] { grid-column: 1; } }
         .quiz-overlay { position: fixed; inset: 0; background: rgba(26, 32, 44, 0.55); z-index: 1000; display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 24px 12px; }
@@ -282,7 +286,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26r · Lecture quizzes</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26s · Quiz panel</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -492,6 +496,7 @@
                     <ol>
                         <li>On a lecture's row, click <b>Quiz</b> and add the lecture slides, the practice quiz and the readiness quiz (PDF, PowerPoint .pptx or Word .docx). PDF works best: Gemini sees the images and tables. From PowerPoint, only the text and speaker notes are sent.</li>
                         <li>Once all three are in, the page sends them with your prompt to Gemini and saves one quiz for each day in <b>Quiz days after the lecture</b>. The slides are the source; the two quizzes only set the style.</li>
+                        <li>The lecture's <b>Quiz</b> panel shows each quiz's status as it's written, with <b>Open</b> to check or take it early.</li>
                         <li>On those days, Today shows a <b>Lecture quiz</b> row. At most <b>Most quizzes per day</b> show at once; the rest wait for the next day. A lecture's second quiz is written to test different facts than its first.</li>
                         <li>The files stay on the computer you added them on; the questions and your scores sync, so you can take the quizzes on your phone.</li>
                         <li>AI-written questions can have a wrong answer key. Each question names the slide it comes from, so you can check one that looks off.</li>
@@ -2313,6 +2318,7 @@ function roundsToBuild() {
     return out;
 }
 let quizBuilding = null, quizBuildAgain = false;
+const quizMsgs = new Map();   // lecture id -> last result of writing its quizzes (shown in its Quiz panel)
 async function ensureQuizzes(retryFailed = false) {
     if (!gemKey()) return;
     if (quizBuilding) { quizBuildAgain = true; return; }
@@ -2329,10 +2335,12 @@ async function ensureQuizzes(retryFailed = false) {
             const qs = await buildQuizRound(l, k);
             setQuiz(id, quiz => { quiz.rounds[k] = { q: qs, at: new Date().toISOString(), model: quizSettings().model, ans: [] }; });
             gemMsg(`Wrote ${qs.length} questions for ${escHtml(l.name)} (quiz ${k + 1}).`);
+            quizMsgs.set(id, { html: `Quiz ${k + 1} is ready: ${qs.length} questions.`, err: false });
         } catch (err) {
             console.error(err);
             setQuiz(id, quiz => { quiz.rounds[k] = { ...(quiz.rounds[k] || {}), err: String(err.message || err), failedAt: new Date().toISOString() }; });
             gemMsg(escHtml(err.message || String(err)), true);
+            quizMsgs.set(id, { html: `Quiz ${k + 1} couldn’t be written: ${escHtml(err.message || String(err))}`, err: true });
             if (/API key|quota|rate limit|model/i.test(String(err.message))) break;   // later rounds would fail the same way
         }
     }
@@ -2368,7 +2376,16 @@ function quizPanel(l) {
             <input type="file" data-qslot="${slot}" data-id="${escHtml(l.id)}" accept=".pdf,.pptx,.docx,.txt,application/pdf">
         </label>`).join('');
     const ready = quizOn(l) && hasLocalSlides(l);
-    return `<div class="qf-panel">${rows}
+    const s = quizSettings();
+    const list = quizOn(l) ? `<div class="qf-quizzes">${s.days.map((n, k) => {
+        const r = (l.quiz.rounds || [])[k] || {};
+        const when = new Date(addDays(l.date, n) + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+        const has = r.q && r.q.length;
+        const btn = has ? `<button class="btn-small" data-act="quiz-open" data-id="${escHtml(l.id)}" data-k="${k}">${r.doneAt ? 'Review' : (r.ans || []).some(Boolean) ? 'Resume' : 'Open'}</button>` : '';
+        return `<div class="qf-quiz"><span><b>Quiz ${k + 1}</b> · on Today ${escHtml(when)} · ${quizStatus(l, k)}</span>${btn}</div>`;
+    }).join('')}</div>` : '';
+    const msg = quizMsgs.get(l.id);
+    return `<div class="qf-panel">${rows}${list}${msg ? `<div class="qf-msg${msg.err ? ' status-err' : ''}">${msg.html}</div>` : ''}
         <div class="qf-foot">${!gemKey() ? 'Add your Gemini API key in <b>Lecture Quizzes</b> (below) to write quizzes.' : ready ? (l.quiz.auto ? 'Quizzes are written automatically.' : 'Add both quizzes and the questions are written automatically, or write them now from the slides alone.') : 'Add the lecture slides (PDF or .pptx; PDF keeps images).'}
             ${ready && gemKey() ? `<button class="btn-small" data-act="quiz-gen" data-id="${escHtml(l.id)}">${(l.quiz.rounds || []).some(r => r && r.q) ? 'Rewrite unfinished quizzes' : 'Write quizzes now'}</button>` : ''}</div></div>`;
 }
