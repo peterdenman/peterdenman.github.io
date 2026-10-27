@@ -2941,7 +2941,7 @@ function renderToday() {
         note('amboss-weak', `10 questions (1-2 hammers) on ${area.label}`, d);
         qpush(d, todayRow({
             kicker: 'AMBOSS · weak area',
-            title: `20 questions on ${escHtml(area.label)}`,
+            title: `10 questions (1-2 hammer max) on ${escHtml(area.label)}`,
             detail: [area.retention != null ? `Retention ${pct(area.retention)}` : '', `${pct(area.struggle)} of cards with 3+ lapses`, cand.length > 1 ? `rotates daily through your ${cand.length} weakest ${useLec ? 'lectures' : 'areas'}` : ''].filter(Boolean).join(' · '),
             done: d, manual: 'weak',
             actions: `<button class="btn-small" data-act="qbank-area" data-src="${useLec ? 'lecture' : 'subject'}" data-path="${escHtml(area.path)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Open cards</button>`
