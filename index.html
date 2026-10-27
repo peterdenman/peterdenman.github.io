@@ -301,7 +301,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 27a · Unsuspend when you choose</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 27b · Quizzes on Today</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -2456,7 +2456,14 @@ function quizQueue(lectures, today) {
     const open = items.filter(x => !x.r.doneAt && x.prevDone && x.due <= today && x.r.q && x.r.q.length)   // only written quizzes take a slot
         .sort((a, b) => ((b.r.ans || []).length > 0) - ((a.r.ans || []).length > 0) || a.due.localeCompare(b.due) || a.l.date.localeCompare(b.l.date) || a.k - b.k);
     const slots = Math.max(0, s.max - doneToday.length);
-    return { show: [...doneToday, ...open.slice(0, slots)], waiting: Math.max(0, open.length - slots), total: s.days.length };
+    // free slots left today: offer the next written quizzes early (optional, not counted in the day's total)
+    const free = slots - Math.min(open.length, slots);
+    const early = free > 0 ? items.filter(x => !x.r.doneAt && x.prevDone && x.due > today && x.r.q && x.r.q.length)
+        .sort((a, b) => ((b.r.ans || []).length > 0) - ((a.r.ans || []).length > 0) || a.due.localeCompare(b.due) || a.k - b.k)
+        .slice(0, free).map(x => ({ ...x, early: true })) : [];
+    // due, but no questions yet (writing failed, or the slides are on another device)
+    const stuck = items.filter(x => !x.r.doneAt && x.prevDone && x.due <= today && !(x.r.q && x.r.q.length));
+    return { show: [...doneToday, ...open.slice(0, slots), ...early], waiting: Math.max(0, open.length - slots), total: s.days.length, stuck };
 }
 function quizStatus(l, k) {
     const r = ((l.quiz && l.quiz.rounds) || [])[k] || {};
@@ -2621,6 +2628,7 @@ function renderQuizTab({ rows, due, done, qq, lectures, today }) {
     $('quizBadge').classList.toggle('hidden', !left);
     $('quizTabSummary').textContent = due ? `${done} of ${due} done` : '';
     const foot = [];
+    if (qq.stuck.length) foot.push(qq.stuck.slice(0, 3).map(x => `${escHtml(x.l.name)} quiz ${x.k + 1} is due but has no questions yet: ${quizStatus(x.l, x.k)}`).join('<br>'));
     if (qq.waiting) foot.push(`${qq.waiting} more lecture quiz${qq.waiting === 1 ? '' : 'zes'} waiting; ${qq.waiting === 1 ? 'it shows' : 'they show'} on the next days, a few at a time.`);
     if (rows.some(r => r.includes('Open cards'))) foot.push('“Open cards” shows them in Anki’s Browse window: select all, then Start Qbank Session (AMBOSS add-on).');
     $('quizToday').innerHTML = (rows.length ? rows.join('') : '<p class="muted" style="margin:4px 0;">No quizzes due today.</p>')
@@ -2872,19 +2880,22 @@ function renderToday() {
     const quizRows = [], quizCount = { due: 0, done: 0 };
     const qpush = (d, html) => { rows.push(html); quizRows.push(html); quizCount.due++; if (d) quizCount.done++; };
     const qq = quizQueue(lectures, today);
-    qq.show.forEach(({ l, k, r }) => {
+    qq.show.forEach(({ l, k, r, due, early }) => {
         const d = !!r.doneAt;
-        count(d);
-        note('lecquiz', `${l.name}${qq.total > 1 ? ` · quiz ${k + 1}` : ''}`, d);
         const ready = r.q && r.q.length;
-        qpush(d, todayRow({
-            kicker: 'Lecture quiz',
-            title: escHtml(l.name) + (qq.total > 1 ? ` <span class="muted">· quiz ${k + 1} of ${qq.total}</span>` : ''),
+        const html = todayRow({
+            kicker: early ? 'Lecture quiz · early' : 'Lecture quiz',
+            title: escHtml(l.name) + (qq.total > 1 ? ` <span class="muted">· quiz ${k + 1} of ${qq.total}</span>` : '')
+                + (early ? ` <span class="muted">· optional, due ${escHtml(relDate(due))}</span>` : ''),
             detail: `${escHtml(l.type || '')} · ${quizStatus(l, k)}`,
             done: d,
             check: `<input type="checkbox" ${d ? 'checked' : ''} disabled aria-label="${d ? 'Done' : 'Not done yet'}" title="Ticks itself off when you finish the quiz">`,
             actions: ready ? `<button class="btn-small" data-act="quiz-open" data-id="${escHtml(l.id)}" data-k="${k}">${d ? 'Review' : (r.ans || []).some(Boolean) ? 'Resume' : 'Start'}</button>` : ''
-        }));
+        });
+        if (early) { rows.push(html); quizRows.push(html); return; }   // optional: doesn't count toward the day
+        count(d);
+        note('lecquiz', `${l.name}${qq.total > 1 ? ` · quiz ${k + 1}` : ''}`, d);
+        qpush(d, html);
     });
 
     // 3. AMBOSS on new lectures: 3 days and 2 weeks after the lecture
@@ -2961,6 +2972,7 @@ function renderToday() {
     const extras = [];
     const nl = newLeechCount();
     if (nl) extras.push(`<b>${nl} new leech${nl === 1 ? '' : 'es'}</b> since you last checked. <a href="#" data-act="open-leeches">Review ${nl === 1 ? 'it' : 'them'} in Leeches</a>; fixing leeches early saves review time.`);
+    if (qq.stuck.length) extras.push(qq.stuck.slice(0, 3).map(x => `${escHtml(x.l.name)} quiz ${x.k + 1} is due but has no questions yet: ${quizStatus(x.l, x.k)}`).join('<br>'));
     if (qq.waiting) extras.push(`${qq.waiting} more lecture quiz${qq.waiting === 1 ? '' : 'zes'} waiting; ${qq.waiting === 1 ? 'it shows' : 'they show'} on the next days, a few at a time.`);
     if (moreLecs > 0) extras.push(`${moreLecs} more lecture${moreLecs === 1 ? '' : 's'} due; they’ll show here as you finish these.`);
     if (laterTasks.length) extras.push(`Your tasks for later: ${laterTasks.slice(0, 6).map(t => `<span class="task-later">${escHtml(t.text)} <span class="muted">(${escHtml(relDate(t.date))})</span><button class="link-btn" data-act="task-remove" data-id="${escHtml(t.id)}" aria-label="Remove task">✕</button></span>`).join('')}${laterTasks.length > 6 ? ` +${laterTasks.length - 6} more` : ''}`);
