@@ -301,7 +301,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26v · Your own tasks</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 27a · Unsuspend when you choose</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -395,7 +395,7 @@
                     <button type="submit" class="btn-success" style="width:100%;">Add lecture</button>
                 </form>
                 <div class="lec-opts">
-                    <label class="lec-auto"><input type="checkbox" id="autoUnsuspendInput"> Unsuspend each lecture’s picked cards automatically on its due date</label>
+                    <label class="lec-auto"><input type="checkbox" id="autoUnsuspendInput"> Unsuspend picked cards automatically on the due date (off: you click Unsuspend on Today)</label>
                     <span>
                         <button class="link-btn" id="bnbExportBtn" title="Save every B&amp;B card in your collection (text and note ID) to one file for Claude. Send it once; then Claude can pick cards straight from your slides.">Export all B&amp;B cards</button>
                         <span class="muted">·</span>
@@ -1884,7 +1884,7 @@ function renderUpcoming() {
         saveDb(db);
     }
     if (pruneQuizzes(db)) saveDb(db);
-    $('autoUnsuspendInput').checked = db.autoUnsuspend !== false;
+    $('autoUnsuspendInput').checked = db.autoUnsuspend === true;
     const list = lectureList(db);
     const connected = !!ankiTags;
     const box = $('upList');
@@ -1922,7 +1922,8 @@ function renderUpcoming() {
 // ---------- automatic unsuspend on the due date ----------
 // Unsuspends the notes Claude picked for each lecture (never leeches). Each note is done once;
 // re-suspending cards in Anki afterwards is left alone.
-const autoUnsuspendOn = () => loadDb().autoUnsuspend !== false;
+// Off unless you turn it on: by default the cards wait on Today until you click Unsuspend.
+const autoUnsuspendOn = () => loadDb().autoUnsuspend === true;
 let unsuspending = false, unsuspendAgain = null;
 async function unsuspendLectures({ ids = null } = {}) {
     if (!ankiTags) return;
@@ -1959,7 +1960,6 @@ async function unsuspendLectures({ ids = null } = {}) {
         if (!l) return;
         const prev = l.unsusp || { n: 0, notes: [] };
         l.unsusp = { ...prev, date: prev.date || today, n: (prev.n || 0) + r.n, notes: [...new Set([...(prev.notes || []), ...r.notes])] };
-        if (!l.watched) l.watched = today;   // the lecture's first Today row ticks itself off; AMBOSS follow-ups count from here
     });
     saveDb(db);
     const total = done.reduce((s, r) => s + r.n, 0);
@@ -2838,7 +2838,7 @@ function renderToday() {
         const late = l.date < today ? `<span class="${lecDone(l) ? '' : 'stuck'}">${daysBetween(l.date, today)}d overdue</span> · ` : '';
         const u = safeUrl(l.url), picks = pickedNotes(l);
         const hasCards = lecHasCards(l);
-        const cardsMode = hasCards;   // lectures with picked cards: the first row is their cards, unsuspended for you
+        const cardsMode = hasCards;   // lectures with picked cards: the first row is their cards; you unsuspend them and tick the row yourself
         LEC_PARTS.forEach(([part, label0]) => {
             const label = part === 'watched' && cardsMode ? 'B&B cards' : label0;
             const d = !!l[part];
@@ -2846,22 +2846,21 @@ function renderToday() {
             log.push({ k: part === 'watched' ? (cardsMode ? 'cards' : 'watch') : 'quiz', t: part === 'watched' ? l.name : `${label} · ${l.name}`, d, lec: l.id, p: part });
             let detail = late + escHtml(l.type || '');
             if (part === 'watched' && cardsMode) {
+                const waiting = pendingNotes(l).length;
                 detail += (picks.length ? ` · ${picks.length.toLocaleString()} notes picked` : '')
-                    + (l.unsusp && !hasPending(l) ? ` · ${l.unsusp.n ? `${l.unsusp.n.toLocaleString()} cards unsuspended` : 'already unsuspended'}`
-                        : autoUnsuspendOn() ? ' · unsuspend automatically when this page is open with Anki' : '');
+                    + (waiting ? ` · <b>${waiting.toLocaleString()} note${waiting === 1 ? '' : 's'} ready to unsuspend</b>${autoUnsuspendOn() ? ' (automatically when this page is open with Anki)' : ''}`
+                        : l.unsusp ? ` · ${l.unsusp.n ? `${l.unsusp.n.toLocaleString()} cards unsuspended` : 'already unsuspended'}` : '');
             }
             if (part === 'watched' && l.note) detail += `<div class="muted">${escHtml(l.note)}</div>`;
-            const auto = part === 'watched' && cardsMode && hasCards;
+            const cardsRow = part === 'watched' && cardsMode;
             rows.push(todayRow({
                 kicker: label,
                 title: escHtml(l.name),
                 detail,
                 done: d,
-                check: auto
-                    ? `<input type="checkbox" ${d ? 'checked' : ''} disabled aria-label="${d ? 'Done' : 'Not done yet'}" title="Ticks itself off when the cards are unsuspended">`
-                    : `<input type="checkbox" data-lec="${escHtml(l.id)}" data-part="${part}" ${d ? 'checked' : ''} aria-label="Mark ${escHtml(label)} done">`,
+                check: `<input type="checkbox" data-lec="${escHtml(l.id)}" data-part="${part}" ${d ? 'checked' : ''} aria-label="Mark ${escHtml(label)} done">`,
                 actions: part !== 'watched' ? '' : (u ? `<a class="btn-small" href="${escHtml(u)}" target="_blank" rel="noopener noreferrer">Watch</a>` : '')
-                    + (auto && hasPending(l) ? `<button class="btn-small" data-act="lec-unsuspend" data-id="${escHtml(l.id)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Unsuspend now</button>` : '')
+                    + (cardsRow && hasPending(l) ? `<button class="btn-small btn-go" data-act="lec-unsuspend" data-id="${escHtml(l.id)}" ${connected ? 'title="Unsuspend this lecture’s picked cards in Anki"' : 'disabled title="Open Anki on this computer"'}>Unsuspend</button>` : '')
                     + (hasCards ? `<button class="btn-small" data-act="lec-cards" data-id="${escHtml(l.id)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>` : '')
             }));
         });
