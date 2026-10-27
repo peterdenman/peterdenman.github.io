@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Focus Dashboard</title>
+    <title>Master Focus Dashboard</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -229,6 +229,18 @@
         .qt-coming ul { margin: 4px 0 0; padding-left: 18px; }
         .qt-coming li { margin-bottom: 2px; }
         .qt-add { margin: 0 0 10px; max-width: 420px; }
+        .lec-guide { margin-top: 5px; font-size: 0.82em; color: #2d3748; }
+        .lec-guide > summary { cursor: pointer; color: #2b6cb0; }
+        .lec-guide[open] { background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 10px 8px; }
+        .gd-entry + .gd-entry { border-top: 1px solid #edf2f7; margin-top: 6px; padding-top: 6px; }
+        .gd-name { font-weight: 600; margin: 6px 0 2px; }
+        .gd { display: grid; grid-template-columns: 76px 1fr; gap: 3px 10px; margin: 6px 0 0; }
+        .gd dt { font-weight: 600; color: #4a5568; }
+        .gd dd { margin: 0; overflow-wrap: anywhere; }
+        .gd dd div + div { margin-top: 1px; }
+        .gd-pick { display: flex; align-items: center; gap: 6px; margin-top: 8px; color: #718096; font-size: 0.95em; }
+        .gd-pick select { flex: 1; min-width: 0; width: 100%; max-width: 320px; margin: 0; padding: 2px 4px; font-size: 1em; }
+        @media (max-width: 600px) { .gd { grid-template-columns: 1fr; } .gd dt { margin-top: 4px; } }
         .qf-quizzes { padding-top: 6px; }
         .qf-quiz { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 5px 0; border-bottom: 1px solid #e2e8f0; color: #2d3748; }
         .qf-quiz .btn-small { flex-shrink: 0; }
@@ -301,7 +313,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 27b · Quizzes on Today</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 27c · Resource guide</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -470,7 +482,7 @@
                         <li>Keep Anki open and use this page in Chrome, Edge or Firefox on the <b>same computer</b>.</li>
                         <li>Open this page with Anki running. The first time, Anki shows a permission popup for this site; click <b>Yes</b>. After that the page connects and syncs by itself every time you open it (and again if you come back after 15+ minutes). If the browser asks to let the page access devices on your local network, allow it.</li>
                         <li>Still blocked? In Anki open <b>Tools → Add-ons → AnkiConnect → Config</b> and add your site's address (e.g. <code>https://username.github.io</code>) to <code>webCorsOriginList</code>, then restart Anki.</li>
-                        <li>For one-click  practice, install the <a href="https://amboss.com/us/anki/qbank" target="_blank" rel="noopener noreferrer">AMBOSS Anki add-on</a>. The notebook's <b>Start Qbank session</b> button opens your weak cards in Anki's Browse window, where the add-on turns them into a matching Qbank session.</li>
+                        <li>For one-click AMBOSS practice, install the <a href="https://amboss.com/us/anki/qbank" target="_blank" rel="noopener noreferrer">AMBOSS Anki add-on</a>. The notebook's <b>Start Qbank session</b> button opens your weak cards in Anki's Browse window, where the add-on turns them into a matching Qbank session.</li>
                         <li>After each analysis, results sync to GitHub, so your phone shows the latest snapshot even without Anki.</li>
                     </ol>
                 </details>
@@ -1846,6 +1858,74 @@ function startedText(l) {
     const started = p.total - p.waiting;
     return ` · <span class="${p.waiting ? '' : 'started-all'}">${started === p.total ? `all ${p.total.toLocaleString()} cards started` : `${started.toLocaleString()} of ${p.total.toLocaleString()} cards started`}</span>`;
 }
+// ---------- third-party resource guide (a tab of your class's resource sheet, imported as .json) ----------
+const GUIDE_COLS = [['bnb', 'B&B'], ['sketchy', 'Sketchy'], ['pathoma', 'Pathoma'], ['fa', 'First Aid'], ['other', 'Other'], ['notes', 'Notes']];
+const guideEntries = (db = loadDb()) => Object.values(db.guides || {}).flatMap(g => (g.entries || []).map(x => ({ ...x, id: `${g.name}|${x.name}`, guide: g.name })));
+const GUIDE_STOP = new Set(['and', 'the', 'of', 'to', 'in', 'a', 'an', 'intro', 'introduction', 'metabolism', 'basics', 'principles', 'part', 'lecture', 'i', 'ii', 'iii', '1', '2', '3']);
+const guideTokens = s => new Set(String(s).toLowerCase().split(/[^a-z0-9]+/).filter(w => w && !GUIDE_STOP.has(w)).map(w => w.length > 3 && w.endsWith('s') && !/(ss|us|is)$/.test(w) ? w.slice(0, -1) : w));
+// The guide entries for a lecture: your pick, else the entries that list it by name, else the closest name match
+function guideFor(l, entries = guideEntries()) {
+    if (Array.isArray(l.guide)) return entries.filter(x => l.guide.includes(x.id));
+    const name = l.name.toLowerCase();
+    const listed = entries.filter(x => (x.also || []).some(a => a.toLowerCase() === name));
+    if (listed.length) return listed;
+    const lt = guideTokens(l.name);
+    let best = null;
+    entries.forEach(x => {
+        const xt = guideTokens(x.name), inter = [...lt].filter(w => xt.has(w)).length;
+        if (!inter) return;
+        const score = inter / new Set([...lt, ...xt]).size;
+        if (score >= 0.5 && (!best || score > best.score)) best = { x, score };
+    });
+    return best ? [best.x] : [];
+}
+const linkify = t => escHtml(t).replace(/https?:\/\/[^\s<]+/g, u => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
+const openGuides = new Set();
+function guideHtml(l) {
+    const entries = guideEntries();
+    if (!entries.length) return '';
+    const hits = guideFor(l, entries);
+    const body = hits.map(x => `<div class="gd-entry">
+        ${hits.length > 1 || x.name.toLowerCase() !== l.name.toLowerCase() ? `<div class="gd-name">${escHtml(x.name)} <span class="muted">· ${escHtml(x.guide)}</span></div>` : ''}
+        <dl class="gd">${GUIDE_COLS.filter(([k]) => (x[k] || []).length).map(([k, label]) => `<dt>${label}</dt><dd>${x[k].map(v => `<div>${linkify(v)}</div>`).join('')}</dd>`).join('') || '<dd class="muted">Nothing listed.</dd>'}</dl>
+    </div>`).join('');
+    const auto = !Array.isArray(l.guide);
+    const pick = `<label class="gd-pick">Matched to
+        <select data-guide-for="${escHtml(l.id)}">
+            <option value="auto" ${auto ? 'selected' : ''}>Automatic</option>
+            <option value="none" ${!auto && !l.guide.length ? 'selected' : ''}>None</option>
+            ${entries.map(x => `<option value="${escHtml(x.id)}" ${!auto && l.guide.includes(x.id) ? 'selected' : ''}>${escHtml(x.name)} (${escHtml(x.guide)})</option>`).join('')}
+        </select></label>`;
+    return `<details class="lec-guide" data-guide-id="${escHtml(l.id)}" ${openGuides.has(l.id) ? 'open' : ''}>
+        <summary>Third-party resources${hits.length ? `: ${escHtml(hits.map(x => x.name).join(', '))}` : ' (no match)'}</summary>
+        ${body || '<p class="muted" style="margin:6px 0;">Nothing in your resource guide matches this lecture. Pick a topic below.</p>'}${pick}</details>`;
+}
+document.addEventListener('toggle', e => {
+    const d = e.target;
+    if (d && d.dataset && d.dataset.guideId) { if (d.open) openGuides.add(d.dataset.guideId); else openGuides.delete(d.dataset.guideId); }
+}, true);
+document.addEventListener('change', e => {
+    const t = e.target;
+    if (!t.dataset || !t.dataset.guideFor) return;
+    const db = loadDb(), l = lectureList(db).find(x => x.id === t.dataset.guideFor);
+    if (!l) return;
+    if (t.value === 'auto') delete l.guide; else l.guide = t.value === 'none' ? [] : [t.value];
+    openGuides.add(l.id);
+    saveDb(db);
+    renderUpcoming();
+});
+// { "guide": { "name": "MAD 1", "entries": [ { "name", "bnb": [], "sketchy": [], "pathoma": [], "fa": [], "other": [], "notes": [], "also": [lecture names] } ] } }
+function importGuide(data) {
+    const gs = (data.guides || [data.guide]).filter(g => g && g.name && Array.isArray(g.entries));
+    if (!gs.length) return null;
+    const db = loadDb();
+    db.guides = db.guides || {};
+    gs.forEach(g => { db.guides[g.name] = { name: g.name, source: g.source || '', entries: g.entries.filter(x => x && x.name), imported: new Date().toISOString() }; });
+    saveDb(db);
+    const n = lectureList(db).filter(l => guideFor(l).length).length;
+    return `Imported the resource guide ${escHtml(gs.map(g => g.name).join(', '))} (${gs.reduce((s, g) => s + g.entries.length, 0)} topics). ${n} of your lectures matched; open <b>Third-party resources</b> on a lecture to see them.`;
+}
+
 function lecRow(l, cls, connected) {
     const n = LEC_PARTS.filter(([k]) => l[k]).length;
     const picks = pickedNotes(l);
@@ -1864,6 +1944,7 @@ function lecRow(l, cls, connected) {
             </div>
             ${picks.length || l.unsusp ? `<div class="lec-vids">${picks.length ? `${picks.length.toLocaleString()} notes picked` : ''}${l.unsusp ? `${picks.length ? ' · ' : ''}<b>${l.unsusp.n.toLocaleString()} cards unsuspended ${escHtml(new Date(l.unsusp.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}</b>` : ''}${startedText(l)}${quizLine(l)}</div>` : `<div class="lec-vids muted">No cards picked yet${quizLine(l)}</div>`}
             ${l.note ? `<div class="lec-vids muted">${escHtml(l.note)}</div>` : ''}
+            ${guideHtml(l)}
         </div>
         <div class="actions">
             ${u ? `<a class="btn-small" href="${escHtml(u)}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; border-radius:4px;">Watch</a>` : ''}
@@ -1985,6 +2066,12 @@ async function importLectures() {
     if (!file) return;
     let data;
     try { data = JSON.parse(await file.text()); } catch { upMsg('That file isn’t a lecture list (.json).'); return; }
+    if (data && (data.guide || data.guides)) {   // a third-party resource guide
+        const msg = importGuide(data);
+        upMsg(msg || 'That resource guide has no topics.');
+        renderUpcoming();
+        if (!data.lectures) return;
+    }
     const incoming = (Array.isArray(data) ? data : data.lectures || []).filter(x => x && x.name && /^\d{4}-\d{2}-\d{2}$/.test(x.date || ''));
     if (!incoming.length) { upMsg('No lectures found in that file.'); return; }
     const db = loadDb();
@@ -2938,10 +3025,10 @@ function renderToday() {
         const area = cand[dayNumber(today) % cand.length];
         const d = !!(db.todayLog && db.todayLog[today] && db.todayLog[today].weak);
         count(d);
-        note('amboss-weak', `10 questions (1-2 hammers) on ${area.label}`, d);
+        note('amboss-weak', `20 questions on ${area.label}`, d);
         qpush(d, todayRow({
             kicker: 'AMBOSS · weak area',
-            title: `10 questions (1-2 hammer max) on ${escHtml(area.label)}`,
+            title: `20 questions on ${escHtml(area.label)}`,
             detail: [area.retention != null ? `Retention ${pct(area.retention)}` : '', `${pct(area.struggle)} of cards with 3+ lapses`, cand.length > 1 ? `rotates daily through your ${cand.length} weakest ${useLec ? 'lectures' : 'areas'}` : ''].filter(Boolean).join(' · '),
             done: d, manual: 'weak',
             actions: `<button class="btn-small" data-act="qbank-area" data-src="${useLec ? 'lecture' : 'subject'}" data-path="${escHtml(area.path)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Open cards</button>`
