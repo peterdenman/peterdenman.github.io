@@ -185,27 +185,9 @@
         .check input { width: auto; margin: 0; }
         svg text { font-family: inherit; }
         .lec-form { margin-bottom: 4px; }
-        .find-panel { border: 1px solid #bee3f8; background: #f7fbff; border-radius: 6px; padding: 12px; margin: 10px 0; }
-        .find-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; font-size: 0.95em; color: #2d3748; }
-        .find-hint { font-weight: normal; color: #718096; font-size: 0.9em; }
-        .find-list { max-height: 380px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px; background: white; margin-top: 10px; }
-        .find-row { display: flex; align-items: flex-start; gap: 8px; padding: 7px 8px; border-bottom: 1px solid #edf2f7; font-size: 0.88em; cursor: pointer; }
-        .find-row:last-child { border-bottom: none; }
-        .find-row input { width: auto; margin: 3px 0 0; flex-shrink: 0; }
-        .find-row .find-name { font-weight: 600; color: #1a202c; }
-        .find-why { display: block; color: #718096; font-size: 0.92em; margin-top: 2px; }
-        .match { font-weight: bold; }
-        .match.strong { color: #276749; }
-        .match.good { color: #2b6cb0; }
-        .match.weak { color: #a0aec0; }
-        .find-cov { margin-top: 10px; font-size: 0.85em; }
-        .find-cov ol { margin: 4px 0 0; padding-left: 20px; }
-        .find-cov li { margin-bottom: 3px; color: #2d3748; }
-        .find-cov .gap { color: #c53030; }
         .lec-opts { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.82em; margin: 8px 0 0; color: #4a5568; }
         .lec-auto { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
         .lec-auto input { width: auto; margin: 0; }
-        .vid-missing { color: #c53030; }
         .lec-vids { font-size: 0.8em; color: #4a5568; margin-top: 4px; overflow-wrap: anywhere; }
         .up-progress { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin: 10px 0 12px; }
         .up-progress > div { height: 100%; background: #38a169; }
@@ -268,7 +250,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26o · Priority by lecture</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 26p · Card picks only</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -356,10 +338,8 @@
                     <button type="submit" class="btn-success" style="width:100%;">Add lecture</button>
                 </form>
                 <div class="lec-opts">
-                    <label class="lec-auto"><input type="checkbox" id="autoUnsuspendInput"> Unsuspend each lecture’s B&amp;B cards automatically on its due date</label>
+                    <label class="lec-auto"><input type="checkbox" id="autoUnsuspendInput"> Unsuspend each lecture’s picked cards automatically on its due date</label>
                     <span>
-                        <button class="link-btn" id="lecExportBtn" title="Save the cards of these lectures’ B&amp;B videos to a file you send to Claude, who picks the ones that match each lecture">Export cards for review</button>
-                        <span class="muted">·</span>
                         <button class="link-btn" id="bnbExportBtn" title="Save every B&amp;B card in your collection (text and note ID) to one file for Claude. Send it once; then Claude can pick cards straight from your slides.">Export all B&amp;B cards</button>
                         <span class="muted">·</span>
                         <button class="link-btn" id="lecImportBtn">Import lectures (.json)</button>
@@ -367,26 +347,6 @@
                     <input type="file" id="lecImportInput" accept=".json,application/json" class="hidden">
                 </div>
                 <div id="upStatus" class="status-msg"></div>
-                <div id="findPanel" class="find-panel hidden">
-                    <div class="find-head">
-                        <span>Find B&amp;B videos · <b id="findLecName"></b></span>
-                        <button class="link-btn" data-act="find-close">Close</button>
-                    </div>
-                    <label class="field full">Learning objectives <span class="find-hint">one per line · these count most</span>
-                        <textarea id="findObj" rows="5" placeholder="1. Describe the dose-response curve&#10;2. Compare full, partial and inverse agonists&#10;3. …"></textarea>
-                    </label>
-                    <label class="field full">Slides <span class="find-hint">PDF or PowerPoint, optional</span>
-                        <input type="file" id="findSlides" accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation">
-                    </label>
-                    <button class="btn-primary" id="findBtn" style="width:100%;">Find videos</button>
-                    <label class="field full" style="margin-top:10px;">…or search B&amp;B videos by name
-                        <input type="text" id="findName" placeholder="e.g. collagen">
-                    </label>
-                    <div id="findStatus" class="status-msg"></div>
-                    <div id="findResults"></div>
-                    <div id="findCoverage"></div>
-                    <button class="btn-success hidden" id="findSaveBtn" style="width:100%; margin-top:8px;">Attach videos</button>
-                </div>
                 <div class="up-progress hidden" id="upProgress"></div>
                 <div id="upList"></div>
             </div>
@@ -809,10 +769,6 @@ async function connectAnki({ silent = false } = {}) {
         [ankiDecks, ankiTags] = await Promise.all([anki('deckNames'), anki('getTags')]);
         populateDeckSelect();
         populateTagSelectors();
-        lectureMatchCache.clear();
-        lecCardCache.clear();
-        bnbTextIndex = null;
-        resolveLectureVideos();
         renderUpcoming();
         unsuspendLectures();
         loadTodayStats();
@@ -1681,101 +1637,21 @@ const lecDone = l => LEC_PARTS.every(([k]) => l[k]);
 const lecDoneDay = l => lecDone(l) ? LEC_PARTS.map(([k]) => l[k]).sort().pop() : null;
 const lectureList = db => Array.isArray(db.myLectures) ? db.myLectures : [];
 
-function stemWord(w) {
-    if (w.length > 4 && w.endsWith('ies')) return w.slice(0, -3) + 'y';
-    if (w.length > 4 && w.endsWith('s') && !/(ss|us|is)$/.test(w)) return w.slice(0, -1);
-    return w;
-}
-// Match a video link's name ("acid-base-principles") to an AnKing B&B tag ("…::02_Acid-Base_Principles")
-const MATCH_STOP = new Set(['the', 'and', 'of', 'a', 'an', 'in', 'to', 'for', 'video', 'videos', 'part']);
-const normName = s => cleanSeg(s).toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-const nameTokens = s => s.split('-').filter(w => w && !MATCH_STOP.has(w)).map(stemWord);
-function videoTagIndex(resId) {
-    return (ankiTags || []).map(tag => {
-        const segs = tag.split('::'), r = resourceSeg(segs);
-        if (!r || r.res.id !== resId || segs.length <= r.i + 1) return null;
-        const norm = normName(segs[segs.length - 1]);
-        return { tag, norm, tokens: nameTokens(norm), depth: segs.length, label: labelFrom(segs.slice(r.i + 1)), res: r.res };
-    }).filter(Boolean);
-}
-function matchVideoSlug(slug, idx) {
-    const exact = idx.filter(e => e.norm === slug).sort((a, b) => b.depth - a.depth);
-    if (exact.length) return { ...exact[0], how: 'exact' };
-    const st = new Set(nameTokens(slug));
-    if (!st.size) return null;
-    let best = null;
-    idx.forEach(e => {
-        const et = new Set(e.tokens);
-        const inter = [...st].filter(w => et.has(w)).length;
-        if (!inter) return;
-        const score = 0.6 * inter / new Set([...st, ...et]).size + 0.4 * inter / Math.min(st.size, et.size);
-        if (!best || score > best.score || (score === best.score && e.depth > best.e.depth)) best = { e, score };
-    });
-    return best && best.score >= 0.6 ? { ...best.e, how: 'close' } : null;
-}
 const slugTitle = slug => slug.split('-').filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
 const safeUrl = u => /^https?:\/\//i.test(u || '') ? u : '';
 
-// AnKing cards for a lecture by its name: Bootcamp tags first, then ScholarRx, then B&B
-const lectureMatchCache = new Map();
-function lectureTopicVariants(name) {
-    const base = name.replace(/\(.*?\)/g, ' ').replace(/(^|\s)\d+\)?\s+/g, ' ');
-    const parts = [base];
-    if (base.includes(':')) parts.push(base.split(':').slice(1).join(':'), base.split(':')[0]);
-    return parts.map(p => p.replace(/\b(i{1,3}|iv|vi{0,3})\b/gi, ' ').replace(/\s+/g, ' ').trim()).filter(p => p.length >= 3);
-}
-function matchLectureCards(name) {
-    if (!ankiTags) return null;
-    if (lectureMatchCache.has(name)) return lectureMatchCache.get(name);
-    let found = null;
-    for (const res of ['bootcamp', 'scholarrx', 'bnb']) {
-        const idx = videoTagIndex(res);
-        if (!idx.length) continue;
-        for (const v of lectureTopicVariants(name)) {
-            const m = matchVideoSlug(normName(v), idx);
-            if (m && (!found || (m.how === 'exact' && found.how !== 'exact'))) found = m;
-            if (found && found.how === 'exact') break;
-        }
-        if (found) break;
-    }
-    lectureMatchCache.set(name, found);
-    return found;
-}
-// AnKing cards for a lecture (read-only, for Anki's Browse window and AMBOSS): from its B&B / Bootcamp link, else its name
-const lecCardCache = new Map();
-function lectureCards(l) {
-    if (!ankiTags) return null;
-    const ck = `${l.url || ''}|${l.name}`;
-    if (lecCardCache.has(ck)) return lecCardCache.get(ck);
-    let m = null;
-    const u = safeUrl(l.url);
-    if (u) {
-        try {
-            const url = new URL(u), path = url.pathname.split('/').filter(Boolean);
-            const slug = decodeURIComponent(path[path.length - 1] || '').toLowerCase();
-            const idx = videoTagIndex(/bootcamp/i.test(url.hostname) ? 'bootcamp' : 'bnb');
-            if (slug && idx.length) m = matchVideoSlug(slug, idx);
-        } catch {}
-    }
-    if (!m) m = matchLectureCards(l.name);
-    lecCardCache.set(ck, m);
-    return m;
-}
-// Every AnKing tag for a lecture: the B&B videos you attached, else the one matched from its link or name
-function lectureTags(l) {
-    if (Array.isArray(l.videos) && l.videos.length) return l.videos.filter(v => v.tag).map(v => v.tag);
-    const m = lectureCards(l);
-    return m ? [m.tag] : [];
-}
-// Cards Claude picked for a lecture (note IDs); when there are picks, only those are unsuspended
+// A lecture's cards are the notes Claude picked for it. Older lectures that had whole B&B videos unsuspended keep those.
 const pickedNotes = l => Array.isArray(l.picks) ? l.picks.filter(n => Number.isFinite(n)) : [];
-const waitingPicks = l => !!l.hold && !pickedNotes(l).length;
 function lectureQuery(l) {
     const picks = pickedNotes(l);
     if (picks.length) return `nid:${picks.join(',')}`;
-    const tags = lectureTags(l);
+    const tags = (l.unsusp && l.unsusp.tags) || [];
     return tags.length ? `(${tags.map(tagQuery).join(' OR ')})` : '';
 }
+const lecHasCards = l => !!lectureQuery(l);
+// Picked notes not unsuspended yet
+const pendingNotes = l => { const done = new Set((l.unsusp && l.unsusp.notes) || []); return pickedNotes(l).filter(n => !done.has(n)); };
+const hasPending = l => pendingNotes(l).length > 0;
 function openLectureCards(list) {
     const parts = [...new Set(list.map(lectureQuery).filter(Boolean))];
     if (parts.length) ankiDo(() => anki('guiBrowse', { query: parts.length === 1 ? parts[0] : `(${parts.join(' OR ')})` }));
@@ -1807,7 +1683,7 @@ function addLecture(e) {
     saveDb(db);
     $('lecName').value = ''; $('lecUrl').value = '';
     $('lecName').focus();
-    upMsg(`Added <b>${escHtml(name)}</b> (${escHtml(type)}) for ${escHtml(relDate(date).replace(/^Today$/, 'today').replace(/^Tomorrow$/, 'tomorrow'))}. <button class="link-btn" data-act="find-open" data-id="${escHtml(newId)}">Find its B&amp;B videos</button>`);
+    upMsg(`Added <b>${escHtml(name)}</b> (${escHtml(type)}) for ${escHtml(relDate(date).replace(/^Today$/, 'today').replace(/^Tomorrow$/, 'tomorrow'))}.`);
     renderUpcoming();
 }
 
@@ -1850,12 +1726,9 @@ function toggleLecturePart(id, part, on) {
 
 function lecRow(l, cls, connected) {
     const n = LEC_PARTS.filter(([k]) => l[k]).length;
-    const vids = lecVideos(l);
-    const m = vids.length ? null : lectureCards(l);
     const picks = pickedNotes(l);
-    const hasCards = lectureTags(l).length > 0 || picks.length > 0 || m;
-    const canUnsusp = hasPending(l, true);
-    const waiting = waitingPicks(l);
+    const hasCards = lecHasCards(l);
+    const canUnsusp = hasPending(l);
     const u = safeUrl(l.url);
     const when = cls === 'done' ? `Done ${new Date(lecDoneDay(l) + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : relDate(l.date);
     return `
@@ -1865,16 +1738,14 @@ function lecRow(l, cls, connected) {
             <div class="up-meta">
                 <span class="up-when ${cls}">${when}</span>
                 <input type="date" class="up-date" data-lec-date="${escHtml(l.id)}" value="${escHtml(l.date)}" aria-label="Due date">
-                <span class="muted">· ${n} of ${LEC_PARTS.length} done${m ? ` · AnKing: ${escHtml(m.res.name)} ${escHtml(m.label)}` : ''}</span>
+                <span class="muted">· ${n} of ${LEC_PARTS.length} done</span>
             </div>
-            ${vids.length ? `<div class="lec-vids">B&amp;B (${vids.length}): ${vids.map(v => v.tag ? `<span title="${escHtml(v.label || '')}">${escHtml(vidName(v))}</span>` : `<span class="vid-missing" title="Not found in your AnKing tags">${escHtml(vidName(v))} (not found)</span>`).join(', ')}${picks.length ? ` · ${picks.length.toLocaleString()} notes picked` : waiting ? ' · <span class="vid-missing">waiting for card picks</span>' : ''}${l.unsusp ? ` · <b>${l.unsusp.n.toLocaleString()} cards unsuspended ${escHtml(new Date(l.unsusp.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}</b>` : ''}</div>` : ''}
-            ${!vids.length && (picks.length || l.unsusp) ? `<div class="lec-vids">${picks.length ? `${picks.length.toLocaleString()} notes picked` : ''}${l.unsusp ? `${picks.length ? ' · ' : ''}<b>${l.unsusp.n.toLocaleString()} cards unsuspended ${escHtml(new Date(l.unsusp.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}</b>` : ''}</div>` : ''}
+            ${picks.length || l.unsusp ? `<div class="lec-vids">${picks.length ? `${picks.length.toLocaleString()} notes picked` : ''}${l.unsusp ? `${picks.length ? ' · ' : ''}<b>${l.unsusp.n.toLocaleString()} cards unsuspended ${escHtml(new Date(l.unsusp.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}</b>` : ''}</div>` : '<div class="lec-vids muted">No cards picked yet</div>'}
             ${l.note ? `<div class="lec-vids muted">${escHtml(l.note)}</div>` : ''}
         </div>
         <div class="actions">
             ${u ? `<a class="btn-small" href="${escHtml(u)}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; border-radius:4px;">Watch</a>` : ''}
-            <button class="btn-small" data-act="find-open" data-id="${escHtml(l.id)}" title="Find the B&amp;B videos for this lecture from its learning objectives and slides">${vids.length ? 'Edit videos' : 'Find videos'}</button>
-            ${canUnsusp ? `<button class="btn-small" data-act="lec-unsuspend" data-id="${escHtml(l.id)}" ${connected ? `title="${waiting ? 'No card picks yet: unsuspends all cards of these videos' : 'Unsuspend this lecture’s cards now'}"` : 'disabled title="Open Anki on this computer"'}>${waiting ? 'Unsuspend whole videos' : 'Unsuspend now'}</button>` : ''}
+            ${canUnsusp ? `<button class="btn-small" data-act="lec-unsuspend" data-id="${escHtml(l.id)}" ${connected ? 'title="Unsuspend this lecture’s picked cards now"' : 'disabled title="Open Anki on this computer"'}>Unsuspend now</button>` : ''}
             ${hasCards ? `<button class="btn-small" data-act="lec-cards" data-id="${escHtml(l.id)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>` : ''}
             <button class="btn-small" data-act="lec-remove" data-id="${escHtml(l.id)}" title="Remove this lecture">✕</button>
         </div>
@@ -1884,6 +1755,11 @@ function lecRow(l, cls, connected) {
 let upDoneOpen = false;
 function renderUpcoming() {
     const db = loadDb();
+    // lectures saved before card picks were the only way: drop their attached-video fields
+    if (lectureList(db).some(l => 'videos' in l || 'candidates' in l || 'hold' in l)) {
+        lectureList(db).forEach(l => { delete l.videos; delete l.candidates; delete l.hold; });
+        saveDb(db);
+    }
     $('autoUnsuspendInput').checked = db.autoUnsuspend !== false;
     const list = lectureList(db);
     const connected = !!ankiTags;
@@ -1893,7 +1769,7 @@ function renderUpcoming() {
     $('upProgress').classList.toggle('hidden', !list.length);
     $('upProgress').innerHTML = list.length ? `<div style="width:${Math.round((done.length / list.length) * 100)}%"></div>` : '';
     if (!list.length) {
-        box.innerHTML = '<p class="muted" style="margin:10px 0 0;">Add each lecture with its due date and type, then attach its B&amp;B videos. On the due date, their cards are unsuspended and Today lists the practice quiz and readiness quiz. Anything you don’t finish stays on Today until you tick it off.</p>';
+        box.innerHTML = '<p class="muted" style="margin:10px 0 0;">Import the lectures file Claude makes from your slides (or add a lecture by hand). On the due date, its picked cards are unsuspended and Today lists the practice quiz and readiness quiz. Anything you don’t finish stays on Today until you tick it off.</p>';
         renderToday();
         return;
     }
@@ -1919,54 +1795,10 @@ function renderUpcoming() {
     renderToday();
 }
 
-// ---------- B&B videos on a lecture: names (from an import) -> your AnKing tags ----------
-const vidName = v => (v.label || v.name || '').split(' › ').pop();
-const lecVideos = l => Array.isArray(l.videos) ? l.videos : [];
-function resolveVideo(v, leaves, all) {
-    const known = new Set((ankiTags || []).map(t => t.toLowerCase()));
-    if (v.tag && known.has(v.tag.toLowerCase())) return v;
-    const want = normName(v.name || v.label || '');
-    if (!want) return v;
-    const pick = list => {
-        let cand = list;
-        if (v.section) { const sec = normName(v.section); const f = list.filter(e => normName(e.tag.split('::').join(' ')).includes(sec)); if (f.length) cand = f; }
-        return cand.length ? matchVideoSlug(want, cand) : null;
-    };
-    const m = pick(leaves) || pick(all);
-    return m ? { name: v.name || vidName(v), section: v.section, tag: m.tag, label: m.label } : { name: v.name || vidName(v), section: v.section };
-}
-// Fill in the AnKing tag for any lecture video that doesn't have one yet (needs Anki's tag list)
-function resolveLectureVideos() {
-    if (!ankiTags) return false;
-    const all = videoTagIndex('bnb');
-    const leafSet = new Set(bnbVideos().map(v => v.tag.toLowerCase()));
-    const leaves = all.filter(e => leafSet.has(e.tag.toLowerCase()));
-    const db = loadDb();
-    let changed = false;
-    const fix = v => { const r = resolveVideo(v, leaves, all); if (r.tag !== v.tag) changed = true; return r; };
-    lectureList(db).forEach(l => {
-        if (lecVideos(l).length) l.videos = l.videos.map(fix);
-        if (Array.isArray(l.candidates) && l.candidates.length) l.candidates = l.candidates.map(fix);
-    });
-    if (changed) saveDb(db);
-    return changed;
-}
-
 // ---------- automatic unsuspend on the due date ----------
-// Unsuspends the cards of a lecture's attached B&B videos (never leeches). Each lecture is done once;
+// Unsuspends the notes Claude picked for each lecture (never leeches). Each note is done once;
 // re-suspending cards in Anki afterwards is left alone.
 const autoUnsuspendOn = () => loadDb().autoUnsuspend !== false;
-// videos on a lecture whose cards haven't been unsuspended yet (e.g. one you attached after its day)
-// What's still to unsuspend: picked cards not done yet, else (unless waiting for picks) videos not done yet.
-// force: "Unsuspend now" on a lecture still waiting for picks unsuspends its whole videos.
-function pendingWork(l, force = false) {
-    const picks = pickedNotes(l);
-    if (picks.length) { const doneN = new Set((l.unsusp && l.unsusp.notes) || []); return { notes: picks.filter(n => !doneN.has(n)), tags: [] }; }
-    if (l.hold && !force) return { notes: [], tags: [] };
-    return { notes: [], tags: pendingTags(l) };
-}
-const hasPending = (l, force = false) => { const w = pendingWork(l, force); return w.notes.length + w.tags.length > 0; };
-const pendingTags = l => { const doneT = new Set(((l.unsusp && l.unsusp.tags) || (l.unsusp ? lectureTags(l) : [])).map(t => t.toLowerCase())); return lectureTags(l).filter(t => !doneT.has(t.toLowerCase())); };
 let unsuspending = false, unsuspendAgain = null;
 async function unsuspendLectures({ ids = null } = {}) {
     if (!ankiTags) return;
@@ -1975,21 +1807,19 @@ async function unsuspendLectures({ ids = null } = {}) {
         return;
     }
     if (!ids && !autoUnsuspendOn()) return;
-    resolveLectureVideos();
     const today = todayKey();
-    const due = lectureList(loadDb()).filter(l => ids ? ids.includes(l.id) : l.date <= today).filter(l => hasPending(l, !!ids));
+    const due = lectureList(loadDb()).filter(l => ids ? ids.includes(l.id) : l.date <= today).filter(hasPending);
     if (!due.length) return;
     unsuspending = true;
     const done = [];
     try {
         for (const l of due) {
-            const { notes, tags } = pendingWork(l, !!ids);
+            const notes = pendingNotes(l);
             let cards = [];
             for (const part of chunk(notes, 200)) cards = cards.concat(await anki('findCards', { query: `nid:${part.join(',')} is:suspended -tag:leech` }));
-            if (tags.length) cards = cards.concat(await anki('findCards', { query: `(${tags.map(tagQuery).join(' OR ')}) is:suspended -tag:leech` }));
             cards = [...new Set(cards)];
             if (cards.length) await anki('unsuspend', { cards });
-            done.push({ id: l.id, name: l.name, n: cards.length, tags, notes });
+            done.push({ id: l.id, name: l.name, n: cards.length, notes });
         }
     } catch (err) {
         console.error(err);
@@ -2003,8 +1833,8 @@ async function unsuspendLectures({ ids = null } = {}) {
     done.forEach(r => {
         const l = lectureList(db).find(x => x.id === r.id);
         if (!l) return;
-        const prev = l.unsusp || { n: 0, tags: [], notes: [] };
-        l.unsusp = { date: prev.date || today, n: (prev.n || 0) + r.n, tags: [...new Set([...(prev.tags || []), ...r.tags])], notes: [...new Set([...(prev.notes || []), ...r.notes])] };
+        const prev = l.unsusp || { n: 0, notes: [] };
+        l.unsusp = { ...prev, date: prev.date || today, n: (prev.n || 0) + r.n, notes: [...new Set([...(prev.notes || []), ...r.notes])] };
         if (!l.watched) l.watched = today;   // the lecture's first Today row ticks itself off; AMBOSS follow-ups count from here
     });
     saveDb(db);
@@ -2023,7 +1853,7 @@ $('autoUnsuspendInput').addEventListener('change', e => {
 });
 
 // ---------- import a list of lectures (from Claude) ----------
-// { "lectures": [ { "name", "date": "YYYY-MM-DD", "type", "videos": [ { "name", "section"? } ], "note"? } ] }
+// { "lectures": [ { "name", "date": "YYYY-MM-DD", "type", "notes": [note ids], "note"? } ] }
 async function importLectures() {
     const file = $('lecImportInput').files[0];
     $('lecImportInput').value = '';
@@ -2036,126 +1866,31 @@ async function importLectures() {
     const list = lectureList(db).slice();
     let added = 0, updated = 0;
     let nPicks = 0;
-    const vidList = arr => (arr || []).map(v => typeof v === 'string' ? { name: v } : { name: v.name, section: v.section }).filter(v => v.name);
     incoming.forEach(x => {
         const type = LECTURE_TYPES.includes(x.type) ? x.type : (x.type || '');
         const changes = { type };
-        if ('videos' in x) changes.videos = vidList(x.videos);
-        if ('candidates' in x) changes.candidates = vidList(x.candidates);
         if (x.note) changes.note = String(x.note);
         if (Array.isArray(x.notes) && x.notes.length) {   // Claude's card picks
             changes.picks = [...new Set(x.notes.map(Number).filter(Number.isFinite))];
-            changes.hold = false;
             nPicks += changes.picks.length;
-        } else if (x.pick) changes.hold = true;           // wait for card picks before unsuspending anything
+        }
         const hit = list.find(l => l.name.toLowerCase() === String(x.name).toLowerCase() && l.date === x.date);
         if (hit) { Object.assign(hit, changes, { type: type || hit.type }); updated++; }
         else {
-            list.push({ id: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: String(x.name), url: safeUrl(x.url) || '', date: x.date, videos: [], note: '', ...changes, added: new Date().toISOString() });
+            list.push({ id: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: String(x.name), url: safeUrl(x.url) || '', date: x.date, note: '', ...changes, added: new Date().toISOString() });
             added++;
         }
     });
     db.myLectures = list;
     saveDb(db);
-    resolveLectureVideos();
-    const vids = lectureList(loadDb()).filter(l => incoming.some(x => x.name.toLowerCase() === l.name.toLowerCase() && x.date === l.date)).flatMap(lecVideos);
-    const missing = vids.filter(v => !v.tag);
-    const nWait = lectureList(loadDb()).filter(waitingPicks).length;
     upMsg(`Imported ${added + updated} lecture${added + updated === 1 ? '' : 's'}${updated ? ` (${updated} updated)` : ''}${nPicks ? ` with ${nPicks.toLocaleString()} picked note${nPicks === 1 ? '' : 's'}` : ''}.`
-        + (nWait ? ` ${nWait} lecture${nWait === 1 ? ' is' : 's are'} waiting for card picks: click <b>Export cards for review</b> and send the file to Claude.` : '')
-        + (!ankiTags ? ' Open this page with Anki running to match the videos to your AnKing cards.'
-            : missing.length ? ` <span class="vid-missing">${missing.length} of ${vids.length} videos not found in your AnKing tags: ${escHtml(missing.map(v => v.name).join(', '))}. Use Edit videos on the lecture to pick them by name.</span>`
-            : ` All ${vids.length} videos matched your AnKing cards.`));
+        + (ankiTags ? '' : ' Open this page with Anki running to unsuspend them on their due dates.'));
     renderUpcoming();
     unsuspendLectures();
 }
-// ---------- export cards for Claude to pick from ----------
-// Lectures waiting for card picks (else today's lectures): every note of their B&B videos and candidate videos,
-// with its text, which video(s) it belongs to, and whether it's still suspended.
-function downloadJson(name, data) {
-    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
-    const a = document.createElement('a');
-    a.href = url; a.download = name;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-}
+// ---------- export every B&B card (one file for Claude to search by content) ----------
 const shortText = (html, max) => { const t = cleanCardText(html).replace(/\s+/g, ' ').trim(); return t.length > max ? t.slice(0, max - 1) + '…' : t; };
 let exporting = false;
-async function exportCards() {
-    if (exporting) return;
-    if (!ankiTags) { upMsg('Open this page on the computer with Anki running to export your cards.'); return; }
-    resolveLectureVideos();
-    const today = todayKey();
-    let lecs = lectureList(loadDb()).filter(waitingPicks), scope = 'waiting for card picks';
-    if (!lecs.length) { lecs = lectureList(loadDb()).filter(l => l.date === today); scope = 'due today'; }
-    if (!lecs.length) { upMsg('Nothing to export: no lectures are waiting for card picks or due today.'); return; }
-    const byTag = new Map();
-    const missing = [];
-    lecs.forEach(l => [...lecVideos(l), ...(l.candidates || [])].forEach(v => {
-        if (!v.tag) { missing.push(`${vidName(v)} (${l.name})`); return; }
-        const k = v.tag.toLowerCase();
-        if (!byTag.has(k)) byTag.set(k, { tag: v.tag, label: v.label || vidName(v), lectures: new Set() });
-        byTag.get(k).lectures.add(l.name);
-    }));
-    if (!byTag.size) { upMsg('These lectures have no B&B videos matched to your AnKing tags yet. Attach some with Edit videos first.'); return; }
-    exporting = true;
-    $('lecExportBtn').disabled = true;
-    try {
-        upMsg('Reading the cards from Anki…');
-        const notes = new Map();   // note id -> { videos:Set, lectures:Set }
-        for (const v of byTag.values()) {
-            (await anki('findNotes', { query: tagQuery(v.tag) })).forEach(id => {
-                if (!notes.has(id)) notes.set(id, { videos: new Set(), lectures: new Set() });
-                const n = notes.get(id);
-                n.videos.add(v.label);
-                v.lectures.forEach(x => n.lectures.add(x));
-            });
-        }
-        const suspended = new Set(await anki('findCards', { query: `(${[...byTag.values()].map(v => tagQuery(v.tag)).join(' OR ')}) is:suspended` }));
-        const out = [];
-        const ids = [...notes.keys()];
-        for (let b = 0; b < ids.length; b += 250) {
-            upMsg(`Reading the cards from Anki… ${Math.round((b / ids.length) * 100)}%`);
-            const infos = await anki('notesInfo', { notes: ids.slice(b, b + 250) });
-            infos.forEach(info => {
-                if (!info || !info.fields) return;
-                const f = Object.entries(info.fields).sort((a, c) => a[1].order - c[1].order);
-                const main = f.find(([n]) => /^(text|front|question)$/i.test(n)) || f[0];
-                const extra = f.find(([n]) => /^(extra|back|answer)$/i.test(n) && n !== (main && main[0]));
-                const meta = notes.get(info.noteId);
-                const cards = info.cards || [];
-                out.push({
-                    id: info.noteId,
-                    text: main ? shortText(main[1].value, 600) : '',
-                    extra: extra ? shortText(extra[1].value, 300) : '',
-                    video: [...meta.videos].join(' | '),
-                    lectures: [...meta.lectures],
-                    suspended: cards.length ? cards.every(c => suspended.has(c)) : null,
-                    leech: (info.tags || []).some(t => t.toLowerCase() === 'leech')
-                });
-            });
-        }
-        out.sort((a, c) => a.video.localeCompare(c.video) || a.id - c.id);
-        const dates = [...new Set(lecs.map(l => l.date))].sort();
-        downloadJson(`cards_${dates[0]}${dates.length > 1 ? '_to_' + dates[dates.length - 1] : ''}.json`, {
-            format: 'study-tracker-cards-v1',
-            exported: new Date().toISOString(),
-            lectures: lecs.map(l => ({ name: l.name, date: l.date, type: l.type, videos: lecVideos(l).filter(v => v.tag).map(v => v.label), candidates: (l.candidates || []).filter(v => v.tag).map(v => v.label) })),
-            notes: out
-        });
-        upMsg(`Exported ${out.length.toLocaleString()} notes from ${byTag.size} B&amp;B video${byTag.size === 1 ? '' : 's'} for ${lecs.length} lecture${lecs.length === 1 ? '' : 's'} (${scope}). Send the file to Claude along with the slides.`
-            + (missing.length ? ` <span class="vid-missing">Not found in your AnKing tags, so not included: ${escHtml(missing.join(', '))}.</span>` : ''));
-    } catch (err) {
-        console.error(err);
-        upMsg(escHtml(ankiErrorText(err)));
-    } finally {
-        exporting = false;
-        $('lecExportBtn').disabled = false;
-    }
-}
-$('lecExportBtn').addEventListener('click', exportCards);
-
-// ---------- export every B&B card (one file for Claude to search by content) ----------
 async function exportAllBnb() {
     if (exporting) return;
     if (!ankiTags) { upMsg('Open this page on the computer with Anki running to export your cards.'); return; }
@@ -2223,16 +1958,7 @@ document.addEventListener('change', e => {
     if (t.dataset && t.dataset.lecDate && t.value) setLecture(t.dataset.lecDate, { date: t.value });
 });
 
-// ============================================================
-// FIND B&B VIDEOS — rank B&B videos for a lecture from its learning objectives (weighted most) and slides,
-// using the text of your AnKing B&B cards
-// ============================================================
-const PDFJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
-const PDFJS_WORKER_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-const OBJ_WEIGHT = 0.75;          // share of the score from the learning objectives when you give both
-const STOP_WORDS = new Set(('a about above after again against all also am an and any are as at be because been before being below between both but by can could did do does doing down during each few for from further had has have having he her here hers him his how if in into is it its itself just me more most my no nor not now of off on once only or other our out over own same she should so some such than that the their them then there these they this those through to too under until up very was we were what when where which while who whom why will with would you your may might must shall via per vs eg ie etc use used using within without however therefore thus one two three four five first second third new well like see seen common commonly usually often due associated cause causes caused including include includes less either neither every').split(' '));
-const SLIDE_WORDS = new Set(('slide slides lecture lectures objective objectives learning page pages figure fig table copyright university college school course week module session review chapter section reading readings professor department faculty www http https com edu org pdf student students describe explain identify discuss understand list define compare contrast outline summary introduction overview recognize recall apply interpret predict distinguish differentiate characterize demonstrate analyze evaluate relate state name give able know').split(' '));
-
+// ---------- B&B card text and videos (for the B&B export) ----------
 function cleanCardText(html) {
     return String(html || '')
         .replace(/\{\{c\d+::(.*?)(::[^}]*)?\}\}/g, '$1')
@@ -2240,39 +1966,6 @@ function cleanCardText(html) {
         .replace(/<[^>]+>/g, ' ')
         .replace(/&nbsp;|&[a-z]+;|&#\d+;/gi, ' ');
 }
-// Words (lightly stemmed) plus two-word phrases such as "heart failure"
-function termsOf(text) {
-    const out = [];
-    let prev = null;
-    for (const raw of String(text).toLowerCase().split(/[^a-z0-9]+/)) {
-        if (raw.length < 3 || /^\d+$/.test(raw) || STOP_WORDS.has(raw) || SLIDE_WORDS.has(raw)) { prev = null; continue; }
-        const w = stemWord(raw);
-        out.push(w);
-        if (prev) out.push(prev + ' ' + w);
-        prev = w;
-    }
-    return out;
-}
-function countTerms(terms, weight, into = new Map()) {
-    terms.forEach(t => into.set(t, (into.get(t) || 0) + (t.includes(' ') ? 1.5 * weight : weight)));
-    return into;
-}
-// counts -> tf-idf weights normalised to length 1, keeping only terms the videos know about
-function weighVector(counts, idf) {
-    const v = new Map();
-    let norm = 0;
-    counts.forEach((c, t) => {
-        const w = idf.get(t);
-        if (!w) return;
-        const x = (1 + Math.log(c)) * w;
-        v.set(t, x);
-        norm += x * x;
-    });
-    norm = Math.sqrt(norm) || 1;
-    v.forEach((x, t) => v.set(t, x / norm));
-    return v;
-}
-const dotVec = (a, b) => { let s = 0; const [small, big] = a.size < b.size ? [a, b] : [b, a]; small.forEach((x, t) => { const y = big.get(t); if (y) s += x * y; }); return s; };
 
 // Every B&B video in your collection: the deepest tag under #B&B
 // AnKing puts some of a video's cards in a "::Extra" sub-tag; that sub-tag belongs to the video, it isn't a video itself
@@ -2287,327 +1980,6 @@ function bnbVideos() {
         return segs.length > i + 1 ? { tag: t, res, resRoot: segs.slice(0, i + 1).join('::'), label: labelFrom(segs.slice(i + 1)) } : null;
     }).filter(Boolean).sort((a, b) => a.tag.localeCompare(b.tag, undefined, { numeric: true, sensitivity: 'base' }));
 }
-
-// Builds (once per visit) a text profile for every B&B video from its name + its cards' text
-let bnbTextIndex = null;
-async function buildBnbTextIndex(onStatus) {
-    if (bnbTextIndex) return bnbTextIndex;
-    const videos = bnbVideos();
-    if (!videos.length) throw new Error('No B&B video tags found in your AnKing deck. The B&B tags come with the AnKing Step deck (v12).');
-    const byTag = new Map(videos.map((v, i) => [v.tag.toLowerCase(), i]));
-    const docs = videos.map(v => countTerms(termsOf(v.label), 5));   // the video's name counts extra
-    let usedCards = false;
-    try {
-        const ids = new Set();
-        for (const r of [...new Set(videos.map(v => v.resRoot))]) (await anki('findNotes', { query: tagQuery(r) })).forEach(id => ids.add(id));
-        const batches = chunk([...ids], 250);
-        for (let b = 0; b < batches.length; b++) {
-            onStatus(`Reading your B&B card text from Anki… ${Math.round((b / batches.length) * 100)}% (once per visit; the first run can take a minute)`);
-            const infos = await anki('notesInfo', { notes: batches[b] });
-            infos.forEach(info => {
-                if (!info || !info.fields) return;
-                const vids = (info.tags || []).map(t => byTag.get(t.toLowerCase())).filter(i => i !== undefined);
-                if (!vids.length) return;
-                const text = Object.entries(info.fields)
-                    .filter(([name, f]) => /^(text|front|back|extra|question|answer)$/i.test(name) || f.order <= 1)
-                    .map(([, f]) => cleanCardText(f.value)).join(' ');
-                const terms = termsOf(text);
-                vids.forEach(i => countTerms(terms, 1, docs[i]));
-            });
-        }
-        usedCards = true;
-    } catch (err) {
-        console.error('Card text unavailable, matching on video names only', err);
-    }
-    const df = new Map();
-    docs.forEach(d => d.forEach((_, t) => df.set(t, (df.get(t) || 0) + 1)));
-    const N = docs.length, idf = new Map();
-    df.forEach((n, t) => idf.set(t, Math.log((N + 1) / (n + 0.5))));
-    bnbTextIndex = { videos, idf, vecs: docs.map(d => weighVector(d, idf)), usedCards };
-    return bnbTextIndex;
-}
-
-// ---------- reading slides ----------
-async function loadPdfJs() {
-    if (!window.pdfjsLib) {
-        await new Promise((resolve, reject) => {
-            const s = document.createElement('script');
-            s.src = PDFJS_URL;
-            s.onload = resolve;
-            s.onerror = () => reject(new Error("Couldn't load the PDF reader. Check your internet connection."));
-            document.head.appendChild(s);
-        });
-    }
-    window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
-    return window.pdfjsLib;
-}
-async function pdfToPages(file) {
-    const lib = await loadPdfJs();
-    const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
-    const pages = [];
-    for (let i = 1; i <= pdf.numPages; i++) {
-        const content = await (await pdf.getPage(i)).getTextContent();
-        pages.push(content.items.map(it => it.str).join(' '));
-    }
-    return pages;
-}
-// Minimal zip reader (for .pptx): -> { names, read(name) }
-async function openZip(buf) {
-    const dv = new DataView(buf), u8 = new Uint8Array(buf), dec = new TextDecoder();
-    let eocd = -1;
-    for (let i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 65557); i--) {
-        if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
-    }
-    if (eocd < 0) throw new Error("That file couldn't be opened. Save it as .pptx or PDF and try again.");
-    const entries = new Map();
-    let p = dv.getUint32(eocd + 16, true);
-    for (let n = dv.getUint16(eocd + 10, true); n > 0 && dv.getUint32(p, true) === 0x02014b50; n--) {
-        const nlen = dv.getUint16(p + 28, true);
-        entries.set(dec.decode(u8.subarray(p + 46, p + 46 + nlen)), {
-            method: dv.getUint16(p + 10, true), size: dv.getUint32(p + 20, true), off: dv.getUint32(p + 42, true)
-        });
-        p += 46 + nlen + dv.getUint16(p + 30, true) + dv.getUint16(p + 32, true);
-    }
-    return {
-        names: [...entries.keys()],
-        read: async name => {
-            const e = entries.get(name);
-            if (!e) return null;
-            const start = e.off + 30 + dv.getUint16(e.off + 26, true) + dv.getUint16(e.off + 28, true);
-            const data = u8.subarray(start, start + e.size);
-            if (e.method === 0) return dec.decode(data);
-            if (e.method !== 8) throw new Error('This file uses a compression the page can’t read. Save it as PDF and try again.');
-            return new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
-        }
-    };
-}
-async function pptxToPages(file) {
-    const zip = await openZip(await file.arrayBuffer());
-    const num = n => +(n.match(/(\d+)\.xml$/) || [0, 0])[1];
-    const slides = zip.names.filter(n => /^ppt\/slides\/slide\d+\.xml$/.test(n)).sort((a, b) => num(a) - num(b));
-    const pages = [];
-    for (const n of slides) {
-        const xml = await zip.read(n);
-        const doc = new DOMParser().parseFromString(xml, 'application/xml');
-        const paras = [...doc.getElementsByTagNameNS('*', 'p')].map(pp => [...pp.getElementsByTagNameNS('*', 't')].map(t => t.textContent).join(''));
-        // speaker notes often hold the real content
-        const notesXml = await zip.read(`ppt/notesSlides/notesSlide${num(n)}.xml`);
-        const notes = notesXml ? [...new DOMParser().parseFromString(notesXml, 'application/xml').getElementsByTagNameNS('*', 't')].map(t => t.textContent).join(' ') : '';
-        pages.push(paras.join('\n') + (notes ? '\n' + notes : ''));
-    }
-    return pages;
-}
-async function slidesToPages(file) {
-    if (/\.pptx$/i.test(file.name)) return pptxToPages(file);
-    if (/\.ppt$/i.test(file.name)) throw new Error('Old .ppt files can’t be read. Save the slides as .pptx or PDF.');
-    return pdfToPages(file);
-}
-
-// Learning objectives: one per line (numbers and bullets removed); a pasted paragraph is split at "1." "2." …
-function splitObjectives(text) {
-    let t = String(text || '').replace(/\r/g, '');
-    if (!t.includes('\n')) t = t.replace(/\s+(?=(\d{1,2}[.)]|[•●▪◦])\s)/g, '\n');
-    return t.split('\n')
-        .map(x => x.replace(/^\s*(\d{1,2}[.)]|[a-z][.)]|[-–•●▪◦*])\s*/i, '').trim())
-        .filter(x => x.length >= 8 && !/^(learning )?objectives?:?$/i.test(x) && !/^by the end of/i.test(x));
-}
-const pageRanges = nums => {
-    const out = [];
-    nums.forEach(n => { const last = out[out.length - 1]; if (last && n === last[1] + 1) last[1] = n; else out.push([n, n]); });
-    return out.map(([a, b]) => a === b ? `${a}` : `${a}–${b}`).join(', ');
-};
-
-// ---------- the panel ----------
-let finder = null;   // { id, objectives: [...], matches: [...], checked: Set(tags) }
-function findMsg(t, err = false) { const st = $('findStatus'); st.textContent = t; st.classList.toggle('status-err', err); }
-
-function openFinder(id) {
-    const l = lectureList(loadDb()).find(x => x.id === id);
-    if (!l) return;
-    if (!finder || finder.id !== id) {
-        finder = { id, objectives: [], matches: [], nameHits: [], checked: new Set((l.videos || []).map(v => v.tag || 'name:' + vidName(v))) };
-        $('findObj').value = '';
-        $('findName').value = '';
-        $('findSlides').value = '';
-        findMsg(ankiTags ? '' : 'Open this page on the computer with Anki running; the search reads your AnKing B&B cards.', !ankiTags);
-        renderFinder();
-    }
-    $('findLecName').textContent = l.name;
-    $('findPanel').classList.remove('hidden');
-    $('findPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    $('findObj').focus({ preventScroll: true });
-}
-function closeFinder() {
-    finder = null;
-    $('findPanel').classList.add('hidden');
-}
-
-async function runFinder() {
-    if (!finder) return;
-    const l = lectureList(loadDb()).find(x => x.id === finder.id);
-    if (!l) { closeFinder(); return; }
-    if (!ankiTags) { findMsg('Open this page on the computer with Anki running first.', true); return; }
-    const objectives = splitObjectives($('findObj').value);
-    const file = $('findSlides').files[0];
-    if (!objectives.length && !file) { findMsg('Paste the learning objectives, or choose the slides (or both).', true); return; }
-    const btn = $('findBtn');
-    btn.disabled = true;
-    try {
-        let pages = [];
-        if (file) {
-            findMsg('Reading your slides…');
-            pages = (await slidesToPages(file)).filter(p => p.replace(/\s+/g, '').length > 0);
-            if (pages.join(' ').replace(/\s+/g, '').length < 40) {
-                if (!objectives.length) { findMsg("Couldn't find text in those slides (they may be images). Paste the learning objectives instead.", true); return; }
-                pages = [];
-            }
-        }
-        const idx = await buildBnbTextIndex(t => findMsg(t));
-        findMsg('Matching…');
-        const vecOf = text => weighVector(countTerms(termsOf(text), 1), idx.idf);
-        // objectives: each one on its own, plus all together (the lecture title counts as a hint too)
-        const objVecs = objectives.map(vecOf);
-        const objAll = weighVector(countTerms(termsOf(objectives.join('\n') + '\n' + l.name), 1), idx.idf);
-        const pageVecs = pages.map(vecOf);
-        const slideAll = pages.length ? weighVector(pages.reduce((m, p) => countTerms(termsOf(p), 1, m), new Map()), idx.idf) : new Map();
-        const hasObj = objectives.length > 0 && objAll.size > 0, hasSlides = slideAll.size > 0;
-        if (!hasObj && !hasSlides) { findMsg('None of those words appear in your B&B cards. Try pasting the objectives in full.', true); return; }
-
-        const raw = idx.vecs.map((vec, i) => {
-            const oDoc = hasObj ? dotVec(objAll, vec) : 0;
-            const oEach = hasObj ? objVecs.map(v => dotVec(v, vec)) : [];
-            const sDoc = hasSlides ? dotVec(slideAll, vec) : 0;
-            const sEach = hasSlides ? pageVecs.map(v => dotVec(v, vec)) : [];
-            return { i, oDoc, oEach, oBest: Math.max(0, ...oEach), sDoc, sEach, sBest: Math.max(0, ...sEach) };
-        });
-        const top = k => Math.max(1e-9, ...raw.map(x => x[k]));
-        const T = { oDoc: top('oDoc'), oBest: top('oBest'), sDoc: top('sDoc'), sBest: top('sBest') };
-        // best score per objective / per slide across all videos, so each objective gets its own best videos
-        const objTop = objectives.map((_, j) => Math.max(1e-9, ...raw.map(x => x.oEach[j])));
-        const pageTop = pages.map((_, j) => Math.max(1e-9, ...raw.map(x => x.sEach[j] || 0)));
-        raw.forEach(x => {
-            const oRel = hasObj ? Math.max(x.oDoc / T.oDoc, ...x.oEach.map((v, j) => v / objTop[j] * (objTop[j] >= 0.05 ? 1 : 0.5))) : 0;
-            const sRel = hasSlides ? Math.max(x.sDoc / T.sDoc, 0.8 * x.sBest / T.sBest) : 0;
-            x.rel = hasObj && hasSlides ? OBJ_WEIGHT * oRel + (1 - OBJ_WEIGHT) * sRel : hasObj ? oRel : sRel;
-            x.objHits = x.oEach.map((v, j) => v >= 0.6 * objTop[j] && v >= 0.04 ? j : -1).filter(j => j >= 0);
-            x.pageHits = x.sEach.map((v, j) => v >= 0.6 * pageTop[j] && v >= 0.05 ? j + 1 : -1).filter(j => j > 0);
-        });
-        raw.sort((a, b) => b.rel - a.rel);
-        const kept = raw.filter(x => x.rel >= 0.3).slice(0, 40);
-        // make sure each objective's best video is in the list
-        objectives.forEach((_, j) => {
-            const best = raw.reduce((b, x) => (x.oEach[j] > (b ? b.oEach[j] : 0) ? x : b), null);
-            if (best && best.oEach[j] >= 0.04 && !kept.includes(best)) kept.push(best);
-        });
-        const qv = hasObj ? objAll : slideAll;
-        finder.objectives = objectives;
-        finder.objTop = objTop;
-        finder.matches = kept.map((x, rank) => {
-            const v = idx.videos[x.i], vec = idx.vecs[x.i];
-            const contrib = [];
-            qv.forEach((w, t) => { const y = vec.get(t); if (y) contrib.push([t, w * y]); });
-            contrib.sort((a, b) => b[1] - a[1]);
-            const words = [];
-            for (const [t] of contrib) {
-                if (words.length >= 4) break;
-                if (words.some(w => w.includes(' ') && w.split(' ').includes(t))) continue;
-                if (t.includes(' ')) { const parts = t.split(' '); for (let k = words.length - 1; k >= 0; k--) if (!words[k].includes(' ') && parts.includes(words[k])) words.splice(k, 1); }
-                words.push(t);
-            }
-            return { tag: v.tag, label: v.label, rel: x.rel, oEach: x.oEach, objHits: x.objHits, pages: x.pageHits, words, pre: (x.rel >= 0.55 && rank < 12) || x.objHits.some(j => x.oEach[j] >= 0.95 * objTop[j] && objTop[j] >= 0.05) };
-        });
-        // first search for this lecture: tick the strong matches; later searches keep your ticks
-        if (!(l.videos || []).length && !finder.searched) finder.matches.forEach(m => { if (m.pre) finder.checked.add(m.tag); });
-        finder.searched = true;
-        const nObj = objectives.length;
-        findMsg(`${finder.matches.length} B&B video${finder.matches.length === 1 ? '' : 's'} found from ${[nObj ? `${nObj} objective${nObj === 1 ? '' : 's'}` : '', pages.length ? `${pages.length} slide${pages.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' and ')}. The strongest are ticked; check the list and the objectives below, then attach.${idx.usedCards ? '' : ' (Matched on video names only; card text could not be read.)'}`);
-        renderFinder();
-    } catch (err) {
-        console.error(err);
-        findMsg(err instanceof TypeError ? ankiErrorText(err) : err.message, true);
-    } finally {
-        btn.disabled = false;
-    }
-}
-
-function renderFinder() {
-    if (!finder) return;
-    const l = lectureList(loadDb()).find(x => x.id === finder.id) || {};
-    const seen = new Set();
-    const lost = (l.videos || []).filter(v => !v.tag).map(v => ({ tag: 'name:' + vidName(v), label: vidName(v), lost: true }));
-    const rows = [
-        ...lost,
-        ...(finder.nameHits || []).map(v => ({ tag: v.tag, label: v.label, nameOnly: true })),
-        ...(l.videos || []).filter(v => v.tag).map(v => ({ tag: v.tag, label: v.label, attachedOnly: true })),
-        ...finder.matches
-    ].filter(m => { const k = m.tag.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; })
-     .map(m => m.nameOnly || m.attachedOnly ? (finder.matches.find(x => x.tag === m.tag) || m) : m);
-    $('findResults').innerHTML = rows.length ? `<div class="find-list">${rows.map(m => {
-        const plain = m.attachedOnly || m.nameOnly || m.lost;
-        const strength = plain ? null : m.rel >= 0.66 ? ['strong', 'Strong'] : m.rel >= 0.45 ? ['good', 'Good'] : ['weak', 'Weak'];
-        const why = m.lost ? '<span class="vid-missing">Not found in your AnKing tags · untick to remove, then search for it by name below</span>' : plain ? (finder.checked.has(m.tag) && (l.videos || []).some(v => v.tag === m.tag) ? 'Already attached' : 'Name match')
-            : [`<span class="match ${strength[0]}">${strength[1]} match</span>`,
-               m.objHits.length ? `objective${m.objHits.length === 1 ? '' : 's'} ${m.objHits.map(j => j + 1).join(', ')}` : '',
-               m.pages.length ? `slide${m.pages.length === 1 ? '' : 's'} ${pageRanges(m.pages)}` : '',
-               m.words.length ? `<i>${escHtml(m.words.join(', '))}</i>` : ''].filter(Boolean).join(' · ');
-        return `<label class="find-row"><input type="checkbox" data-find="${escHtml(m.tag)}" ${finder.checked.has(m.tag) ? 'checked' : ''}><span><span class="find-name">${escHtml(m.label)}</span><span class="find-why">${why}</span></span></label>`;
-    }).join('')}</div>` : '';
-    // coverage: which ticked video answers each objective
-    if (finder.objectives.length && finder.matches.length) {
-        const items = finder.objectives.map((o, j) => {
-            const top = finder.objTop[j];
-            const best = finder.matches.filter(m => m.oEach[j] >= 0.6 * top && m.oEach[j] >= 0.04).sort((a, b) => b.oEach[j] - a.oEach[j]);
-            const ticked = best.filter(m => finder.checked.has(m.tag));
-            const short = escHtml(o.length > 90 ? o.slice(0, 87) + '…' : o);
-            if (ticked.length) return `<li>${short} <span class="muted">→ ${escHtml(ticked.slice(0, 2).map(m => m.label.split(' › ').pop()).join(', '))}</span></li>`;
-            if (best.length) return `<li>${short} <span class="gap">→ not ticked yet: ${escHtml(best[0].label.split(' › ').pop())}</span></li>`;
-            return `<li>${short} <span class="gap">→ no clear B&amp;B match; may need your lecture notes or a search in B&amp;B</span></li>`;
-        });
-        $('findCoverage').innerHTML = `<div class="find-cov"><b>Objectives</b><ol>${items.join('')}</ol></div>`;
-    } else $('findCoverage').innerHTML = '';
-    const n = finder.checked.size;
-    $('findSaveBtn').classList.toggle('hidden', !rows.length);
-    $('findSaveBtn').textContent = n ? `Attach ${n} video${n === 1 ? '' : 's'} to ${l.name || 'this lecture'}` : `Attach no videos`;
-}
-
-function saveFinder() {
-    if (!finder) return;
-    const known = new Map();
-    const db = loadDb();
-    const l = lectureList(db).find(x => x.id === finder.id);
-    if (!l) { closeFinder(); return; }
-    (l.videos || []).filter(v => v.tag).forEach(v => known.set(v.tag, v));
-    [...finder.matches, ...(finder.nameHits || [])].forEach(m => known.set(m.tag, { name: vidName(m), tag: m.tag, label: m.label }));
-    const order = bnbVideos().map(v => v.tag);
-    l.videos = [...finder.checked].map(t => known.get(t)).filter(Boolean)
-        .sort((a, b) => (order.indexOf(a.tag) + 1 || 1e9) - (order.indexOf(b.tag) + 1 || 1e9))
-        .concat((l.videos || []).filter(v => !v.tag && finder.checked.has('name:' + vidName(v))));   // not found yet: kept unless you untick it
-    saveDb(db);
-    unsuspendLectures();
-    upMsg(`Attached ${l.videos.length} B&amp;B video${l.videos.length === 1 ? '' : 's'} to <b>${escHtml(l.name)}</b>.`);
-    closeFinder();
-    renderUpcoming();
-}
-
-$('findBtn').addEventListener('click', runFinder);
-let findNameTimer = null;
-$('findName').addEventListener('input', () => {
-    clearTimeout(findNameTimer);
-    findNameTimer = setTimeout(() => {
-        if (!finder) return;
-        const q = $('findName').value.toLowerCase().replace(/[_:›\s-]+/g, ' ').trim();
-        if (q.length >= 2 && !ankiTags) findMsg('Open this page on the computer with Anki running to search your B&B videos.', true);
-        finder.nameHits = q.length < 2 || !ankiTags ? [] : bnbVideos().filter(v => v.label.toLowerCase().replace(/[_:›\s-]+/g, ' ').includes(q)).slice(0, 25);
-        renderFinder();
-    }, 200);
-});
-$('findSaveBtn').addEventListener('click', saveFinder);
-document.addEventListener('change', e => {
-    const t = e.target;
-    if (!finder || !t.dataset || t.dataset.find === undefined) return;
-    if (t.checked) finder.checked.add(t.dataset.find); else finder.checked.delete(t.dataset.find);
-    renderFinder();
-});
 
 // ============================================================
 // TODAY — reviews, each lecture (video + practice quiz + readiness quiz), AMBOSS follow-ups, AMBOSS on a weak area
@@ -2673,11 +2045,9 @@ function renderToday() {
     const LEC_MAX = 8;
     lecs.slice(0, LEC_MAX).forEach(l => {
         const late = l.date < today ? `<span class="${lecDone(l) ? '' : 'stuck'}">${daysBetween(l.date, today)}d overdue</span> · ` : '';
-        const u = safeUrl(l.url), vids = lecVideos(l);
-        const tags = lectureTags(l), picks = pickedNotes(l), waiting = waitingPicks(l);
-        const hasCards = tags.length > 0 || picks.length > 0;
-        const cardsMode = vids.length > 0 || picks.length > 0;   // lectures with B&B cards: the first row is their cards, unsuspended for you
-        const missing = vids.filter(v => !v.tag);
+        const u = safeUrl(l.url), picks = pickedNotes(l);
+        const hasCards = lecHasCards(l);
+        const cardsMode = hasCards;   // lectures with picked cards: the first row is their cards, unsuspended for you
         LEC_PARTS.forEach(([part, label0]) => {
             const label = part === 'watched' && cardsMode ? 'B&B cards' : label0;
             const d = !!l[part];
@@ -2685,13 +2055,9 @@ function renderToday() {
             log.push({ k: part === 'watched' ? (cardsMode ? 'cards' : 'watch') : 'quiz', t: part === 'watched' ? l.name : `${label} · ${l.name}`, d, lec: l.id, p: part });
             let detail = late + escHtml(l.type || '');
             if (part === 'watched' && cardsMode) {
-                detail += (vids.length ? ` · ${escHtml(vids.map(vidName).join(', '))}` : '')
-                    + (picks.length ? ` · ${picks.length.toLocaleString()} notes picked` : '')
+                detail += (picks.length ? ` · ${picks.length.toLocaleString()} notes picked` : '')
                     + (l.unsusp && !hasPending(l) ? ` · ${l.unsusp.n ? `${l.unsusp.n.toLocaleString()} cards unsuspended` : 'already unsuspended'}`
-                        : waiting ? ' · <span class="vid-missing">waiting for card picks: Export cards for review (in Lectures) and send the file to Claude</span>'
-                        : !hasCards ? ''
-                        : autoUnsuspendOn() ? ' · unsuspend automatically when this page is open with Anki' : '')
-                    + (missing.length ? ` · <span class="vid-missing">not found in your AnKing tags: ${escHtml(missing.map(vidName).join(', '))}</span>` : '');
+                        : autoUnsuspendOn() ? ' · unsuspend automatically when this page is open with Anki' : '');
             }
             if (part === 'watched' && l.note) detail += `<div class="muted">${escHtml(l.note)}</div>`;
             const auto = part === 'watched' && cardsMode && hasCards;
@@ -2704,7 +2070,7 @@ function renderToday() {
                     ? `<input type="checkbox" ${d ? 'checked' : ''} disabled aria-label="${d ? 'Done' : 'Not done yet'}" title="Ticks itself off when the cards are unsuspended">`
                     : `<input type="checkbox" data-lec="${escHtml(l.id)}" data-part="${part}" ${d ? 'checked' : ''} aria-label="Mark ${escHtml(label)} done">`,
                 actions: part !== 'watched' ? '' : (u ? `<a class="btn-small" href="${escHtml(u)}" target="_blank" rel="noopener noreferrer">Watch</a>` : '')
-                    + (auto && hasPending(l, true) ? `<button class="btn-small" data-act="lec-unsuspend" data-id="${escHtml(l.id)}" ${connected ? (waiting ? 'title="No card picks yet: unsuspends all cards of these videos"' : '') : 'disabled title="Open Anki on this computer"'}>${waiting ? 'Unsuspend whole videos' : 'Unsuspend now'}</button>` : '')
+                    + (auto && hasPending(l) ? `<button class="btn-small" data-act="lec-unsuspend" data-id="${escHtml(l.id)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Unsuspend now</button>` : '')
                     + (hasCards ? `<button class="btn-small" data-act="lec-cards" data-id="${escHtml(l.id)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Cards</button>` : '')
             }));
         });
@@ -2732,7 +2098,7 @@ function renderToday() {
         note('amboss-new', title, d);
         const names = fuList.slice(0, 4).map(x => `${escHtml(x.l.name)} <span class="muted">(${x.k === 0 ? `${FOLLOW_UP_DAYS[0]}-day` : `${Math.round(FOLLOW_UP_DAYS[1] / 7)}-week`} check)</span>`).join(', ')
             + (fuList.length > 4 ? `, +${fuList.length - 4} more` : '');
-        const hasCards = fuList.some(x => lectureTags(x.l).length);
+        const hasCards = fuList.some(x => lecHasCards(x.l));
         rows.push(todayRow({
             kicker: 'AMBOSS · new',
             title,
@@ -3119,14 +2485,8 @@ document.addEventListener('click', e => {
         case 'lec-undo':
             undoRemove();
             break;
-        case 'find-open':
-            openFinder(el.dataset.id);
-            break;
         case 'lec-unsuspend':
             unsuspendLectures({ ids: [el.dataset.id] });
-            break;
-        case 'find-close':
-            closeFinder();
             break;
         case 'leech-open':
             ankiDo(() => leechAction(el.dataset.act, el.dataset.ids));
