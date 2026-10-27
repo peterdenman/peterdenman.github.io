@@ -2938,7 +2938,7 @@ function renderToday() {
         const area = cand[dayNumber(today) % cand.length];
         const d = !!(db.todayLog && db.todayLog[today] && db.todayLog[today].weak);
         count(d);
-        note('amboss-weak', `10 questions on ${area.label}`, d);
+        note('amboss-weak', `10 questions (1-2 hammers) on ${area.label}`, d);
         qpush(d, todayRow({
             kicker: 'AMBOSS · weak area',
             title: `20 questions on ${escHtml(area.label)}`,
