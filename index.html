@@ -313,7 +313,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 27c · Resource guide</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 28b · Cloze cards from lecture files</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -431,6 +431,9 @@
                 <div class="settings-grid">
                     <label class="field full">AnkiConnect address
                         <input type="text" id="ankiUrlInput">
+                    </label>
+                    <label class="field full">Deck for new cards from lecture files
+                        <input type="text" id="newDeckInput" placeholder="Lecture Cards">
                     </label>
                     <label class="field full">Analyze by
                         <select id="modeSelect">
@@ -634,7 +637,8 @@ const DEFAULT_SETTINGS = {
     days: 30,
     minCards: 20,
     deck: '',
-    autoSync: true
+    autoSync: true,
+    newDeck: 'Lecture Cards'
 };
 
 const $ = id => document.getElementById(id);
@@ -773,7 +777,8 @@ function readSettingsForm() {
         days: parseInt($('daysSelect').value, 10) || 30,
         minCards: Math.max(1, parseInt($('minCardsInput').value, 10) || DEFAULT_SETTINGS.minCards),
         deck: $('deckInput').value.trim(),
-        autoSync: $('autoSyncInput').checked
+        autoSync: $('autoSyncInput').checked,
+        newDeck: $('newDeckInput').value.trim() || DEFAULT_SETTINGS.newDeck
     };
     saveSettings(s);
     return s;
@@ -786,6 +791,7 @@ function fillSettingsForm() {
     $('minCardsInput').value = s.minCards;
     $('deckInput').value = s.deck;
     $('autoSyncInput').checked = s.autoSync !== false;
+    $('newDeckInput').value = s.newDeck || DEFAULT_SETTINGS.newDeck;
     $('modeSelect').value = s.mode;
     setOptions($('deckRootSelect'), s.deckRoot ? [s.deckRoot] : ['(connect to load)'], s.deckRoot);
     setOptions($('rootSelect'), [s.root], s.root);
@@ -1778,7 +1784,47 @@ function lectureQuery(l) {
 const lecHasCards = l => !!lectureQuery(l);
 // Picked notes not unsuspended yet
 const pendingNotes = l => { const done = new Set((l.unsusp && l.unsusp.notes) || []); return pickedNotes(l).filter(n => !done.has(n)); };
-const hasPending = l => pendingNotes(l).length > 0;
+// New cards a lecture file asks to create (for facts B&B doesn't cover) that aren't in Anki yet
+const addKey = c => String(c.cloze || c.front).trim().toLowerCase();
+const pendingAdds = l => (Array.isArray(l.add) ? l.add : []).filter(c => c && (c.front || c.cloze) && !((l.added || {})[addKey(c)]));
+const hasPending = l => pendingNotes(l).length > 0 || pendingAdds(l).length > 0;
+const ankiField = t => escHtml(String(t)).replace(/\n/g, '<br>');
+// Creates a lecture's new cards (Basic: front/back; Cloze: cloze/extra) in your "new cards" deck, tagged with the lecture
+async function addLectureCards(l) {
+    const cards = pendingAdds(l);
+    if (!cards.length) return { ids: [], keys: {}, dup: 0 };
+    const deck = getSettings().newDeck || DEFAULT_SETTINGS.newDeck;
+    const models = await anki('modelNames');
+    const pickModel = cloze => cloze
+        ? (models.includes('Cloze') ? 'Cloze' : models.find(m => /^cloze/i.test(m)) || models.find(m => /cloze/i.test(m)))
+        : (models.includes('Basic') ? 'Basic' : models.find(m => /^basic/i.test(m)) || models[0]);
+    const fieldCache = {};
+    const fieldsOf = async m => fieldCache[m] || (fieldCache[m] = await anki('modelFieldNames', { modelName: m }));
+    await anki('createDeck', { deck });
+    const tag = 'StudyTracker::' + l.name.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '');
+    const ids = [], keys = {};
+    let dup = 0;
+    for (const c of cards) {
+        try {
+            const model = pickModel(!!c.cloze);
+            if (!model) throw new Error('Your Anki has no Cloze note type, so cloze cards can’t be added.');
+            const fields = await fieldsOf(model);
+            const second = c.cloze ? (c.extra || '') : (c.back || '');
+            const id = await anki('addNote', { note: {
+                deckName: deck, modelName: model,
+                fields: { [fields[0]]: ankiField(c.cloze || c.front), ...(fields[1] ? { [fields[1]]: ankiField(second) } : {}) },
+                tags: ['StudyTracker', tag], options: { allowDuplicate: false, duplicateScope: 'deck' }
+            } });
+            ids.push(id);
+            keys[addKey(c)] = id;
+        } catch (err) {
+            if (!/duplicate/i.test(String(err.message))) throw err;
+            keys[addKey(c)] = 'duplicate';   // already in that deck
+            dup++;
+        }
+    }
+    return { ids, keys, dup };
+}
 function openLectureCards(list) {
     const parts = [...new Set(list.map(lectureQuery).filter(Boolean))];
     if (parts.length) ankiDo(() => anki('guiBrowse', { query: parts.length === 1 ? parts[0] : `(${parts.join(' OR ')})` }));
@@ -1942,7 +1988,7 @@ function lecRow(l, cls, connected) {
                 <input type="date" class="up-date" data-lec-date="${escHtml(l.id)}" value="${escHtml(l.date)}" aria-label="Due date">
                 <span class="muted">· ${n} of ${LEC_PARTS.length} done</span>
             </div>
-            ${picks.length || l.unsusp ? `<div class="lec-vids">${picks.length ? `${picks.length.toLocaleString()} notes picked` : ''}${l.unsusp ? `${picks.length ? ' · ' : ''}<b>${l.unsusp.n.toLocaleString()} cards unsuspended ${escHtml(new Date(l.unsusp.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}</b>` : ''}${startedText(l)}${quizLine(l)}</div>` : `<div class="lec-vids muted">No cards picked yet${quizLine(l)}</div>`}
+            ${picks.length || l.unsusp ? `<div class="lec-vids">${picks.length ? `${picks.length.toLocaleString()} notes picked` : ''}${pendingAdds(l).length ? ` · ${pendingAdds(l).length} new card${pendingAdds(l).length === 1 ? '' : 's'} to add` : l.unsusp && l.unsusp.made ? ` · ${l.unsusp.made} new card${l.unsusp.made === 1 ? '' : 's'} added` : ''}${l.unsusp ? `${picks.length ? ' · ' : ''}<b>${l.unsusp.n.toLocaleString()} cards unsuspended ${escHtml(new Date(l.unsusp.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}</b>` : ''}${startedText(l)}${quizLine(l)}</div>` : `<div class="lec-vids muted">No cards picked yet${quizLine(l)}</div>`}
             ${l.note ? `<div class="lec-vids muted">${escHtml(l.note)}</div>` : ''}
             ${guideHtml(l)}
         </div>
@@ -2025,7 +2071,8 @@ async function unsuspendLectures({ ids = null } = {}) {
             for (const part of chunk(notes, 200)) cards = cards.concat(await anki('findCards', { query: `nid:${part.join(',')} is:suspended -tag:leech` }));
             cards = [...new Set(cards)];
             if (cards.length) await anki('unsuspend', { cards });
-            done.push({ id: l.id, name: l.name, n: cards.length, notes });
+            const made = await addLectureCards(l);
+            done.push({ id: l.id, name: l.name, n: cards.length, notes, made });
         }
     } catch (err) {
         console.error(err);
@@ -2040,13 +2087,17 @@ async function unsuspendLectures({ ids = null } = {}) {
         const l = lectureList(db).find(x => x.id === r.id);
         if (!l) return;
         const prev = l.unsusp || { n: 0, notes: [] };
-        l.unsusp = { ...prev, date: prev.date || today, n: (prev.n || 0) + r.n, notes: [...new Set([...(prev.notes || []), ...r.notes])] };
+        const madeIds = r.made.ids;
+        if (madeIds.length) l.picks = [...new Set([...pickedNotes(l), ...madeIds])];   // your new cards count as the lecture's cards
+        l.added = { ...(l.added || {}), ...r.made.keys };
+        l.unsusp = { ...prev, date: prev.date || today, n: (prev.n || 0) + r.n, notes: [...new Set([...(prev.notes || []), ...r.notes, ...madeIds])], made: (prev.made || 0) + madeIds.length };
     });
     saveDb(db);
     const total = done.reduce((s, r) => s + r.n, 0);
+    const made = done.reduce((s, r) => s + r.made.ids.length, 0), dups = done.reduce((s, r) => s + r.made.dup, 0);
     setTimeout(refreshLectureStats, 0);   // newly unsuspended lectures join the Priority list
     setTimeout(loadNewCardStats, 0);
-    upMsg(`Unsuspended ${total.toLocaleString()} card${total === 1 ? '' : 's'} for ${escHtml(done.map(r => r.name).join(', '))}.`);
+    upMsg(`Unsuspended ${total.toLocaleString()} card${total === 1 ? '' : 's'}${made ? ` and added ${made} new card${made === 1 ? '' : 's'} to ${escHtml(getSettings().newDeck || DEFAULT_SETTINGS.newDeck)}` : ''} for ${escHtml(done.map(r => r.name).join(', '))}.${dups ? ` ${dups} new card${dups === 1 ? ' was' : 's were'} already in that deck, so ${dups === 1 ? 'it was' : 'they were'} skipped.` : ''}`);
     renderUpcoming();
 }
 $('autoUnsuspendInput').checked = autoUnsuspendOn();
@@ -2082,12 +2133,18 @@ async function importLectures() {
         const type = LECTURE_TYPES.includes(x.type) ? x.type : (x.type || '');
         const changes = { type };
         if (x.note) changes.note = String(x.note);
+        if (Array.isArray(x.add)) changes.add = x.add.filter(c => c && (c.front || c.cloze)).map(c => c.cloze ? { cloze: String(c.cloze), extra: String(c.extra || '') } : { front: String(c.front), back: String(c.back || '') });
         if (Array.isArray(x.notes) && x.notes.length) {   // Claude's card picks
             changes.picks = [...new Set(x.notes.map(Number).filter(Number.isFinite))];
             nPicks += changes.picks.length;
         }
         const hit = list.find(l => l.name.toLowerCase() === String(x.name).toLowerCase() && l.date === x.date);
-        if (hit) { Object.assign(hit, changes, { type: type || hit.type }); updated++; }
+        if (hit) {
+            Object.assign(hit, changes, { type: type || hit.type });
+            const made = Object.values(hit.added || {}).filter(Number.isFinite);   // keep the cards the page already created
+            if (made.length) hit.picks = [...new Set([...pickedNotes(hit), ...made])];
+            updated++;
+        }
         else {
             list.push({ id: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: String(x.name), url: safeUrl(x.url) || '', date: x.date, note: '', ...changes, added: new Date().toISOString() });
             added++;
@@ -2941,9 +2998,9 @@ function renderToday() {
             log.push({ k: part === 'watched' ? (cardsMode ? 'cards' : 'watch') : 'quiz', t: part === 'watched' ? l.name : `${label} · ${l.name}`, d, lec: l.id, p: part });
             let detail = late + escHtml(l.type || '');
             if (part === 'watched' && cardsMode) {
-                const waiting = pendingNotes(l).length;
+                const waiting = pendingNotes(l).length, toAdd = pendingAdds(l).length;
                 detail += (picks.length ? ` · ${picks.length.toLocaleString()} notes picked` : '')
-                    + (waiting ? ` · <b>${waiting.toLocaleString()} note${waiting === 1 ? '' : 's'} ready to unsuspend</b>${autoUnsuspendOn() ? ' (automatically when this page is open with Anki)' : ''}`
+                    + (waiting || toAdd ? ` · <b>${[waiting ? `${waiting.toLocaleString()} note${waiting === 1 ? '' : 's'} ready to unsuspend` : '', toAdd ? `${toAdd} new card${toAdd === 1 ? '' : 's'} to add` : ''].filter(Boolean).join(' + ')}</b>${autoUnsuspendOn() ? ' (automatically when this page is open with Anki)' : ''}`
                         : l.unsusp ? ` · ${l.unsusp.n ? `${l.unsusp.n.toLocaleString()} cards unsuspended` : 'already unsuspended'}` : '');
             }
             if (part === 'watched' && l.note) detail += `<div class="muted">${escHtml(l.note)}</div>`;
@@ -3025,10 +3082,10 @@ function renderToday() {
         const area = cand[dayNumber(today) % cand.length];
         const d = !!(db.todayLog && db.todayLog[today] && db.todayLog[today].weak);
         count(d);
-        note('amboss-weak', `20 questions on ${area.label}`, d);
+        note('amboss-weak', `10 questions on ${area.label}`, d);
         qpush(d, todayRow({
-            kicker: 'AMBOSS · weak area OR search B&B',
-            title: ` 10 questions (1-2 hammers) on ${escHtml(area.label)}`,
+            kicker: 'AMBOSS/B&B · weak area',
+            title: `10 questions on ${escHtml(area.label)}`,
             detail: [area.retention != null ? `Retention ${pct(area.retention)}` : '', `${pct(area.struggle)} of cards with 3+ lapses`, cand.length > 1 ? `rotates daily through your ${cand.length} weakest ${useLec ? 'lectures' : 'areas'}` : ''].filter(Boolean).join(' · '),
             done: d, manual: 'weak',
             actions: `<button class="btn-small" data-act="qbank-area" data-src="${useLec ? 'lecture' : 'subject'}" data-path="${escHtml(area.path)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Open cards</button>`
@@ -3471,7 +3528,7 @@ $('refreshStatsBtn').addEventListener('click', () => analyze({ manual: true }));
     });
 })();
 $('analyzeBtn').addEventListener('click', () => analyze({ manual: true }));
-['familySelect', 'depthSelect', 'daysSelect', 'minCardsInput', 'deckInput', 'ankiUrlInput', 'autoSyncInput'].forEach(id => $(id).addEventListener('change', readSettingsForm));
+['familySelect', 'depthSelect', 'daysSelect', 'minCardsInput', 'deckInput', 'ankiUrlInput', 'autoSyncInput', 'newDeckInput'].forEach(id => $(id).addEventListener('change', readSettingsForm));
 
 // ============================================================
 // INIT
