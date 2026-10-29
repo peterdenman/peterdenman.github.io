@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Master Focus Dashboard</title>
+    <title>Focus Dashboard</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -313,7 +313,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 28b · Cloze cards from lecture files</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 29 · Weak-area AMBOSS below 85%</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -1792,8 +1792,8 @@ const ankiField = t => escHtml(String(t)).replace(/\n/g, '<br>');
 // Creates a lecture's new cards (Basic: front/back; Cloze: cloze/extra) in your "new cards" deck, tagged with the lecture
 async function addLectureCards(l) {
     const cards = pendingAdds(l);
-    if (!cards.length) return { ids: [], keys: {}, dup: 0 };
-    const deck = getSettings().newDeck || DEFAULT_SETTINGS.newDeck;
+    if (!cards.length) return { ids: [], keys: {}, dup: 0, deck: '' };
+    const deck = (l.deck || '').trim() || getSettings().newDeck || DEFAULT_SETTINGS.newDeck;   // the file's deck for this lecture, else your setting
     const models = await anki('modelNames');
     const pickModel = cloze => cloze
         ? (models.includes('Cloze') ? 'Cloze' : models.find(m => /^cloze/i.test(m)) || models.find(m => /cloze/i.test(m)))
@@ -1823,7 +1823,7 @@ async function addLectureCards(l) {
             dup++;
         }
     }
-    return { ids, keys, dup };
+    return { ids, keys, dup, deck };
 }
 function openLectureCards(list) {
     const parts = [...new Set(list.map(lectureQuery).filter(Boolean))];
@@ -2097,7 +2097,7 @@ async function unsuspendLectures({ ids = null } = {}) {
     const made = done.reduce((s, r) => s + r.made.ids.length, 0), dups = done.reduce((s, r) => s + r.made.dup, 0);
     setTimeout(refreshLectureStats, 0);   // newly unsuspended lectures join the Priority list
     setTimeout(loadNewCardStats, 0);
-    upMsg(`Unsuspended ${total.toLocaleString()} card${total === 1 ? '' : 's'}${made ? ` and added ${made} new card${made === 1 ? '' : 's'} to ${escHtml(getSettings().newDeck || DEFAULT_SETTINGS.newDeck)}` : ''} for ${escHtml(done.map(r => r.name).join(', '))}.${dups ? ` ${dups} new card${dups === 1 ? ' was' : 's were'} already in that deck, so ${dups === 1 ? 'it was' : 'they were'} skipped.` : ''}`);
+    upMsg(`Unsuspended ${total.toLocaleString()} card${total === 1 ? '' : 's'}${made ? ` and added ${made} new card${made === 1 ? '' : 's'} to ${escHtml([...new Set(done.filter(r => r.made.ids.length).map(r => r.made.deck))].join(', '))}` : ''} for ${escHtml(done.map(r => r.name).join(', '))}.${dups ? ` ${dups} new card${dups === 1 ? ' was' : 's were'} already in that deck, so ${dups === 1 ? 'it was' : 'they were'} skipped.` : ''}`);
     renderUpcoming();
 }
 $('autoUnsuspendInput').checked = autoUnsuspendOn();
@@ -2133,6 +2133,7 @@ async function importLectures() {
         const type = LECTURE_TYPES.includes(x.type) ? x.type : (x.type || '');
         const changes = { type };
         if (x.note) changes.note = String(x.note);
+        if (x.deck) changes.deck = String(x.deck);
         if (Array.isArray(x.add)) changes.add = x.add.filter(c => c && (c.front || c.cloze)).map(c => c.cloze ? { cloze: String(c.cloze), extra: String(c.extra || '') } : { front: String(c.front), back: String(c.back || '') });
         if (Array.isArray(x.notes) && x.notes.length) {   // Claude's card picks
             changes.picks = [...new Set(x.notes.map(Number).filter(Number.isFinite))];
@@ -2819,6 +2820,7 @@ document.addEventListener('change', e => {
 // ============================================================
 // TODAY — reviews, each lecture (video + practice quiz + readiness quiz), AMBOSS follow-ups, AMBOSS on a weak area
 // ============================================================
+const WEAK_BELOW = 0.85;          // weak-area AMBOSS only for lectures/areas below this retention
 const FOLLOW_UP_DAYS = [3, 14];   // AMBOSS questions this many days after a lecture (Gemini quizzes default to days 1 and 7, so each lecture is quizzed at ~1, 3, 7, 14)
 const dayNumber = key => Math.floor(Date.parse(key + 'T00:00:00Z') / 864e5);
 
@@ -2941,6 +2943,7 @@ function renderToday() {
     let total = 0, done = 0;
     const count = d => { total++; if (d) done++; };
     const note = (k, t, d) => log.push({ k, t, d: !!d });
+    let weakNote = '';
 
     // 1. Reviews
     const st = db.todayStats && db.todayStats.date === today ? db.todayStats : null;
@@ -3072,24 +3075,39 @@ function renderToday() {
         }));
     }
 
-    // 4. AMBOSS on a weak area (rotates daily through your weakest lectures, else your weakest subjects)
+    // 4. AMBOSS on a weak area: your worst lecture (else subject) below WEAK_BELOW retention,
+    //    skipping yesterday's topic so the same one never comes up two days running
     const lecRanked = ((db.lectureSnapshot && db.lectureSnapshot.areas) || []).filter(a => !a.lowData);
     const useLec = lecRanked.length > 0 && prioView === 'lecture';
     const areas = useLec ? lecRanked : ((db.ankiSnapshot && db.ankiSnapshot.areas) || []);
-    if (areas.length) {
-        const pool = areas.filter(a => a.priority === 'P1');
-        const cand = (pool.length ? pool : areas).slice(0, 5);
-        const area = cand[dayNumber(today) % cand.length];
-        const d = !!(db.todayLog && db.todayLog[today] && db.todayLog[today].weak);
+    const below = areas.filter(a => a.retention != null && Math.round(a.retention * 100) < Math.round(WEAK_BELOW * 100))   // compare as shown, so “85%” never counts as below 85%
+        .sort((a, b) => a.retention - b.retention || b.struggle - a.struggle);
+    const tlog = db.todayLog || {};
+    const yPath = (tlog[addDays(today, -1)] || {}).weakPath;
+    const tPath = (tlog[today] || {}).weakPath;
+    const area = below.find(a => a.path === tPath) || below.find(a => a.path !== yPath);
+    const what = useLec ? 'lecture' : 'area';
+    if (area) {
+        if (tPath !== area.path) {   // remember today's pick, so tomorrow moves on to the next one
+            db.todayLog = { ...tlog, [today]: { ...(tlog[today] || {}), weakPath: area.path } };
+            saveDb(db, syncReady);
+        }
+        const d = !!(db.todayLog[today] && db.todayLog[today].weak);
+        const rank = below.indexOf(area) + 1;
         count(d);
-        note('amboss-weak', `10 questions on ${area.label}`, d);
+        note('amboss-weak', `20 questions on ${area.label}`, d);
         qpush(d, todayRow({
-            kicker: 'AMBOSS/B&B · weak area',
-            title: `10 questions on ${escHtml(area.label)}`,
-            detail: [area.retention != null ? `Retention ${pct(area.retention)}` : '', `${pct(area.struggle)} of cards with 3+ lapses`, cand.length > 1 ? `rotates daily through your ${cand.length} weakest ${useLec ? 'lectures' : 'areas'}` : ''].filter(Boolean).join(' · '),
+            kicker: 'AMBOSS · weak area',
+            title: `20 questions on ${escHtml(area.label)}`,
+            detail: [`Retention ${pct(area.retention)}`, `${pct(area.struggle)} of cards with 3+ lapses`,
+                below.length > 1 ? `${rank === 1 ? 'worst' : `#${rank} worst`} of ${below.length} ${what}s below ${pct(WEAK_BELOW)}${rank > 1 ? ' (the worst one was yesterday’s)' : ''}` : ''].filter(Boolean).join(' · '),
             done: d, manual: 'weak',
             actions: `<button class="btn-small" data-act="qbank-area" data-src="${useLec ? 'lecture' : 'subject'}" data-path="${escHtml(area.path)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Open cards</button>`
         }));
+    } else if (areas.length) {
+        weakNote = below.length
+            ? `No weak-area AMBOSS today: ${escHtml(below[0].label)} is the only ${what} below ${pct(WEAK_BELOW)} retention and it was yesterday’s.`
+            : `No weak-area AMBOSS today: every ${what} with enough reviews is at or above ${pct(WEAK_BELOW)} retention.`;
     }
 
     renderQuizTab({ rows: quizRows, due: quizCount.due, done: quizCount.done, qq, lectures, today });
@@ -3116,6 +3134,7 @@ function renderToday() {
     const extras = [];
     const nl = newLeechCount();
     if (nl) extras.push(`<b>${nl} new leech${nl === 1 ? '' : 'es'}</b> since you last checked. <a href="#" data-act="open-leeches">Review ${nl === 1 ? 'it' : 'them'} in Leeches</a>; fixing leeches early saves review time.`);
+    if (weakNote) extras.push(weakNote);
     if (qq.stuck.length) extras.push(qq.stuck.slice(0, 3).map(x => `${escHtml(x.l.name)} quiz ${x.k + 1} is due but has no questions yet: ${quizStatus(x.l, x.k)}`).join('<br>'));
     if (qq.waiting) extras.push(`${qq.waiting} more lecture quiz${qq.waiting === 1 ? '' : 'zes'} waiting; ${qq.waiting === 1 ? 'it shows' : 'they show'} on the next days, a few at a time.`);
     if (moreLecs > 0) extras.push(`${moreLecs} more lecture${moreLecs === 1 ? '' : 's'} due; they’ll show here as you finish these.`);
