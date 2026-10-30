@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Focus Dashboard</title>
+    <title>Master Focus Dashboard</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -313,7 +313,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 29 · Weak-area AMBOSS below 85%</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 30 · Weak-area AMBOSS 10 questions</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -2820,6 +2820,7 @@ document.addEventListener('change', e => {
 // ============================================================
 // TODAY — reviews, each lecture (video + practice quiz + readiness quiz), AMBOSS follow-ups, AMBOSS on a weak area
 // ============================================================
+const WEAK_QUESTIONS = 10;       // questions in the weak-area AMBOSS session
 const WEAK_BELOW = 0.85;          // weak-area AMBOSS only for lectures/areas below this retention
 const FOLLOW_UP_DAYS = [3, 14];   // AMBOSS questions this many days after a lecture (Gemini quizzes default to days 1 and 7, so each lecture is quizzed at ~1, 3, 7, 14)
 const dayNumber = key => Math.floor(Date.parse(key + 'T00:00:00Z') / 864e5);
@@ -3095,10 +3096,10 @@ function renderToday() {
         const d = !!(db.todayLog[today] && db.todayLog[today].weak);
         const rank = below.indexOf(area) + 1;
         count(d);
-        note('amboss-weak', `20 questions on ${area.label}`, d);
+        note('amboss-weak', `${WEAK_QUESTIONS} questions on ${area.label}`, d);
         qpush(d, todayRow({
             kicker: 'AMBOSS · weak area',
-            title: `20 questions on ${escHtml(area.label)}`,
+            title: `${WEAK_QUESTIONS} questions on ${escHtml(area.label)}`,
             detail: [`Retention ${pct(area.retention)}`, `${pct(area.struggle)} of cards with 3+ lapses`,
                 below.length > 1 ? `${rank === 1 ? 'worst' : `#${rank} worst`} of ${below.length} ${what}s below ${pct(WEAK_BELOW)}${rank > 1 ? ' (the worst one was yesterday’s)' : ''}` : ''].filter(Boolean).join(' · '),
             done: d, manual: 'weak',
