@@ -2,7 +2,7 @@
 
 Daily checklist, Anki (AnKing) stats, B&B cards for each lecture, AMBOSS and Gemini practice questions. It syncs through your GitHub account, so it works on your phone and computer.
 
-The only change the page makes in Anki is unsuspending the cards picked for each lecture on its due date. Everything else is read-only.
+The only change the page makes in Anki is unsuspending a lecture's picked cards when you click **Unsuspend**. Everything else is read-only.
 
 ## Set up (once)
 
@@ -19,8 +19,10 @@ The only change the page makes in Anki is unsuspending the cards picked for each
 ## Daily routine
 
 1. **Send Claude the day's lecture slides.** Claude sends back a lectures file with the B&B cards that match each lecture. Import it with **Import lectures (.json)** in the Lectures card.
-2. **On the lecture's day**, open the page on your computer with Anki running. The picked cards are unsuspended automatically; leeches stay suspended. Or click **Unsuspend now** on a lecture to do it early.
-3. **Work down Today.** Reviews and the B&B cards row tick themselves off; tick the rest yourself. Anything you don't finish stays on Today, marked overdue.
+2. **On the lecture's day**, its **B&B cards** row on Today shows how many notes are ready. Click **Unsuspend** (on your computer, with Anki running) when you want them; leeches stay suspended. **Unsuspend now** in the Lectures card does it early. To have it happen automatically on the due date instead, tick the box under the Add lecture button.
+3. **Work down Today.** Reviews and new cards tick themselves off; tick the rest yourself, including the B&B cards row once you've done the lecture. The AMBOSS follow-ups count from the day you tick it. Anything you don't finish stays on Today, marked overdue.
+
+A lectures file can also include **new cards** for facts no B&B card covers (for example, ones from your own card lists). When you click **Unsuspend**, the page creates them as Basic cards in a deck called **Lecture Cards** (change it in AnKing Sync settings), tagged `StudyTracker::<lecture>`, and counts them with that lecture. Each is created once; one already in that deck is skipped.
 
 Claude needs your B&B cards once: click **Export all B&B cards** and send Claude the file. Do it again after a big AnkiHub update or in a new conversation with Claude.
 
@@ -31,7 +33,9 @@ Claude needs your B&B cards once: click **Export all B&B cards** and send Claude
   - **Your own tasks**: type anything in the box under the list, pick a day, and press **Add**.
 - **Quizzes** tab: today's quizzes, what's coming in the next 7 days, every lecture's Gemini quizzes with scores, and the Gemini settings. Each lecture gets quizzed at about 1, 3, 7 and 14 days: Gemini on days 1 and 7, AMBOSS on days 3 and 14.
 - **Priority**: your weakest lectures, ranked from reviews of their own cards (70% Again rate + 30% cards with 3+ lapses). A lecture is ranked once it has 20 reviews. Switch to **By AnKing subject** for Step 1 prep.
+- **AMBOSS · weak area** on Today: your worst lecture under 85% retention. It never repeats yesterday's topic and moves on to the next worst. If nothing is under 85%, the row doesn't appear.
 - **Lectures**: add, re-date or remove lectures (**✕**, with **Undo**). **Cards** opens a lecture's cards in Anki. **Quiz** adds files for Gemini quizzes.
+- **Third-party resources**: import a resource guide file from Claude (made from your class's resource sheet) with **Import lectures (.json)**. Each lecture then has a **Third-party resources** section listing its B&B, Sketchy, Pathoma, First Aid and other resources plus the sheet's notes. Lectures are matched by name; change the match with the dropdown inside the section.
 - **AnKing Notebook** and **Progress Over Time** (bottom of the page): stats, weekly retention and AMBOSS practice for each lecture.
 - **History** tab: each day's checklist, your streak and your daily review counts.
 - **Leeches** tab: cards Anki keeps suspending. Click **Open** to fix one in Anki, then unsuspend it there.
@@ -41,6 +45,7 @@ Claude needs your B&B cards once: click **Export all B&B cards** and send Claude
 1. On the **Quizzes** tab, open **Gemini settings**, paste your API key and click **Save**. The key stays in that browser only. Your prompt is filled in; edit it anytime.
 2. On a lecture, click **Quiz** and add the slides, practice quiz and readiness quiz (PDF, .pptx or .docx; PDF is best because Gemini sees the images). The questions are written automatically once all three are in, or click **Write quizzes now** to use the slides alone.
 3. Quizzes show on Today and the Quizzes tab on their days, at most 2 a day. **Open** in the lecture's Quiz panel lets you take one early.
+4. To share, click **Copy share link** in a lecture's Quiz panel, or send the **Share page** link from the Quizzes tab. `quiz.html` reads the public `database.json`, so others need no key. Their answers stay in their own browser. Finished quizzes keep their questions for 60 days.
 
 The files stay on the computer you added them on; the questions and scores sync to your phone. AI-written questions can have a wrong answer key, so each one names its source slide. In Google Cloud Console, restrict your key to the Generative Language API and your `github.io` address.
 
