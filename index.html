@@ -313,7 +313,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Oct 30 · Weak-area AMBOSS 10 questions</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Nov 1 · Quiz share page</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -546,7 +546,7 @@
         <div class="card">
             <h2 style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;">
                 <span>Lecture quizzes</span>
-                <span id="quizLecSummary" style="font-size:0.6em; color:#718096; font-weight:normal;"></span>
+                <span style="font-size:0.6em; color:#718096; font-weight:normal;"><span id="quizLecSummary"></span> <a style="margin-left:8px;" href="quiz.html" target="_blank" rel="noopener" title="Every written quiz, for anyone, no key needed">Share page</a></span>
             </h2>
             <div id="quizLectures"></div>
         </div>
@@ -2576,7 +2576,15 @@ function quizRoundsHtml(l) {
         const has = r.q && r.q.length;
         const btn = has ? `<button class="btn-small" data-act="quiz-open" data-id="${escHtml(l.id)}" data-k="${k}">${r.doneAt ? 'Review' : (r.ans || []).some(Boolean) ? 'Resume' : 'Open'}</button>` : '';
         return `<div class="qf-quiz"><span><b>Quiz ${k + 1}</b> · ${r.doneAt ? 'done' : 'due'} ${escHtml(r.doneAt ? new Date(r.doneAt + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : when)} · ${quizStatus(l, k)}</span>${btn}</div>`;
-    }).join('')}</div>` : '';
+    }).join('')}${(l.quiz.rounds || []).some(r => r && r.q && r.q.length)
+        ? `<div class="qf-quiz"><span class="muted">Anyone with the link can take these, no key needed</span><span><button class="btn-small" data-act="quiz-share" data-id="${escHtml(l.id)}">Copy share link</button> <a class="btn-small" style="text-decoration:none;" href="${escHtml(shareUrl(l.id))}" target="_blank" rel="noopener">Preview</a></span></div>` : ''}</div>` : '';
+}
+// Share page for other people: quiz.html reads the public database.json, so it needs no key
+const shareUrl = id => new URL(`quiz.html${id ? `?l=${encodeURIComponent(id)}` : ''}`, location.href).href;
+async function copyShareLink(el) {
+    const url = shareUrl(el.dataset.id);
+    try { await navigator.clipboard.writeText(url); el.textContent = 'Link copied'; setTimeout(() => { el.textContent = 'Copy share link'; }, 2000); }
+    catch { prompt('Copy this link:', url); }
 }
 document.addEventListener('change', e => {
     const t = e.target;
@@ -2716,6 +2724,7 @@ function quizClick(act, el) {
             ensureQuizzes();
             return true;
         case 'quiz-open': openQuiz(el.dataset.id, +el.dataset.k); return true;
+        case 'quiz-share': copyShareLink(el); return true;
         case 'qz-close': closeQuiz(); return true;
         case 'qz-pick': answerQuiz(el.dataset.l); return true;
         case 'qz-next': quizView.i++; renderQuiz(); return true;
