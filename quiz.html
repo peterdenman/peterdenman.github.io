@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture Quizzes</title>
+<style>
+    :root {
+        --bg: #f4f6f9; --card: #ffffff; --fg: #1a202c; --muted: #718096; --line: #e2e8f0;
+        --accent: #3182ce; --accent-soft: #ebf4ff; --ok: #38a169; --ok-soft: #f0fff4; --bad: #e53e3e; --bad-soft: #fff5f5;
+    }
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --bg: #14171c; --card: #1d2229; --fg: #e8ecf1; --muted: #9aa5b4; --line: #2d3540;
+            --accent: #63b3ed; --accent-soft: #1c2b3b; --ok: #68d391; --ok-soft: #18291f; --bad: #fc8181; --bad-soft: #2f1c1c;
+            color-scheme: dark;
+        }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    main { max-width: 760px; margin: 0 auto; padding: 24px 16px 60px; }
+    h1 { font-size: 1.5rem; margin: 0 0 4px; }
+    h2 { font-size: 1.1rem; margin: 0; }
+    .muted { color: var(--muted); }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-top: 14px; }
+    .search { width: 100%; font: inherit; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--fg); margin-top: 14px; }
+    .lec { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 14px; padding: 12px 0; border-top: 1px solid var(--line); }
+    .lec:first-child { border-top: 0; padding-top: 0; }
+    .lec:last-child { padding-bottom: 0; }
+    .lec-main { min-width: 0; flex: 1 1 260px; }
+    .btns { display: flex; flex-wrap: wrap; gap: 6px; }
+    button, .btn { font: inherit; font-size: 0.9rem; border: 1px solid var(--accent); color: var(--accent); background: var(--card); border-radius: 6px; padding: 6px 12px; cursor: pointer; text-decoration: none; }
+    button:hover:not([disabled]), .btn:hover { background: var(--accent-soft); }
+    button.primary { background: var(--accent); color: var(--card); }
+    button[disabled] { opacity: .45; cursor: default; }
+    button:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .score { font-size: 0.8rem; color: var(--muted); }
+    .back { border: 0; padding: 0; background: none; color: var(--accent); }
+    .qhead { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+    .stem { white-space: pre-wrap; margin: 12px 0 8px; }
+    .opt { display: block; width: 100%; text-align: left; border: 1px solid var(--line); color: var(--fg); padding: 9px 12px; margin: 6px 0; line-height: 1.4; }
+    .opt:hover:not([disabled]) { border-color: var(--accent); }
+    .opt[disabled] { opacity: 1; }
+    .opt.correct { border-color: var(--ok); background: var(--ok-soft); }
+    .opt.wrong { border-color: var(--bad); background: var(--bad-soft); }
+    .opt.dim { color: var(--muted); }
+    .exp { margin-top: 12px; padding: 12px; border-radius: 8px; background: var(--bg); font-size: 0.95rem; }
+    .exp ul { margin: 6px 0 0; padding-left: 20px; }
+    .exp p { margin: 6px 0 0; }
+    .right { color: var(--ok); font-weight: 600; }
+    .wrongt { color: var(--bad); font-weight: 600; }
+    .nav { display: flex; justify-content: space-between; margin-top: 14px; gap: 8px; }
+    .big { font-size: 2rem; font-weight: 700; margin: 6px 0 10px; }
+    .item { display: block; width: 100%; text-align: left; border: 0; border-top: 1px solid var(--line); border-radius: 0; color: var(--fg); padding: 8px 2px; }
+    .item.ok { color: var(--ok); } .item.bad { color: var(--bad); }
+    .err { color: var(--bad); }
+    footer { margin-top: 24px; font-size: 0.85rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<main id="app"><p class="muted">Loading quizzes…</p></main>
+<script>
+// Shared lecture quizzes: reads the public database.json next to this page. No keys, nothing written back.
+// Answers are kept only in this browser.
+const $app = document.getElementById('app');
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = d => new Date(d + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+const ANS_KEY = 'shared_quiz_answers';
+let lectures = [], view = null, filter = '';
+
+// Answers per quiz, keyed so a rewritten quiz starts fresh
+const quizKey = (l, k, r) => `${l.id}|${k}|${r.q.length}|${r.q[0].v.slice(0, 40)}`;
+function loadAns() { try { return JSON.parse(localStorage.getItem(ANS_KEY)) || {}; } catch { return {}; } }
+function saveAns(all) { try { localStorage.setItem(ANS_KEY, JSON.stringify(all)); } catch {} }
+
+async function fetchDb() {
+    const tries = ['database.json?t=' + Date.now()];
+    // Fallback: the repo's raw file, worked out from a github.io address (owner.github.io/repo/)
+    const m = location.hostname.match(/^([^.]+)\.github\.io$/i);
+    if (m) {
+        const seg = location.pathname.split('/').filter(Boolean)[0];
+        const repo = seg && !/\.html?$/i.test(seg) ? seg : `${m[1]}.github.io`;
+        tries.push(`https://raw.githubusercontent.com/${m[1]}/${repo}/HEAD/database.json`);
+    }
+    for (const url of tries) {
+        try { const r = await fetch(url, { cache: 'no-store' }); if (r.ok) return await r.json(); } catch {}
+    }
+    throw new Error('Couldn’t load the quizzes. Try again in a minute.');
+}
+
+function quizzesOf(l) {
+    const rounds = (l.quiz && Array.isArray(l.quiz.rounds)) ? l.quiz.rounds : [];
+    return rounds.map((r, k) => ({ r, k })).filter(x => x.r && Array.isArray(x.r.q) && x.r.q.length);
+}
+
+function renderList() {
+    document.title = 'Lecture Quizzes';
+    const f = filter.trim().toLowerCase();
+    const shown = lectures.filter(l => !f || l.name.toLowerCase().includes(f) || (l.type || '').toLowerCase().includes(f));
+    const all = loadAns();
+    const rows = shown.map(l => `
+        <div class="lec">
+            <div class="lec-main"><b>${esc(l.name)}</b><div class="muted">${esc([l.type, l.date ? fmt(l.date) : ''].filter(Boolean).join(' · '))}</div></div>
+            <div class="btns">${quizzesOf(l).map(({ r, k }) => {
+                const a = all[quizKey(l, k, r)] || [], done = r.q.every((_, i) => a[i]);
+                const right = r.q.filter((q, i) => a[i] === q.a).length;
+                return `<button data-open="${esc(l.id)}" data-k="${k}">Quiz ${k + 1}${done ? ` · ${right}/${r.q.length}` : a.some(Boolean) ? ' · in progress' : ''}</button>`;
+            }).join('')}</div>
+        </div>`).join('');
+    $app.innerHTML = `
+        <h1>Lecture quizzes</h1>
+        <p class="muted">Board-style questions written from each lecture's slides. ${lectures.length} lecture${lectures.length === 1 ? '' : 's'} so far; new ones appear as they're written.</p>
+        ${lectures.length > 6 ? `<input class="search" id="search" type="search" placeholder="Find a lecture" value="${esc(filter)}" aria-label="Find a lecture">` : ''}
+        <div class="card">${rows || '<p class="muted" style="margin:0">No quizzes match.</p>'}</div>
+        <footer>Your answers are saved in this browser only.</footer>`;
+    const s = document.getElementById('search');
+    if (s) s.addEventListener('input', e => { filter = e.target.value; const pos = e.target.selectionStart; renderList(); const n = document.getElementById('search'); n.focus(); n.setSelectionRange(pos, pos); });
+}
+
+function current() {
+    const l = lectures.find(x => x.id === view.id);
+    const r = l && l.quiz.rounds[view.k];
+    return l && r && r.q ? { l, r, key: quizKey(l, view.k, r) } : null;
+}
+
+function renderQuiz() {
+    const c = current();
+    if (!c) { view = null; render(); return; }
+    const { l, r, key } = c;
+    document.title = `${l.name} · Quiz ${view.k + 1}`;
+    const ans = loadAns()[key] || [], n = r.q.length;
+    const top = `<button class="back" data-act="list">← All lectures</button>
+        <div class="qhead"><h2>${esc(l.name)} · Quiz ${view.k + 1}</h2><span class="muted">${view.summary ? `${n} questions` : `Question ${view.i + 1} of ${n}`}</span></div>`;
+    let body;
+    if (view.summary) {
+        const right = r.q.filter((q, j) => ans[j] === q.a).length, answered = r.q.filter((_, j) => ans[j]).length;
+        body = `<div class="big">${right} / ${n}</div>
+            ${answered < n ? `<p class="muted">${n - answered} not answered yet.</p>` : ''}
+            ${r.q.map((q, j) => `<button class="item ${ans[j] ? (ans[j] === q.a ? 'ok' : 'bad') : ''}" data-goto="${j}">${ans[j] ? (ans[j] === q.a ? '✓' : '✗') : '·'} ${j + 1}. ${esc(q.v.slice(0, 110))}${q.v.length > 110 ? '…' : ''}</button>`).join('')}
+            <div class="nav"><button data-act="reset">Start over</button><button class="primary" data-act="list">Done</button></div>`;
+    } else {
+        const i = view.i, q = r.q[i], picked = ans[i];
+        const opts = q.o.map((o, j) => {
+            const L = 'ABCDE'[j];
+            const cls = !picked ? '' : L === q.a ? 'correct' : L === picked ? 'wrong' : 'dim';
+            return `<button class="opt ${cls}" data-pick="${L}" ${picked ? 'disabled' : ''}><b>${L}.</b> ${esc(o)}</button>`;
+        }).join('');
+        const rat = Object.entries(q.r || {}).filter(([, t]) => t).sort();
+        const why = picked ? `<div class="exp">
+            <div class="${picked === q.a ? 'right' : 'wrongt'}">${picked === q.a ? 'Correct.' : `Incorrect. The answer is ${q.a}.`} <span style="color:var(--fg);font-weight:400">${esc(q.o['ABCDE'.indexOf(q.a)])}</span></div>
+            ${q.p ? `<p><b>Mechanistic pathway:</b> ${esc(q.p)}</p>` : ''}
+            ${rat.length ? `<ul>${rat.map(([L, t]) => `<li>${L === '_' ? '' : `<b>${esc(L)}.</b> `}${esc(t)}</li>`).join('')}</ul>` : ''}
+            ${q.s ? `<p class="muted"><b>Slide source:</b> ${esc(q.s)}</p>` : ''}</div>` : '';
+        body = `<div class="stem">${esc(q.v)}</div>${opts}${why}
+            <div class="nav"><button data-act="prev" ${i === 0 ? 'disabled' : ''}>Back</button>
+            ${i < n - 1 ? '<button class="primary" data-act="next">Next</button>' : '<button class="primary" data-act="end">See score</button>'}</div>`;
+    }
+    $app.innerHTML = `${top}<div class="card">${body}</div>`;
+    window.scrollTo(0, 0);
+}
+
+function render() {
+    if (view) renderQuiz(); else renderList();
+}
+function go(v) {
+    view = v;
+    const u = new URL(location.href);
+    if (v) { u.searchParams.set('l', v.id); u.searchParams.set('q', v.k + 1); } else { u.searchParams.delete('l'); u.searchParams.delete('q'); }
+    history.replaceState(null, '', u);
+    render();
+}
+function openQuiz(id, k) {
+    const l = lectures.find(x => x.id === id);
+    const r = l && l.quiz.rounds[k];
+    if (!r || !r.q) return go(null);
+    const a = loadAns()[quizKey(l, k, r)] || [];
+    const first = r.q.findIndex((_, i) => !a[i]);
+    go({ id, k, i: first < 0 ? 0 : first, summary: first < 0 });
+}
+
+document.addEventListener('click', e => {
+    const t = e.target.closest('button');
+    if (!t) return;
+    if (t.dataset.open) return openQuiz(t.dataset.open, +t.dataset.k);
+    if (t.dataset.goto) { view.summary = false; view.i = +t.dataset.goto; return render(); }
+    if (t.dataset.pick) {
+        const c = current(); if (!c) return;
+        const all = loadAns(); const a = all[c.key] || [];
+        if (!a[view.i]) { a[view.i] = t.dataset.pick; all[c.key] = a; saveAns(all); }
+        return render();
+    }
+    switch (t.dataset.act) {
+        case 'list': return go(null);
+        case 'next': view.i++; return render();
+        case 'prev': view.i--; return render();
+        case 'end': view.summary = true; return render();
+        case 'reset': { const c = current(); if (c) { const all = loadAns(); delete all[c.key]; saveAns(all); } view.summary = false; view.i = 0; return render(); }
+    }
+});
+document.addEventListener('keydown', e => {
+    if (!view || view.summary || e.target.tagName === 'INPUT') return;
+    const k = e.key.toUpperCase();
+    if (/^[A-E]$/.test(k)) { const b = document.querySelector(`[data-pick="${k}"]:not([disabled])`); if (b) b.click(); }
+    if (e.key === 'ArrowRight' || e.key === 'Enter') { const b = document.querySelector('[data-act="next"], [data-act="end"]'); if (b) b.click(); }
+    if (e.key === 'ArrowLeft') { const b = document.querySelector('[data-act="prev"]:not([disabled])'); if (b) b.click(); }
+});
+
+(async () => {
+    try {
+        const db = await fetchDb();
+        lectures = (Array.isArray(db.myLectures) ? db.myLectures : [])
+            .filter(l => l && l.id && quizzesOf(l).length)
+            .sort((a, b) => (b.date || '').localeCompare(a.date || '') || a.name.localeCompare(b.name));
+        const p = new URLSearchParams(location.search);
+        const id = p.get('l'), k = Math.max(0, (parseInt(p.get('q'), 10) || 1) - 1);
+        const l = id && lectures.find(x => x.id === id);
+        if (l) {
+            if (!p.get('q') && quizzesOf(l).length > 1) { filter = l.name; renderList(); }   // a lecture link with several quizzes: show its row
+            else openQuiz(l.id, quizzesOf(l).some(x => x.k === k) ? k : quizzesOf(l)[0].k);
+        } else renderList();
+    } catch (err) {
+        $app.innerHTML = `<h1>Lecture quizzes</h1><p class="err">${esc(err.message)}</p>`;
+    }
+})();
+</script>
+</body>
+</html>
