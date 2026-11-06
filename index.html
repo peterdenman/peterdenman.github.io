@@ -163,6 +163,8 @@
         .today-title { font-weight: 600; color: #1a202c; }
         .today-row.done .today-title { text-decoration: line-through; color: #a0aec0; }
         .today-detail { font-size: 0.84em; color: #718096; margin-top: 3px; }
+        .today-alt { margin-top: 4px; }
+        .today-alt b { font-weight: 600; color: #4a5568; }
         .today-actions { display: flex; gap: 6px; flex-shrink: 0; }
         .today-actions .btn-small { text-decoration: none; border-radius: 4px; }
         .quiz-checks { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 6px; }
@@ -313,7 +315,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Nov 1 · Quiz share page</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Nov 6 · AMBOSS max 10 + B&B options</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -1925,6 +1927,29 @@ function guideFor(l, entries = guideEntries()) {
     });
     return best ? [best.x] : [];
 }
+// B&B videos to do instead of an AMBOSS session: the lecture's B&B entries in your resource guide, plus its B&B link
+const bnbFromUrl = u => {
+    const m = /boardsbeyond\.com\/video\/[^/]+\/([^/?#]+)/i.exec(u || '');
+    return m ? m[1].split('-').map(w => /^(and|of|the|in|to)$/.test(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : '';
+};
+function bnbTopicsFor(l, entries = guideEntries()) {
+    const out = [], seen = new Set();
+    const add = (t, href = '') => {
+        const name = String(t).replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
+        if (!name || name.length > 60 || seen.has(name.toLowerCase())) return;   // long lines are notes, not video names
+        seen.add(name.toLowerCase());
+        out.push(href ? `<a href="${escHtml(href)}" target="_blank" rel="noopener noreferrer">${escHtml(name)}</a>` : escHtml(name));
+    };
+    guideFor(l, entries).forEach(x => (x.bnb || []).forEach(v => String(v).split(/\n+/).forEach(line => {
+        const url = (line.match(/https?:\/\/\S+/) || [])[0];
+        if (url) { const n = bnbFromUrl(url); if (n) add(n, url); }
+        else add(line);
+    })));
+    const u = safeUrl(l.url);
+    if (bnbFromUrl(u)) add(bnbFromUrl(u), u);
+    return out;
+}
+const bnbAlt = parts => `<div class="today-alt">Prefer B&amp;B? Do ${NEW_QUESTIONS} questions from ${parts}</div>`;
 const linkify = t => escHtml(t).replace(/https?:\/\/[^\s<]+/g, u => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
 const openGuides = new Set();
 function guideHtml(l) {
@@ -2830,6 +2855,7 @@ document.addEventListener('change', e => {
 // TODAY — reviews, each lecture (video + practice quiz + readiness quiz), AMBOSS follow-ups, AMBOSS on a weak area
 // ============================================================
 const WEAK_QUESTIONS = 10;       // questions in the weak-area AMBOSS session
+const NEW_QUESTIONS = 10;        // most questions in the AMBOSS follow-up on recent lectures
 const WEAK_BELOW = 0.85;          // weak-area AMBOSS only for lectures/areas below this retention
 const FOLLOW_UP_DAYS = [3, 14];   // AMBOSS questions this many days after a lecture (Gemini quizzes default to days 1 and 7, so each lecture is quizzed at ~1, 3, 7, 14)
 const dayNumber = key => Math.floor(Date.parse(key + 'T00:00:00Z') / 864e5);
@@ -3069,17 +3095,24 @@ function renderToday() {
     const fuList = latestPer(fuDue.length ? fuDue : fuToday);
     if (fuList.length) {
         const d = !fuDue.length;
-        const qs = Math.min(40, Math.max(10, fuList.length * 5));
+        const qs = NEW_QUESTIONS;   // capped at 10 however many lectures are due
         const title = `${qs} questions on ${fuList.length} recent lecture${fuList.length === 1 ? '' : 's'}`;
         count(d);
         note('amboss-new', title, d);
         const names = fuList.slice(0, 4).map(x => `${escHtml(x.l.name)} <span class="muted">(${x.k === 0 ? `${FOLLOW_UP_DAYS[0]}-day` : `${Math.round(FOLLOW_UP_DAYS[1] / 7)}-week`} check)</span>`).join(', ')
             + (fuList.length > 4 ? `, +${fuList.length - 4} more` : '');
         const hasCards = fuList.some(x => lecHasCards(x.l));
+        const gEntries = guideEntries();
+        const bnbParts = fuList.slice(0, 4).map(x => {
+            const t = bnbTopicsFor(x.l, gEntries);
+            return t.length ? `${fuList.length > 1 ? `<b>${escHtml(x.l.name)}:</b> ` : ''}${t.slice(0, 4).join(', ')}` : '';
+        }).filter(Boolean);
         qpush(d, todayRow({
             kicker: 'AMBOSS · new',
             title,
-            detail: names,
+            detail: names + (bnbParts.length
+                ? bnbAlt(bnbParts.length > 1 ? bnbParts.map(x => `<div>${x}</div>`).join('') : bnbParts[0])
+                : `<div class="today-alt">Prefer B&amp;B? No B&amp;B videos found for ${fuList.length === 1 ? 'this lecture' : 'these lectures'}; add them under the lecture's third-party resources or B&amp;B link.</div>`),
             done: d, manual: 'new',
             actions: hasCards ? `<button class="btn-small" data-act="today-amboss-new" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Open cards</button>` : ''
         }));
@@ -3104,13 +3137,16 @@ function renderToday() {
         }
         const d = !!(db.todayLog[today] && db.todayLog[today].weak);
         const rank = below.indexOf(area) + 1;
+        const weakLec = useLec ? lectures.find(l => l.id === area.lecId) : null;
+        const weakBnb = weakLec ? bnbTopicsFor(weakLec).slice(0, 4) : [escHtml(lastSeg(area.label))];
         count(d);
         note('amboss-weak', `${WEAK_QUESTIONS} questions on ${area.label}`, d);
         qpush(d, todayRow({
             kicker: 'AMBOSS · weak area',
             title: `${WEAK_QUESTIONS} questions on ${escHtml(area.label)}`,
             detail: [`Retention ${pct(area.retention)}`, `${pct(area.struggle)} of cards with 3+ lapses`,
-                below.length > 1 ? `${rank === 1 ? 'worst' : `#${rank} worst`} of ${below.length} ${what}s below ${pct(WEAK_BELOW)}${rank > 1 ? ' (the worst one was yesterday’s)' : ''}` : ''].filter(Boolean).join(' · '),
+                below.length > 1 ? `${rank === 1 ? 'worst' : `#${rank} worst`} of ${below.length} ${what}s below ${pct(WEAK_BELOW)}${rank > 1 ? ' (the worst one was yesterday’s)' : ''}` : ''].filter(Boolean).join(' · ')
+                + (weakBnb.length ? bnbAlt(weakBnb.join(', ')) : `<div class="today-alt">Prefer B&amp;B? No B&amp;B videos found for this lecture; add them under its third-party resources or B&amp;B link.</div>`),
             done: d, manual: 'weak',
             actions: `<button class="btn-small" data-act="qbank-area" data-src="${useLec ? 'lecture' : 'subject'}" data-path="${escHtml(area.path)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Open cards</button>`
         }));
