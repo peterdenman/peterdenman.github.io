@@ -249,28 +249,43 @@
         .qf-msg { padding-top: 6px; color: #276749; }
         .qf-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 8px; color: #4a5568; }
         @media (max-width: 600px) { .qf-row { grid-template-columns: 1fr; } .qf-label { grid-row: auto; } .qf-row input[type=file] { grid-column: 1; } }
-        .quiz-overlay { position: fixed; inset: 0; background: rgba(26, 32, 44, 0.55); z-index: 1000; display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 24px 12px; }
+        /* Full-page quiz: sticky top bar (title, question map, progress), a wide reading column, sticky Back/Next bar */
+        .quiz-overlay { position: fixed; inset: 0; background: #f4f6f9; z-index: 1000; overflow-y: auto; }
         body.quiz-open { overflow: hidden; }
-        .qz-box { background: white; border-radius: 8px; max-width: 760px; width: 100%; padding: 16px 20px 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
-        .qz-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 0.9em; color: #4a5568; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 10px; }
+        .qz-page { min-height: 100%; display: flex; flex-direction: column; }
+        .qz-top { display: block; position: sticky; top: 0; z-index: 2; background: white; margin: 0; padding: 0; border-bottom: 1px solid #e2e8f0; }
+        .qz-top-in, .qz-main, .qz-foot-in { width: 100%; max-width: 980px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); box-sizing: border-box; }
+        .qz-top-in { display: flex; align-items: center; gap: 14px; padding-block: 12px; flex-wrap: wrap; }
+        .qz-title { font-size: 1.05em; color: #2d3748; min-width: 0; flex: 1 1 220px; }
+        .qz-title b { color: #1a202c; }
+        .qz-dots { display: flex; flex-wrap: wrap; gap: 5px; }
+        .qz-dot { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 6px; border: 1px solid #cbd5e0; background: white; font: inherit; font-size: 0.8em; color: #4a5568; cursor: pointer; padding: 0; font-variant-numeric: tabular-nums; }
+        .qz-dot.ok { background: #f0fff4; border-color: #38a169; color: #276749; } .qz-dot.bad { background: #fff5f5; border-color: #e53e3e; color: #c53030; }
+        .qz-dot.cur { outline: 2px solid #2b6cb0; outline-offset: 1px; font-weight: 700; }
+        .qz-dot:focus-visible { outline: 2px solid #2b6cb0; outline-offset: 2px; }
+        .qz-close { flex: 0 0 auto; font-size: 0.95em; }
+        .qz-bar { height: 4px; background: #e2e8f0; } .qz-bar span { display: block; height: 100%; background: #3182ce; transition: width .2s; }
+        .qz-main { flex: 1; padding-block: 28px 32px; font-size: 1.08em; }
+        .qz-foot { display: block; margin: 0; padding-top: 0; position: sticky; bottom: 0; background: white; border-top: 1px solid #e2e8f0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+        .qz-foot-in { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding-block: 12px; }
+        .qz-foot-in button { flex: 0 0 auto; width: auto; min-width: 110px; }
+        .qz-keys { font-size: 0.8em; color: #a0aec0; text-align: center; }
         .qz-count { font-size: 0.8em; color: #718096; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
-        .qz-stem { font-size: 1em; line-height: 1.5; color: #1a202c; margin-bottom: 10px; white-space: pre-wrap; }
-        .qz-opt { display: block; width: 100%; text-align: left; border: 1px solid #cbd5e0; background: white; border-radius: 6px; padding: 9px 12px; margin: 6px 0; cursor: pointer; font: inherit; font-size: 0.95em; color: #1a202c; line-height: 1.4; }
+        .qz-stem { font-size: 1.12em; line-height: 1.6; color: #1a202c; margin-bottom: 18px; white-space: pre-wrap; }
+        .qz-opt { display: block; width: 100%; text-align: left; border: 1px solid #cbd5e0; background: white; border-radius: 6px; padding: 13px 16px; margin: 8px 0; cursor: pointer; font: inherit; font-size: 1em; color: #1a202c; line-height: 1.45; }
         .qz-opt:hover:not([disabled]) { border-color: #4299e1; background: #f7fbff; }
         .qz-opt[disabled] { cursor: default; background: white; color: #1a202c; opacity: 1; }
         .qz-opt.correct, .qz-opt.correct[disabled] { border-color: #38a169; background: #f0fff4; }
         .qz-opt.wrong, .qz-opt.wrong[disabled] { border-color: #e53e3e; background: #fff5f5; }
         .qz-opt.dim[disabled] { color: #718096; }
-        .qz-exp { margin-top: 10px; padding: 10px 12px; background: #f7fafc; border-radius: 6px; font-size: 0.9em; line-height: 1.5; color: #2d3748; }
+        .qz-exp { margin-top: 16px; padding: 14px 16px; background: #f7fafc; border-radius: 6px; font-size: 0.95em; line-height: 1.6; color: #2d3748; }
         .qz-exp p { margin: 6px 0 0; } .qz-exp ul { margin: 6px 0 0; padding-left: 18px; } .qz-exp li { margin-bottom: 3px; }
         .qz-right { color: #276749; font-weight: 600; } .qz-wrong { color: #c53030; font-weight: 600; }
-        .qz-nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 14px; }
-        .qz-nav button { width: auto; }
-        .qz-score { font-size: 1.5em; font-weight: bold; color: #2d3748; margin: 6px 0 10px; }
+        .qz-score { font-size: 2em; font-weight: bold; color: #2d3748; margin: 0 0 16px; }
         .qz-list { display: flex; flex-direction: column; gap: 4px; }
-        .qz-item { text-align: left; border: 1px solid #e2e8f0; background: white; border-radius: 4px; padding: 7px 10px; cursor: pointer; font: inherit; font-size: 0.85em; color: #2d3748; }
+        .qz-item { flex: none; text-align: left; border: 1px solid #e2e8f0; background: white; border-radius: 4px; padding: 11px 14px; cursor: pointer; font: inherit; font-size: 0.95em; color: #2d3748; }
         .qz-item.ok { border-left: 4px solid #38a169; } .qz-item.bad { border-left: 4px solid #e53e3e; }
-        @media (max-width: 600px) { .quiz-overlay { padding: 0; } .qz-box { border-radius: 0; min-height: 100%; padding: 14px 14px 18px; } }
+        @media (max-width: 600px) { .qz-main { padding-block: 18px 22px; font-size: 1em; } .qz-title { flex: 1 1 0; } .qz-dots { order: 3; flex-basis: 100%; } .qz-dot { width: 26px; height: 26px; } .qz-keys { display: none; } }
         .link-btn { flex: 0 0 auto; background: none; border: none; padding: 0 2px; color: #3182ce; font-weight: normal; font-size: 1em; text-decoration: underline; cursor: pointer; }
         .up-when.due { color: #c53030; }
         .up-when.soon { color: #c05621; }
@@ -315,7 +330,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Nov 6 · AMBOSS max 10 + B&B options</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Nov 7 · Extra quiz bank</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -2336,6 +2351,16 @@ async function loadLocalQuizFiles() {
 }
 const hasLocalSlides = l => localQuizFiles.has(`${l.id}|slides`);
 const quizOn = l => !!(l.quiz && l.quiz.files && l.quiz.files.slides);
+// Scheduled quizzes live in quiz.rounds (k = 0, 1, …); extra quizzes you write on demand live in quiz.bank (k = 'b0', 'b1', …)
+const isBankK = k => String(k).charAt(0) === 'b';
+const parseQuizK = v => isBankK(v) ? String(v) : +v;
+const roundAt = (quiz, k) => !quiz ? undefined : isBankK(k) ? (quiz.bank || [])[+String(k).slice(1)] : (quiz.rounds || [])[k];
+function setRoundAt(quiz, k, val) {
+    if (isBankK(k)) { quiz.bank = quiz.bank || []; quiz.bank[+String(k).slice(1)] = val; }
+    else { quiz.rounds = quiz.rounds || []; quiz.rounds[k] = val; }
+}
+const quizLabel = k => isBankK(k) ? `extra quiz ${+String(k).slice(1) + 1}` : `quiz ${+k + 1}`;
+const allRounds = quiz => [...((quiz && quiz.rounds) || []).map((r, i) => [i, r]), ...((quiz && quiz.bank) || []).map((r, i) => ['b' + i, r])].filter(([, r]) => r);
 
 // ---------- reading the files ----------
 async function loadPdfJs() {
@@ -2501,7 +2526,7 @@ async function buildQuizRound(l, k) {
         parts.push({ text: `\n\n=== REFERENCE PRACTICE QUIZ (${slot === 'practice' ? 'practice quiz' : 'readiness quiz'}): style and depth calibration only; do not reuse its scenarios or facts ===` });
         parts.push(...await fileParts(files[slot], budget));
     }
-    const used = ((l.quiz && l.quiz.rounds) || []).filter((r, i) => i !== k && r && Array.isArray(r.q)).flatMap(r => r.q.map(q => q.v));
+    const used = allRounds(l.quiz).filter(([i, r]) => String(i) !== String(k) && Array.isArray(r.q)).flatMap(([, r]) => r.q.map(q => q.v));
     if (used.length) parts.push({ text: `\n\n=== ALREADY USED ===\nThese questions were already used for this lecture in an earlier quiz. Test different facts and write new vignettes:\n${used.map((v, i) => `${i + 1}. ${v.slice(0, 220)}`).join('\n')}` });
     parts.push({ text: '\n\n' + QUIZ_FORMAT });
     const qs = await askGemini(parts);
@@ -2514,6 +2539,7 @@ function setQuiz(id, fn) {
     if (!l) return null;
     l.quiz = l.quiz || { files: {}, rounds: [] };
     l.quiz.rounds = l.quiz.rounds || [];
+    l.quiz.bank = l.quiz.bank || [];
     fn(l.quiz, l);
     saveDb(db);
     return l;
@@ -2524,6 +2550,11 @@ function roundsToBuild() {
     lectureList(loadDb()).forEach(l => {
         if (!quizOn(l) || !hasLocalSlides(l) || !l.quiz.auto) return;
         for (let k = 0; k < n; k++) { const r = l.quiz.rounds[k]; if (!r || !Array.isArray(r.q) || !r.q.length) { if (!(r && r.doneAt)) out.push({ id: l.id, k }); } }
+    });
+    // extra quizzes you asked for (they don't need the automatic setting)
+    lectureList(loadDb()).forEach(l => {
+        if (!quizOn(l) || !hasLocalSlides(l)) return;
+        ((l.quiz && l.quiz.bank) || []).forEach((r, j) => { if (r && r.want && !(Array.isArray(r.q) && r.q.length) && !r.doneAt) out.push({ id: l.id, k: 'b' + j }); });
     });
     return out;
 }
@@ -2537,20 +2568,20 @@ async function ensureQuizzes(retryFailed = false) {
     for (const { id, k } of todo) {
         const l = lectureList(loadDb()).find(x => x.id === id);
         if (!l) continue;
-        const r = l.quiz.rounds[k];
+        const r = roundAt(l.quiz, k);
         if (r && r.failedAt && !retryFailed && Date.now() - Date.parse(r.failedAt) < 30 * 60 * 1000) continue;   // wait a while after a failure
         quizBuilding = { id, k };
         renderUpcoming();
         try {
             const qs = await buildQuizRound(l, k);
-            setQuiz(id, quiz => { quiz.rounds[k] = { q: qs, at: new Date().toISOString(), model: quizSettings().model, ans: [] }; });
-            gemMsg(`Wrote ${qs.length} questions for ${escHtml(l.name)} (quiz ${k + 1}).`);
-            quizMsgs.set(id, { html: `Quiz ${k + 1} is ready: ${qs.length} questions.`, err: false });
+            setQuiz(id, quiz => { setRoundAt(quiz, k, { q: qs, at: new Date().toISOString(), model: quizSettings().model, ans: [], ...(isBankK(k) ? { extra: true } : {}) }); });
+            gemMsg(`Wrote ${qs.length} questions for ${escHtml(l.name)} (${quizLabel(k)}).`);
+            quizMsgs.set(id, { html: `${quizLabel(k).replace(/^./, c => c.toUpperCase())} is ready: ${qs.length} questions.`, err: false });
         } catch (err) {
             console.error(err);
-            setQuiz(id, quiz => { quiz.rounds[k] = { ...(quiz.rounds[k] || {}), err: String(err.message || err), failedAt: new Date().toISOString() }; });
+            setQuiz(id, quiz => { setRoundAt(quiz, k, { ...(roundAt(quiz, k) || {}), err: String(err.message || err), failedAt: new Date().toISOString() }); });
             gemMsg(escHtml(err.message || String(err)), true);
-            quizMsgs.set(id, { html: `Quiz ${k + 1} couldn’t be written: ${escHtml(err.message || String(err))}`, err: true });
+            quizMsgs.set(id, { html: `${quizLabel(k).replace(/^./, c => c.toUpperCase())} couldn’t be written: ${escHtml(err.message || String(err))}`, err: true });
             if (/API key|quota|rate limit|model/i.test(String(err.message))) break;   // later rounds would fail the same way
         }
     }
@@ -2601,8 +2632,25 @@ function quizRoundsHtml(l) {
         const has = r.q && r.q.length;
         const btn = has ? `<button class="btn-small" data-act="quiz-open" data-id="${escHtml(l.id)}" data-k="${k}">${r.doneAt ? 'Review' : (r.ans || []).some(Boolean) ? 'Resume' : 'Open'}</button>` : '';
         return `<div class="qf-quiz"><span><b>Quiz ${k + 1}</b> · ${r.doneAt ? 'done' : 'due'} ${escHtml(r.doneAt ? new Date(r.doneAt + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : when)} · ${quizStatus(l, k)}</span>${btn}</div>`;
-    }).join('')}${(l.quiz.rounds || []).some(r => r && r.q && r.q.length)
+    }).join('')}${quizBankHtml(l)}${(l.quiz.rounds || []).some(r => r && r.q && r.q.length)
         ? `<div class="qf-quiz"><span class="muted">Anyone with the link can take these, no key needed</span><span><button class="btn-small" data-act="quiz-share" data-id="${escHtml(l.id)}">Copy share link</button> <a class="btn-small" style="text-decoration:none;" href="${escHtml(shareUrl(l.id))}" target="_blank" rel="noopener">Preview</a></span></div>` : ''}</div>` : '';
+}
+// Extra quizzes: written whenever you ask, kept in the bank, never put on Today
+function quizBankHtml(l) {
+    const bank = (l.quiz && l.quiz.bank) || [];
+    const fmt = d => new Date(d.slice(0, 10) + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const rows = bank.map((r, j) => {
+        if (!r) return '';
+        const k = 'b' + j, has = r.q && r.q.length;
+        const open = has ? `<button class="btn-small" data-act="quiz-open" data-id="${escHtml(l.id)}" data-k="${k}">${r.doneAt ? 'Review' : (r.ans || []).some(Boolean) ? 'Resume' : 'Open'}</button>` : '';
+        const retry = !has && r.err && hasLocalSlides(l) && gemKey() ? `<button class="btn-small" data-act="quiz-bank-retry" data-id="${escHtml(l.id)}" data-j="${j}">Try again</button>` : '';
+        const del = `<button class="btn-small" data-act="quiz-bank-del" data-id="${escHtml(l.id)}" data-j="${j}" title="Delete this extra quiz">✕</button>`;
+        return `<div class="qf-quiz"><span><b>Extra ${j + 1}</b> · ${r.doneAt ? `done ${escHtml(fmt(r.doneAt))}` : r.at ? `written ${escHtml(fmt(r.at))}` : 'requested'} · ${quizStatus(l, k)}</span><span>${open}${retry} ${del}</span></div>`;
+    }).join('');
+    const writing = bank.some((r, j) => r && r.want && !(r.q && r.q.length) && !r.err);
+    const can = hasLocalSlides(l) && gemKey();
+    const why = !gemKey() ? 'Add your Gemini API key in Gemini settings to write extra quizzes.' : !hasLocalSlides(l) ? 'Extra quizzes are written on the device that has the slides.' : '';
+    return `${rows}<div class="qf-quiz"><span class="muted">${why || 'Extra quizzes stay in your bank; they never go on Today.'}</span>${can ? `<button class="btn-small" data-act="quiz-bank-add" data-id="${escHtml(l.id)}" ${writing ? 'disabled title="Gemini is still writing the last one"' : ''}>${writing ? 'Writing…' : '+ Extra quiz'}</button>` : ''}</div>`;
 }
 // Share page for other people: quiz.html reads the public database.json, so it needs no key
 const shareUrl = id => new URL(`quiz.html${id ? `?l=${encodeURIComponent(id)}` : ''}`, location.href).href;
@@ -2644,9 +2692,9 @@ function quizQueue(lectures, today) {
     return { show: [...doneToday, ...open.slice(0, slots), ...early], waiting: Math.max(0, open.length - slots), total: s.days.length, stuck };
 }
 function quizStatus(l, k) {
-    const r = ((l.quiz && l.quiz.rounds) || [])[k] || {};
+    const r = roundAt(l.quiz, k) || {};
     if (r.doneAt) return `${r.score} / ${r.n} correct`;
-    if (quizBuilding && quizBuilding.id === l.id && quizBuilding.k === k) return 'Gemini is writing it…';
+    if (quizBuilding && quizBuilding.id === l.id && String(quizBuilding.k) === String(k)) return 'Gemini is writing it…';
     if (r.q && r.q.length) return `${r.q.length} questions${(r.ans || []).filter(Boolean).length ? ` · ${(r.ans || []).filter(Boolean).length} answered` : ''}`;
     if (r.err) return `<span class="nc-warn">${escHtml(r.err)}</span>`;
     if (!hasLocalSlides(l)) return 'Written on the device where you added the slides, next time it opens this page';
@@ -2668,7 +2716,7 @@ function quizLine(l) {
 let quizView = null;   // { id, k, i }
 function openQuiz(id, k) {
     const l = lectureList(loadDb()).find(x => x.id === id);
-    const r = l && ((l.quiz && l.quiz.rounds) || [])[k];
+    const r = l && roundAt(l.quiz, k);
     if (!r || !r.q || !r.q.length) return;
     const ans = r.ans || [];
     const first = r.q.findIndex((_, i) => !ans[i]);
@@ -2680,7 +2728,7 @@ function answerQuiz(letter) {
     const { id, k, i } = quizView;
     const today = todayKey();
     setQuiz(id, quiz => {
-        const r = quiz.rounds[k];
+        const r = roundAt(quiz, k);
         r.ans = r.ans || [];
         if (r.ans[i]) return;
         r.ans[i] = letter;
@@ -2696,16 +2744,23 @@ function renderQuiz() {
     const box = $('quizOverlay');
     if (!quizView) { box.classList.add('hidden'); return; }
     const l = lectureList(loadDb()).find(x => x.id === quizView.id);
-    const r = l && l.quiz && l.quiz.rounds[quizView.k];
+    const r = l && roundAt(l.quiz, quizView.k);
     if (!r || !r.q) { closeQuiz(); return; }
     const ans = r.ans || [], n = r.q.length;
-    const head = `<div class="qz-head"><span><b>${escHtml(l.name)}</b> · quiz ${quizView.k + 1}</span><button class="link-btn" data-act="qz-close">Close</button></div>`;
-    let html;
+    const answered = r.q.filter((_, j) => ans[j]).length;
+    const dots = r.q.map((q, j) => `<button class="qz-dot ${ans[j] ? (ans[j] === q.a ? 'ok' : 'bad') : ''} ${!quizView.summary && j === quizView.i ? 'cur' : ''}" data-act="qz-goto" data-i="${j}" aria-label="Question ${j + 1}${ans[j] ? (ans[j] === q.a ? ', correct' : ', incorrect') : ''}">${j + 1}</button>`).join('');
+    const top = `<header class="qz-top"><div class="qz-top-in">
+            <div class="qz-title"><b>${escHtml(l.name)}</b> · ${quizLabel(quizView.k)}</div>
+            <div class="qz-dots">${dots}</div>
+            <button class="link-btn qz-close" data-act="qz-close">Close</button></div>
+        <div class="qz-bar"><span style="width:${Math.round(answered / n * 100)}%"></span></div></header>`;
+    let html, foot;
     if (quizView.summary) {
         const right = r.q.filter((q, j) => ans[j] === q.a).length;
-        html = `${head}<div class="qz-score">${right} / ${n} correct</div>
+        html = `<div class="qz-score">${right} / ${n} correct</div>
             <div class="qz-list">${r.q.map((q, j) => `<button class="qz-item ${ans[j] ? (ans[j] === q.a ? 'ok' : 'bad') : ''}" data-act="qz-goto" data-i="${j}">${ans[j] ? (ans[j] === q.a ? '✓' : '✗') : '·'} ${j + 1}. ${escHtml(q.v.slice(0, 110))}${q.v.length > 110 ? '…' : ''}</button>`).join('')}</div>
-            <div class="qz-nav"><span></span><button class="btn-primary" data-act="qz-close">Done</button></div>`;
+`;
+        foot = `<span></span><button class="btn-primary" data-act="qz-close">Done</button>`;
     } else {
         const i = quizView.i, q = r.q[i], picked = ans[i];
         const opts = q.o.map((o, j) => {
@@ -2718,12 +2773,13 @@ function renderQuiz() {
             ${q.p ? `<p><b>Mechanistic pathway:</b> ${escHtml(q.p)}</p>` : ''}
             ${Object.keys(q.r || {}).length ? `<ul>${Object.entries(q.r).filter(([L, t]) => t).sort().map(([L, t]) => `<li>${L === '_' ? '' : `<b>${escHtml(L)}.</b> `}${escHtml(t)}</li>`).join('')}</ul>` : ''}
             ${q.s ? `<p class="muted"><b>Slide source:</b> ${escHtml(q.s)}</p>` : ''}</div>` : '';
-        html = `${head}<div class="qz-count">Question ${i + 1} of ${n}</div>
-            <div class="qz-stem">${escHtml(q.v)}</div>${opts}${why}
-            <div class="qz-nav"><button class="btn-small" data-act="qz-prev" ${i === 0 ? 'disabled' : ''}>Back</button>
-            ${i < n - 1 ? `<button class="btn-primary" data-act="qz-next">Next</button>` : `<button class="btn-primary" data-act="qz-end">${r.doneAt ? 'See score' : 'Finish'}</button>`}</div>`;
+        html = `<div class="qz-count">Question ${i + 1} of ${n}</div>
+            <div class="qz-stem">${escHtml(q.v)}</div>${opts}${why}`;
+        foot = `<button class="btn-small" data-act="qz-prev" ${i === 0 ? 'disabled' : ''}>Back</button>
+            <span class="qz-keys">Keys: A–E to answer · ← → to move · Esc to close</span>
+            ${i < n - 1 ? `<button class="btn-primary" data-act="qz-next">Next</button>` : `<button class="btn-primary" data-act="qz-end">${r.doneAt ? 'See score' : 'Finish'}</button>`}`;
     }
-    box.innerHTML = `<div class="qz-box" role="dialog" aria-modal="true" aria-label="Lecture quiz">${html}</div>`;
+    box.innerHTML = `<div class="qz-page" role="dialog" aria-modal="true" aria-label="Lecture quiz">${top}<main class="qz-main">${html}</main><footer class="qz-foot"><div class="qz-foot-in">${foot}</div></footer></div>`;
     box.classList.remove('hidden');
     document.body.classList.add('quiz-open');
     box.scrollTop = 0;
@@ -2748,7 +2804,27 @@ function quizClick(act, el) {
             quizBuildAgain = !!quizBuilding;
             ensureQuizzes();
             return true;
-        case 'quiz-open': openQuiz(el.dataset.id, +el.dataset.k); return true;
+        case 'quiz-open': openQuiz(el.dataset.id, parseQuizK(el.dataset.k)); return true;
+        case 'quiz-bank-add':
+            setQuiz(el.dataset.id, quiz => { quiz.bank.push({ want: true, asked: new Date().toISOString() }); });
+            quizBuildAgain = !!quizBuilding;
+            renderUpcoming();
+            ensureQuizzes(true);
+            return true;
+        case 'quiz-bank-retry':
+            setQuiz(el.dataset.id, quiz => { const r = quiz.bank[+el.dataset.j]; if (r) { delete r.err; delete r.failedAt; r.want = true; } });
+            quizBuildAgain = !!quizBuilding;
+            renderUpcoming();
+            ensureQuizzes(true);
+            return true;
+        case 'quiz-bank-del': {
+            const l = lectureList(loadDb()).find(x => x.id === el.dataset.id);
+            const r = l && l.quiz && (l.quiz.bank || [])[+el.dataset.j];
+            if (r && (r.ans || []).some(Boolean) && !el.dataset.sure) { el.dataset.sure = '1'; el.textContent = 'Delete?'; return true; }   // started: ask once
+            setQuiz(el.dataset.id, quiz => { quiz.bank[+el.dataset.j] = null; });
+            renderUpcoming();
+            return true;
+        }
         case 'quiz-share': copyShareLink(el); return true;
         case 'qz-close': closeQuiz(); return true;
         case 'qz-pick': answerQuiz(el.dataset.l); return true;
@@ -2763,7 +2839,7 @@ function quizClick(act, el) {
 function pruneQuizzes(db) {
     let changed = false;
     const today = todayKey();
-    lectureList(db).forEach(l => (l.quiz && l.quiz.rounds || []).forEach(r => {
+    lectureList(db).forEach(l => allRounds(l.quiz).forEach(([, r]) => {
         if (r && r.doneAt && r.q && daysBetween(r.doneAt, today) > QUIZ_KEEP_DAYS) { delete r.q; delete r.ans; changed = true; }
     }));
     return changed;
@@ -2831,13 +2907,13 @@ function renderQuizTab({ rows, due, done, qq, lectures, today }) {
 
     // every lecture's Gemini quizzes
     const withQ = lectures.filter(l => quizOn(l) || quizPanelId === l.id).sort((a, b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name));
-    const finished = withQ.flatMap(l => (l.quiz && l.quiz.rounds || []).filter(r => r && r.doneAt && r.n));
+    const finished = withQ.flatMap(l => allRounds(l.quiz).map(([, r]) => r).filter(r => r.doneAt && r.n));
     const avg = finished.length ? Math.round(100 * finished.reduce((s, r) => s + r.score, 0) / finished.reduce((s, r) => s + r.n, 0)) : null;
     $('quizLecSummary').textContent = finished.length ? `${finished.length} finished · ${avg}% correct` : '';
     const others = lectures.filter(l => !quizOn(l) && quizPanelId !== l.id).sort((a, b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name));
     const add = others.length ? `<select id="quizAddSelect" class="qt-add" aria-label="Add quizzes for a lecture"><option value="">Add quizzes for a lecture…</option>${others.map(l => `<option value="${escHtml(l.id)}">${escHtml(l.name)} (${escHtml(new Date(l.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))})</option>`).join('')}</select>` : '';
     $('quizLectures').innerHTML = add + (withQ.length ? withQ.map(l => {
-        const done = (l.quiz && l.quiz.rounds || []).filter(r => r && r.doneAt && r.n);
+        const done = allRounds(l.quiz).map(([, r]) => r).filter(r => r.doneAt && r.n);
         const pctL = done.length ? Math.round(100 * done.reduce((s, r) => s + r.score, 0) / done.reduce((s, r) => s + r.n, 0)) : null;
         return `<div class="qt-lec">
             <div class="qt-head"><span><span class="res-badge">${escHtml(l.type || '')}</span><span class="qt-name">${escHtml(l.name)}</span> <span class="muted">· lecture ${escHtml(new Date(l.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}${pctL != null ? ` · ${pctL}% correct` : ''}</span></span>
