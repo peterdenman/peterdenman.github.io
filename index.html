@@ -330,7 +330,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Nov 7 · Extra quiz bank</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Nov 14 · Extra quizzes on share page</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -2375,7 +2375,8 @@ function setRoundAt(quiz, k, val) {
     if (isBankK(k)) { quiz.bank = quiz.bank || []; quiz.bank[+String(k).slice(1)] = val; }
     else { quiz.rounds = quiz.rounds || []; quiz.rounds[k] = val; }
 }
-const quizLabel = k => isBankK(k) ? `extra quiz ${+String(k).slice(1) + 1}` : `quiz ${+k + 1}`;
+const extraNo = (quiz, j) => ((quiz && quiz.bank) || []).slice(0, j + 1).filter(Boolean).length || j + 1;   // deleted extras don't count
+const quizLabel = (k, quiz) => isBankK(k) ? `extra quiz ${extraNo(quiz, +String(k).slice(1))}` : `quiz ${+k + 1}`;
 const allRounds = quiz => [...((quiz && quiz.rounds) || []).map((r, i) => [i, r]), ...((quiz && quiz.bank) || []).map((r, i) => ['b' + i, r])].filter(([, r]) => r);
 
 // ---------- reading the files ----------
@@ -2591,13 +2592,13 @@ async function ensureQuizzes(retryFailed = false) {
         try {
             const qs = await buildQuizRound(l, k);
             setQuiz(id, quiz => { setRoundAt(quiz, k, { q: qs, at: new Date().toISOString(), model: quizSettings().model, ans: [], ...(isBankK(k) ? { extra: true } : {}) }); });
-            gemMsg(`Wrote ${qs.length} questions for ${escHtml(l.name)} (${quizLabel(k)}).`);
-            quizMsgs.set(id, { html: `${quizLabel(k).replace(/^./, c => c.toUpperCase())} is ready: ${qs.length} questions.`, err: false });
+            gemMsg(`Wrote ${qs.length} questions for ${escHtml(l.name)} (${quizLabel(k, l.quiz)}).`);
+            quizMsgs.set(id, { html: `${quizLabel(k, l.quiz).replace(/^./, c => c.toUpperCase())} is ready: ${qs.length} questions.`, err: false });
         } catch (err) {
             console.error(err);
             setQuiz(id, quiz => { setRoundAt(quiz, k, { ...(roundAt(quiz, k) || {}), err: String(err.message || err), failedAt: new Date().toISOString() }); });
             gemMsg(escHtml(err.message || String(err)), true);
-            quizMsgs.set(id, { html: `${quizLabel(k).replace(/^./, c => c.toUpperCase())} couldn’t be written: ${escHtml(err.message || String(err))}`, err: true });
+            quizMsgs.set(id, { html: `${quizLabel(k, l.quiz).replace(/^./, c => c.toUpperCase())} couldn’t be written: ${escHtml(err.message || String(err))}`, err: true });
             if (/API key|quota|rate limit|model/i.test(String(err.message))) break;   // later rounds would fail the same way
         }
     }
@@ -2648,7 +2649,7 @@ function quizRoundsHtml(l) {
         const has = r.q && r.q.length;
         const btn = has ? `<button class="btn-small" data-act="quiz-open" data-id="${escHtml(l.id)}" data-k="${k}">${r.doneAt ? 'Review' : (r.ans || []).some(Boolean) ? 'Resume' : 'Open'}</button>` : '';
         return `<div class="qf-quiz"><span><b>Quiz ${k + 1}</b> · ${r.doneAt ? 'done' : 'due'} ${escHtml(r.doneAt ? new Date(r.doneAt + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : when)} · ${quizStatus(l, k)}</span>${btn}</div>`;
-    }).join('')}${quizBankHtml(l)}${(l.quiz.rounds || []).some(r => r && r.q && r.q.length)
+    }).join('')}${quizBankHtml(l)}${[...(l.quiz.rounds || []), ...(l.quiz.bank || [])].some(r => r && r.q && r.q.length)
         ? `<div class="qf-quiz"><span class="muted">Anyone with the link can take these, no key needed</span><span><button class="btn-small" data-act="quiz-share" data-id="${escHtml(l.id)}">Copy share link</button> <a class="btn-small" style="text-decoration:none;" href="${escHtml(shareUrl(l.id))}" target="_blank" rel="noopener">Preview</a></span></div>` : ''}</div>` : '';
 }
 // Extra quizzes: written whenever you ask, kept in the bank, never put on Today
@@ -2661,7 +2662,7 @@ function quizBankHtml(l) {
         const open = has ? `<button class="btn-small" data-act="quiz-open" data-id="${escHtml(l.id)}" data-k="${k}">${r.doneAt ? 'Review' : (r.ans || []).some(Boolean) ? 'Resume' : 'Open'}</button>` : '';
         const retry = !has && r.err && hasLocalSlides(l) && gemKey() ? `<button class="btn-small" data-act="quiz-bank-retry" data-id="${escHtml(l.id)}" data-j="${j}">Try again</button>` : '';
         const del = `<button class="btn-small" data-act="quiz-bank-del" data-id="${escHtml(l.id)}" data-j="${j}" title="Delete this extra quiz">✕</button>`;
-        return `<div class="qf-quiz"><span><b>Extra ${j + 1}</b> · ${r.doneAt ? `done ${escHtml(fmt(r.doneAt))}` : r.at ? `written ${escHtml(fmt(r.at))}` : 'requested'} · ${quizStatus(l, k)}</span><span>${open}${retry} ${del}</span></div>`;
+        return `<div class="qf-quiz"><span><b>Extra ${extraNo(l.quiz, j)}</b> · ${r.doneAt ? `done ${escHtml(fmt(r.doneAt))}` : r.at ? `written ${escHtml(fmt(r.at))}` : 'requested'} · ${quizStatus(l, k)}</span><span>${open}${retry} ${del}</span></div>`;
     }).join('');
     const writing = bank.some((r, j) => r && r.want && !(r.q && r.q.length) && !r.err);
     const can = hasLocalSlides(l) && gemKey();
@@ -2766,7 +2767,7 @@ function renderQuiz() {
     const answered = r.q.filter((_, j) => ans[j]).length;
     const dots = r.q.map((q, j) => `<button class="qz-dot ${ans[j] ? (ans[j] === q.a ? 'ok' : 'bad') : ''} ${!quizView.summary && j === quizView.i ? 'cur' : ''}" data-act="qz-goto" data-i="${j}" aria-label="Question ${j + 1}${ans[j] ? (ans[j] === q.a ? ', correct' : ', incorrect') : ''}">${j + 1}</button>`).join('');
     const top = `<header class="qz-top"><div class="qz-top-in">
-            <div class="qz-title"><b>${escHtml(l.name)}</b> · ${quizLabel(quizView.k)}</div>
+            <div class="qz-title"><b>${escHtml(l.name)}</b> · ${quizLabel(quizView.k, l.quiz)}</div>
             <div class="qz-dots">${dots}</div>
             <button class="link-btn qz-close" data-act="qz-close">Close</button></div>
         <div class="qz-bar"><span style="width:${Math.round(answered / n * 100)}%"></span></div></header>`;
