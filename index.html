@@ -225,6 +225,7 @@
         .qf-file { overflow-wrap: anywhere; }
         .tab-badge { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 5px; border-radius: 9px; background: #3182ce; color: white; font-size: 0.72em; line-height: 18px; text-align: center; }
         .qt-lec { border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; background: #f7fafc; }
+        .qt-lec.off { background: white; border-style: dashed; }
         .qt-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
         .qt-name { font-weight: 600; color: #1a202c; }
         .qt-coming { margin-top: 12px; font-size: 0.85em; color: #4a5568; }
@@ -330,7 +331,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Nov 14 · Extra quizzes on share page</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Nov 20 · Turn off a lecture's quizzes</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -600,6 +601,7 @@
                         <li>The lecture's <b>Quiz</b> panel shows each quiz's status as it's written, with <b>Open</b> to check or take it early.</li>
                         <li>On those days, Today shows a <b>Lecture quiz</b> row. At most <b>Most quizzes per day</b> show at once; the rest wait for the next day. A lecture's second quiz is written to test different facts than its first.</li>
                         <li>The files stay on the computer you added them on; the questions and your scores sync, so you can take the quizzes on your phone.</li>
+                        <li>Done with a lecture (e.g. after its exam)? Click <b>Turn quizzes off</b> under it in <b>Lecture quizzes</b>, or <b>Stop</b> on its Today row. Its remaining quizzes aren't written or shown; scores are kept, and you can turn them back on anytime.</li>
                         <li>AI-written questions can have a wrong answer key. Each question names the slide it comes from, so you can check one that looks off.</li>
                         <li>Protect your key: in Google Cloud Console, restrict it to the Gemini API and to your site's address.</li>
                     </ol>
@@ -2367,6 +2369,9 @@ async function loadLocalQuizFiles() {
 }
 const hasLocalSlides = l => localQuizFiles.has(`${l.id}|slides`);
 const quizOn = l => !!(l.quiz && l.quiz.files && l.quiz.files.slides);
+// A lecture's scheduled quizzes can be turned off (e.g. after its exam): none are written or put on Today.
+// Finished quizzes and scores are kept, and extra quizzes still work on demand.
+const quizPaused = l => !!(l && l.quizOff);
 // Scheduled quizzes live in quiz.rounds (k = 0, 1, …); extra quizzes you write on demand live in quiz.bank (k = 'b0', 'b1', …)
 const isBankK = k => String(k).charAt(0) === 'b';
 const parseQuizK = v => isBankK(v) ? String(v) : +v;
@@ -2565,7 +2570,7 @@ function setQuiz(id, fn) {
 function roundsToBuild() {
     const n = quizSettings().days.length, out = [];
     lectureList(loadDb()).forEach(l => {
-        if (!quizOn(l) || !hasLocalSlides(l) || !l.quiz.auto) return;
+        if (!quizOn(l) || !hasLocalSlides(l) || !l.quiz.auto || quizPaused(l)) return;
         for (let k = 0; k < n; k++) { const r = l.quiz.rounds[k]; if (!r || !Array.isArray(r.q) || !r.q.length) { if (!(r && r.doneAt)) out.push({ id: l.id, k }); } }
     });
     // extra quizzes you asked for (they don't need the automatic setting)
@@ -2637,17 +2642,23 @@ function quizPanel(l, withRounds = true) {
     const list = withRounds ? quizRoundsHtml(l) : '';
     const msg = quizMsgs.get(l.id);
     return `<div class="qf-panel">${rows}${list}${msg ? `<div class="qf-msg${msg.err ? ' status-err' : ''}">${msg.html}</div>` : ''}
-        <div class="qf-foot">${!gemKey() ? 'Add your Gemini API key in <b>Gemini settings</b> on the Quizzes tab to write quizzes.' : ready ? (l.quiz.auto ? 'Quizzes are written automatically.' : 'Add both quizzes and the questions are written automatically, or write them now from the slides alone.') : 'Add the lecture slides (PDF or .pptx; PDF keeps images).'}
-            ${ready && gemKey() ? `<button class="btn-small" data-act="quiz-gen" data-id="${escHtml(l.id)}">${(l.quiz.rounds || []).some(r => r && r.q) ? 'Rewrite unfinished quizzes' : 'Write quizzes now'}</button>` : ''}</div></div>`;
+        <div class="qf-foot">${!gemKey() ? 'Add your Gemini API key in <b>Gemini settings</b> on the Quizzes tab to write quizzes.' : quizPaused(l) ? 'Scheduled quizzes are off for this lecture.' : ready ? (l.quiz.auto ? 'Quizzes are written automatically.' : 'Add both quizzes and the questions are written automatically, or write them now from the slides alone.') : 'Add the lecture slides (PDF or .pptx; PDF keeps images).'}
+            ${ready && gemKey() && !quizPaused(l) ? `<button class="btn-small" data-act="quiz-gen" data-id="${escHtml(l.id)}">${(l.quiz.rounds || []).some(r => r && r.q) ? 'Rewrite unfinished quizzes' : 'Write quizzes now'}</button>` : ''}</div></div>`;
 }
 // Each of a lecture's quizzes: when it shows on Today, its status, and Open / Review
 function quizRoundsHtml(l) {
     const s = quizSettings();
-    return quizOn(l) ? `<div class="qf-quizzes">${s.days.map((n, k) => {
+    const paused = quizPaused(l);
+    const toggle = `<div class="qf-quiz"><span class="muted">${paused
+            ? 'Quizzes are off for this lecture: none are written or put on Today. Scores are kept.'
+            : 'Done with this lecture (e.g. after the exam)? Turn its quizzes off.'}</span>
+        <button class="btn-small" data-act="quiz-pause" data-id="${escHtml(l.id)}" data-off="${paused ? '0' : '1'}">${paused ? 'Turn quizzes back on' : 'Turn quizzes off'}</button></div>`;
+    return quizOn(l) ? `<div class="qf-quizzes">${toggle}${s.days.map((n, k) => {
         const r = (l.quiz.rounds || [])[k] || {};
         const when = new Date(addDays(l.date, n) + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
         const has = r.q && r.q.length;
         const btn = has ? `<button class="btn-small" data-act="quiz-open" data-id="${escHtml(l.id)}" data-k="${k}">${r.doneAt ? 'Review' : (r.ans || []).some(Boolean) ? 'Resume' : 'Open'}</button>` : '';
+        if (paused && !r.doneAt) return `<div class="qf-quiz"><span><b>Quiz ${k + 1}</b> · off · ${has ? `${r.q.length} questions, not on Today` : 'won’t be written'}</span>${btn}</div>`;
         return `<div class="qf-quiz"><span><b>Quiz ${k + 1}</b> · ${r.doneAt ? 'done' : 'due'} ${escHtml(r.doneAt ? new Date(r.doneAt + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : when)} · ${quizStatus(l, k)}</span>${btn}</div>`;
     }).join('')}${quizBankHtml(l)}${[...(l.quiz.rounds || []), ...(l.quiz.bank || [])].some(r => r && r.q && r.q.length)
         ? `<div class="qf-quiz"><span class="muted">Anyone with the link can take these, no key needed</span><span><button class="btn-small" data-act="quiz-share" data-id="${escHtml(l.id)}">Copy share link</button> <a class="btn-small" style="text-decoration:none;" href="${escHtml(shareUrl(l.id))}" target="_blank" rel="noopener">Preview</a></span></div>` : ''}</div>` : '';
@@ -2688,7 +2699,7 @@ document.addEventListener('change', e => {
 function quizQueue(lectures, today) {
     const s = quizSettings(), items = [];
     lectures.forEach(l => {
-        if (!quizOn(l)) return;
+        if (!quizOn(l) || quizPaused(l)) return;
         s.days.forEach((n, k) => {
             const r = (l.quiz.rounds || [])[k] || {};
             const prevDone = k === 0 || ((l.quiz.rounds || [])[k - 1] || {}).doneAt;
@@ -2722,6 +2733,10 @@ function quizStatus(l, k) {
 function quizLine(l) {
     if (!quizOn(l)) return '';
     const s = quizSettings();
+    if (quizPaused(l)) {
+        const scores = (l.quiz.rounds || []).filter(r => r && r.doneAt).map(r => `${r.score}/${r.n}`);
+        return ` · Quizzes off${scores.length ? ` (${scores.join(', ')})` : ''}`;
+    }
     return ' · Quizzes: ' + s.days.map((n, k) => {
         const r = (l.quiz.rounds || [])[k] || {};
         const when = new Date(addDays(l.date, n) + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -2822,6 +2837,17 @@ function quizClick(act, el) {
             ensureQuizzes();
             return true;
         case 'quiz-open': openQuiz(el.dataset.id, parseQuizK(el.dataset.k)); return true;
+        case 'quiz-pause': {
+            const off = el.dataset.off === '1';
+            const db = loadDb(), l = lectureList(db).find(x => x.id === el.dataset.id);
+            if (!l) return true;
+            if (off) l.quizOff = todayKey(); else delete l.quizOff;
+            saveDb(db);
+            quizMsgs.set(l.id, { html: off ? 'Quizzes turned off for this lecture. Finished quizzes and scores are kept.' : 'Quizzes are back on for this lecture.', err: false });
+            renderUpcoming();
+            if (!off) ensureQuizzes();
+            return true;
+        }
         case 'quiz-bank-add':
             setQuiz(el.dataset.id, quiz => { quiz.bank.push({ want: true, asked: new Date().toISOString() }); });
             quizBuildAgain = !!quizBuilding;
@@ -2909,7 +2935,7 @@ function renderQuizTab({ rows, due, done, qq, lectures, today }) {
     // next 7 days
     const up = [];
     lectures.forEach(l => {
-        if (quizOn(l)) quizSettings().days.forEach((n, k) => {
+        if (quizOn(l) && !quizPaused(l)) quizSettings().days.forEach((n, k) => {
             const d = addDays(l.date, n), r = (l.quiz.rounds || [])[k] || {};
             if (!r.doneAt && d > today && daysBetween(today, d) <= 7) up.push({ d, kind: 'Lecture quiz', text: `${l.name} · quiz ${k + 1}` });
         });
@@ -2923,7 +2949,7 @@ function renderQuizTab({ rows, due, done, qq, lectures, today }) {
         <span class="muted">Lecture quizzes may slide a day or two when more than ${quizSettings().max} fall on the same day.</span></div>` : '';
 
     // every lecture's Gemini quizzes
-    const withQ = lectures.filter(l => quizOn(l) || quizPanelId === l.id).sort((a, b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name));
+    const withQ = lectures.filter(l => quizOn(l) || quizPanelId === l.id).sort((a, b) => (quizPaused(a) - quizPaused(b)) || b.date.localeCompare(a.date) || a.name.localeCompare(b.name));   // lectures with quizzes off go last
     const finished = withQ.flatMap(l => allRounds(l.quiz).map(([, r]) => r).filter(r => r.doneAt && r.n));
     const avg = finished.length ? Math.round(100 * finished.reduce((s, r) => s + r.score, 0) / finished.reduce((s, r) => s + r.n, 0)) : null;
     $('quizLecSummary').textContent = finished.length ? `${finished.length} finished · ${avg}% correct` : '';
@@ -2932,8 +2958,8 @@ function renderQuizTab({ rows, due, done, qq, lectures, today }) {
     $('quizLectures').innerHTML = add + (withQ.length ? withQ.map(l => {
         const done = allRounds(l.quiz).map(([, r]) => r).filter(r => r.doneAt && r.n);
         const pctL = done.length ? Math.round(100 * done.reduce((s, r) => s + r.score, 0) / done.reduce((s, r) => s + r.n, 0)) : null;
-        return `<div class="qt-lec">
-            <div class="qt-head"><span><span class="res-badge">${escHtml(l.type || '')}</span><span class="qt-name">${escHtml(l.name)}</span> <span class="muted">· lecture ${escHtml(new Date(l.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}${pctL != null ? ` · ${pctL}% correct` : ''}</span></span>
+        return `<div class="qt-lec${quizPaused(l) ? ' off' : ''}">
+            <div class="qt-head"><span><span class="res-badge">${escHtml(l.type || '')}</span><span class="qt-name">${escHtml(l.name)}</span> <span class="muted">· lecture ${escHtml(new Date(l.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}${pctL != null ? ` · ${pctL}% correct` : ''}${quizPaused(l) ? ' · <b>quizzes off</b>' : ''}</span></span>
                 <button class="btn-small" data-act="quiz-files" data-id="${escHtml(l.id)}">${quizPanelId === l.id ? 'Hide files' : 'Files'}</button></div>
             ${quizRoundsHtml(l)}
             ${quizPanelId === l.id ? quizPanel(l, false) : ''}
@@ -3166,7 +3192,8 @@ function renderToday() {
             detail: `${escHtml(l.type || '')} · ${quizStatus(l, k)}`,
             done: d,
             check: `<input type="checkbox" ${d ? 'checked' : ''} disabled aria-label="${d ? 'Done' : 'Not done yet'}" title="Ticks itself off when you finish the quiz">`,
-            actions: ready ? `<button class="btn-small" data-act="quiz-open" data-id="${escHtml(l.id)}" data-k="${k}">${d ? 'Review' : (r.ans || []).some(Boolean) ? 'Resume' : 'Start'}</button>` : ''
+            actions: (ready ? `<button class="btn-small" data-act="quiz-open" data-id="${escHtml(l.id)}" data-k="${k}">${d ? 'Review' : (r.ans || []).some(Boolean) ? 'Resume' : 'Start'}</button>` : '')
+                + (d ? '' : `<button class="btn-small" data-act="quiz-pause" data-id="${escHtml(l.id)}" data-off="1" title="Turn off quizzes for this lecture (turn them back on in the Quizzes tab)">Stop</button>`)
         });
         if (early) { rows.push(html); quizRows.push(html); return; }   // optional: doesn't count toward the day
         count(d);
