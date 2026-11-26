@@ -331,7 +331,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Nov 26 · Videos for each group of cards, weak-area rotation</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Nov 26 · Quizzes off also turns off a lecture's AMBOSS checks</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -607,7 +607,7 @@
                         <li>The lecture's <b>Quiz</b> panel shows each quiz's status as it's written, with <b>Open</b> to check or take it early.</li>
                         <li>On those days, Today shows a <b>Lecture quiz</b> row. At most <b>Most quizzes per day</b> show at once; the rest wait for the next day. A lecture's second quiz is written to test different facts than its first.</li>
                         <li>The files stay on the computer you added them on; the questions and your scores sync, so you can take the quizzes on your phone.</li>
-                        <li>Done with a lecture (e.g. after its exam)? Click <b>Turn quizzes off</b> under it in <b>Lecture quizzes</b>, or <b>Stop</b> on its Today row. Its remaining quizzes aren't written or shown; scores are kept, and you can turn them back on anytime.</li>
+                        <li>Done with a lecture (e.g. after its exam)? Click <b>Turn quizzes off</b> under it in <b>Lecture quizzes</b>, or <b>Stop</b> on its Today row. Its remaining quizzes aren't written or shown, and it drops out of the AMBOSS 3-day and 2-week checks (a check with only turned-off lectures disappears). Scores are kept, and you can turn them back on anytime.</li>
                         <li>AI-written questions can have a wrong answer key. Each question names the slide it comes from, so you can check one that looks off.</li>
                         <li>Protect your key: in Google Cloud Console, restrict it to the Gemini API and to your site's address.</li>
                     </ol>
@@ -2558,7 +2558,8 @@ async function loadLocalQuizFiles() {
 }
 const hasLocalSlides = l => localQuizFiles.has(`${l.id}|slides`);
 const quizOn = l => !!(l.quiz && l.quiz.files && l.quiz.files.slides);
-// A lecture's scheduled quizzes can be turned off (e.g. after its exam): none are written or put on Today.
+// A lecture's scheduled quizzes can be turned off (e.g. after its exam): none are written or put on Today,
+// and it drops out of the AMBOSS 3-day / 2-week checks.
 // Finished quizzes and scores are kept, and extra quizzes still work on demand.
 const quizPaused = l => !!(l && l.quizOff);
 // Scheduled quizzes live in quiz.rounds (k = 0, 1, …); extra quizzes you write on demand live in quiz.bank (k = 'b0', 'b1', …)
@@ -2839,7 +2840,7 @@ function quizRoundsHtml(l) {
     const s = quizSettings();
     const paused = quizPaused(l);
     const toggle = `<div class="qf-quiz"><span class="muted">${paused
-            ? 'Quizzes are off for this lecture: none are written or put on Today. Scores are kept.'
+            ? 'Quizzes are off for this lecture: none are written or put on Today, and it’s left out of the AMBOSS 3-day and 2-week checks. Scores are kept.'
             : 'Done with this lecture (e.g. after the exam)? Turn its quizzes off.'}</span>
         <button class="btn-small" data-act="quiz-pause" data-id="${escHtml(l.id)}" data-off="${paused ? '0' : '1'}">${paused ? 'Turn quizzes back on' : 'Turn quizzes off'}</button></div>`;
     return quizOn(l) ? `<div class="qf-quizzes">${toggle}${s.days.map((n, k) => {
@@ -3032,7 +3033,7 @@ function quizClick(act, el) {
             if (!l) return true;
             if (off) l.quizOff = todayKey(); else delete l.quizOff;
             saveDb(db);
-            quizMsgs.set(l.id, { html: off ? 'Quizzes turned off for this lecture. Finished quizzes and scores are kept.' : 'Quizzes are back on for this lecture.', err: false });
+            quizMsgs.set(l.id, { html: off ? 'Quizzes turned off for this lecture, along with its AMBOSS 3-day and 2-week checks. Finished quizzes and scores are kept.' : 'Quizzes are back on for this lecture.', err: false });
             renderUpcoming();
             if (!off) ensureQuizzes();
             return true;
@@ -3128,7 +3129,7 @@ function renderQuizTab({ rows, due, done, qq, lectures, today }) {
             const d = addDays(l.date, n), r = (l.quiz.rounds || [])[k] || {};
             if (!r.doneAt && d > today && daysBetween(today, d) <= 7) up.push({ d, kind: 'Lecture quiz', text: `${l.name} · quiz ${k + 1}` });
         });
-        if (l.watched) FOLLOW_UP_DAYS.forEach((n, k) => {
+        if (l.watched && !quizPaused(l)) FOLLOW_UP_DAYS.forEach((n, k) => {
             const d = addDays(l.watched, n);
             if (!(l.fu || [])[k] && d > today && daysBetween(today, d) <= 7) up.push({ d, kind: 'AMBOSS · new', text: `${l.name} (${k === 0 ? `${n}-day` : `${Math.round(n / 7)}-week`} check)` });
         });
@@ -3551,7 +3552,7 @@ function renderToday() {
             done: d,
             check: `<input type="checkbox" ${d ? 'checked' : ''} disabled aria-label="${d ? 'Done' : 'Not done yet'}" title="Ticks itself off when you finish the quiz">`,
             actions: (ready ? `<button class="btn-small" data-act="quiz-open" data-id="${escHtml(l.id)}" data-k="${k}">${d ? 'Review' : (r.ans || []).some(Boolean) ? 'Resume' : 'Start'}</button>` : '')
-                + (d ? '' : `<button class="btn-small" data-act="quiz-pause" data-id="${escHtml(l.id)}" data-off="1" title="Turn off quizzes for this lecture (turn them back on in the Quizzes tab)">Stop</button>`)
+                + (d ? '' : `<button class="btn-small" data-act="quiz-pause" data-id="${escHtml(l.id)}" data-off="1" title="Turn off quizzes and AMBOSS checks for this lecture (turn them back on in the Quizzes tab)">Stop</button>`)
         });
         if (early) { rows.push(html); quizRows.push(html); return; }   // optional: doesn't count toward the day
         count(d);
@@ -3562,7 +3563,7 @@ function renderToday() {
     // 3. AMBOSS on new lectures: 3 days and 2 weeks after the lecture
     const fuDue = [], fuToday = [];
     lectures.forEach(l => {
-        if (!l.watched) return;
+        if (!l.watched || quizPaused(l)) return;   // quizzes turned off: no AMBOSS checks either
         const fu = l.fu || [];
         FOLLOW_UP_DAYS.forEach((n, k) => {
             if (addDays(l.watched, n) > today) return;
@@ -3697,7 +3698,7 @@ function toggleToday(kind, on) {
         Object.keys(db.todayLog).filter(k => daysBetween(k, today) > 30).forEach(k => delete db.todayLog[k]);
     } else if (kind === 'new') {
         lectureList(db).forEach(l => {
-            if (!l.watched) return;
+            if (!l.watched || quizPaused(l)) return;
             const fu = (l.fu || []).slice();
             FOLLOW_UP_DAYS.forEach((n, k) => {
                 if (addDays(l.watched, n) > today) return;
@@ -3714,7 +3715,7 @@ function toggleToday(kind, on) {
 
 function openNewVideoCards() {
     const today = todayKey();
-    openLectureCards(lectureList(loadDb()).filter(l => l.watched && FOLLOW_UP_DAYS.some((n, k) => addDays(l.watched, n) <= today && !(l.fu || [])[k])));
+    openLectureCards(lectureList(loadDb()).filter(l => l.watched && !quizPaused(l) && FOLLOW_UP_DAYS.some((n, k) => addDays(l.watched, n) <= today && !(l.fu || [])[k])));
 }
 
 document.addEventListener('change', e => {
