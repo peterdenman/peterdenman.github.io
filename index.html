@@ -1580,10 +1580,34 @@ const BNB_CATALOG = BNB_DATA.split('\n').map(line => {
 });
 const bnbUrl = v => 'https://www.boardsbeyond.com/video/step-1-p/' + encodeURIComponent(v.slug).replace(/%2C/g, ',').replace(/%27/g, "'");
 const BNB_CUSTOM_QUIZ = 'https://www.boardsbeyond.com/create-custom-quiz';
-const ROMAN = { i: '1', ii: '2', iii: '3', iv: '4' };
-const normTitle = s => String(s).toLowerCase().replace(/['’]/g, '').replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').replace(/\b(iv|iii|ii|i)\b/g, m => ROMAN[m]).replace(/\s+/g, ' ').trim();
+const ROMAN = { i: '1', ii: '2', iii: '3', iv: '4', v: '5' };
+const normTitle = s => String(s).toLowerCase().replace(/['’]/g, '').replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').replace(/\b(iv|v|iii|ii|i)\b/g, m => ROMAN[m]).replace(/\s+/g, ' ').trim();
 const TITLE_STOP = new Set(['and', 'the', 'of', 'in', 'to', 'a', 'an', 'other', 'basics', 'principles', 'pathway', 'clinical', 'implications', 'overview', 'part', 'introduction', 'intro', 'review', 'summary', 'disorders', 'disorder', 'drugs', 'diseases', 'disease', 'general', 'topics', '1', '2', '3', '4']);
 const titleTokens = s => normTitle(s).split(' ').filter(w => w && !TITLE_STOP.has(w)).map(w => w.length > 3 && /s$/.test(w) && !/(ss|us|is)$/.test(w) ? w.slice(0, -1) : w);
+// Two names' word overlap: shared words / all words. Words match on their first 6 letters (thyroid/thyroidal), roman numerals and
+// trailing "1/2/3" are ignored; also says whether one name's words all appear in the other's
+function nameOverlap(a, b) {
+    a = String(a).replace(/\([^)]*\)/g, ' '); b = String(b).replace(/\([^)]*\)/g, ' ');   // “(Potassium Channel Blockers)” is a subtitle
+    const ta = [...new Set(titleTokens(a))].filter(w => !/^\d$/.test(w)), tb = [...new Set(titleTokens(b))].filter(w => !/^\d$/.test(w));
+    if (!ta.length || !tb.length) return { score: 0, inter: 0 };
+    const same = (x, y) => x === y || (x.length >= 6 && y.length >= 6 && x.slice(0, 6) === y.slice(0, 6));
+    const inter = ta.filter(x => tb.some(y => same(x, y))).length;
+    const nums = t => normTitle(t).split(' ').filter(w => /^\d$/.test(w)).join(',');
+    const clash = nums(a) && nums(b) && nums(a) !== nums(b);   // Class III vs Class I, Part 1 vs Part 2
+    return { score: (inter / (ta.length + tb.length - inter)) * (clash ? 0.3 : 1), inter, aInB: inter === ta.length, bInA: inter === tb.length, na: ta.length, nb: tb.length };
+}
+// AnKing B&B tag groups (Cardio, Neuro, GI…) -> B&B Step 1 category, and each category's page
+const BNB_CAT_SLUGS = { 'Renal': 'renal-(new)', 'Pathology': 'pathology3', 'Cardiology': 'cardiology-(new)', 'Hematology': 'hematology-(new)', 'Gastroenterology': 'gastroenterology',
+    'Psychiatry': 'psychiatry1', 'Endocrinology': 'endocrinology-(new)', 'Neurology': 'neurology-(new)', 'Biochemistry': 'biochemistry', 'Infectious Disease': 'infectious-disease',
+    'Musculoskeletal': 'musculoskeletal-(new)', 'Pulmonary': 'pulmonary-(new)', 'Immunology': 'immunology', 'Biostats/Epi': 'biostats-epi', 'Dermatology': 'dermatology-(new)',
+    'Cell Biology': 'cell-biology1', 'Reproductive': 'reproductive2', 'Behavioral Science': 'behavioral-science', 'Genetics': 'genetics', 'Basic Pharmacology': 'basic-pharmacology',
+    'Ophthalmology': 'ophthalmology-(new)', 'Anesthesia': 'anesthesia-(new)' };
+const BNB_GROUPS = { cardio: 'Cardiology', neuro: 'Neurology', gi: 'Gastroenterology', pulm: 'Pulmonary', msk: 'Musculoskeletal', biochem: 'Biochemistry', repro: 'Reproductive',
+    psych: 'Psychiatry', behavioral: 'Behavioral Science', derm: 'Dermatology', 'cell bio': 'Cell Biology', endocrinology: 'Endocrinology', endo: 'Endocrinology', renal: 'Renal',
+    hematology: 'Hematology', heme: 'Hematology', immunology: 'Immunology', immuno: 'Immunology', genetics: 'Genetics', 'biostats epi': 'Biostats/Epi', pathology: 'Pathology',
+    ophthalmology: 'Ophthalmology', 'basic pharmacology': 'Basic Pharmacology', anesthesia: 'Anesthesia', 'infectious disease': 'Infectious Disease' };
+const bnbCatOf = label => { const g = normTitle(String(label).split(' › ')[0]); return BNB_GROUPS[g] || (BNB_CAT_SLUGS[String(label).split(' › ')[0]] ? String(label).split(' › ')[0] : null); };
+const bnbCatUrl = cat => BNB_CAT_SLUGS[cat] ? `https://www.boardsbeyond.com/category/step-1-p/${BNB_CAT_SLUGS[cat]}` : '';
 let bnbIndex = null;
 // The catalog video for a B&B video name (from an AnKing tag, your resource guide, or a lecture): exact name first, then closest words
 function bnbMatch(name) {
@@ -1591,14 +1615,15 @@ function bnbMatch(name) {
     if (!bnbIndex) { bnbIndex = new Map(); BNB_CATALOG.forEach(v => bnbIndex.set(normTitle(v.title), v)); }
     const n = normTitle(lastSeg(String(name)));
     if (bnbIndex.has(n)) return bnbIndex.get(n);
-    const want = new Set(titleTokens(lastSeg(String(name))));
-    if (!want.size) return null;
+    const leaf = lastSeg(String(name)), cat = bnbCatOf(name);
     let best = null;
     BNB_CATALOG.forEach(v => {
-        const have = titleTokens(v.title), inter = have.filter(w => want.has(w)).length;
-        if (!inter) return;
-        const score = inter / new Set([...have, ...want]).size;
-        if (score >= 0.67 && (!best || score > best.score)) best = { v, score };
+        const o = nameOverlap(leaf, v.title);
+        if (!o.inter) return;
+        const sameCat = cat && v.cat === cat;
+        const ok = o.score >= 0.6 || (sameCat && (o.aInB || o.bInA) && Math.abs(o.na - o.nb) <= 1);   // e.g. Thalassemias -> Alpha Thalassemias, in the same category
+        const score = o.score + (sameCat ? 0.2 : 0) - (cat && !sameCat ? 0.3 : 0);
+        if (ok && score >= 0.5 && (!best || score > best.score)) best = { v, score };
     });
     return best ? best.v : null;
 }
@@ -3631,29 +3656,60 @@ const BC_GENERIC = /^(board-style question breakdown|review question|review tabl
 const bcUnitUrl = u => `https://app.bootcamp.com/med-school/${u.s.route}/videos/${u.route}`;
 const bcUrl = v => `${bcUnitUrl(v.u)}?index=${v.index}`;
 const bcQuizUrl = v => v.bites ? `${bcUnitUrl(v.u)}?index=${v.index + 1}` : '';
-let bcIndex = null;
-// The Bootcamp lesson (or, failing that, unit) for an AnKing #Bootcamp tag label like “Biochemistry › Carbohydrates › Gluconeogenesis Pathway”
+// AnKing #Bootcamp tag segments -> Bootcamp subject (tags were written for an older Bootcamp layout, so names are matched loosely)
+const BC_SUBJECT_WORDS = { biochemistry: ['biochem', 'biochemistry'], biostatistics: ['biostat', 'biostats', 'biostatistics', 'epidemiology', 'epi', 'biostats epi'],
+    cardiology: ['cardio', 'cardiology', 'cardiovascular'], dermatology: ['derm', 'dermatology'], endocrinology: ['endo', 'endocrine', 'endocrinology'],
+    gastroenterology: ['gi', 'gastro', 'gastrointestinal', 'gastroenterology'], genetics: ['genetics'], 'hematology-and-oncology': ['heme', 'hematology', 'oncology', 'heme onc', 'hematology and oncology'],
+    immunology: ['immuno', 'immunology'], microbiology: ['micro', 'microbiology', 'infectious disease'], musculoskeletal: ['msk', 'musculoskeletal'],
+    nephrology: ['renal', 'nephro', 'nephrology'], neurology: ['neuro', 'neurology'], pathology: ['path', 'pathology', 'general pathology'], pharmacology: ['pharm', 'pharmacology'],
+    psychiatry: ['psych', 'psychiatry'], 'public-health-sciences': ['public health', 'public health sciences', 'ethics', 'behavioral', 'behavioral science'],
+    pulmonology: ['pulm', 'pulmonary', 'pulmonology', 'respiratory'], reproduction: ['repro', 'reproductive', 'reproduction'] };
+const bcSubjectOf = segs => {
+    for (const seg of segs) {
+        const n = normTitle(seg);
+        const r = Object.keys(BC_SUBJECT_WORDS).find(k => BC_SUBJECT_WORDS[k].includes(n) || normTitle(BC_SUBJECTS.find(x => x.route === k).name) === n);
+        if (r) return BC_SUBJECTS.find(x => x.route === r);
+    }
+    return null;
+};
+const bcSubjectUrl = sub => `https://app.bootcamp.com/med-school/${sub.route}/videos`;
+const bcMatchCache = new Map();
+// The Bootcamp lesson for an AnKing #Bootcamp tag label. Falls back to the best unit, then the subject's video list, so there's always a link.
 function bcMatch(label) {
     if (!label) return null;
-    if (!bcIndex) { bcIndex = new Map(); BC_CATALOG.forEach(v => { if (BC_GENERIC.test(v.title)) return; const k = normTitle(v.title); bcIndex.set(k, [...(bcIndex.get(k) || []), v]); }); }
-    const segs = String(label).split(' › '), leaf = segs[segs.length - 1], parent = normTitle(segs[segs.length - 2] || ''), subj = normTitle(segs[0] || '');
-    const pick = list => list.find(v => normTitle(v.u.name) === parent) || list.find(v => normTitle(v.u.s.name).startsWith(subj.split(' ')[0] || '~')) || list[0];
-    const exact = bcIndex.get(normTitle(leaf));
-    if (exact) return pick(exact);
-    const want = new Set(titleTokens(leaf));
-    let best = null;
-    if (want.size) BC_CATALOG.forEach(v => {
-        if (BC_GENERIC.test(v.title)) return;
-        const have = titleTokens(v.title), inter = have.filter(w => want.has(w)).length;
-        if (!inter) return;
-        const sameUnit = normTitle(v.u.name) === parent, all = [...want].every(w => have.includes(w));
-        const score = inter / new Set([...have, ...want]).size + (sameUnit ? 0.15 : 0);
-        if ((score >= 0.67 || (sameUnit && all)) && (!best || score > best.score)) best = { v, score };   // in the tag's own unit, a lesson containing all its words counts
+    if (bcMatchCache.has(label)) return bcMatchCache.get(label);
+    const segs = String(label).split(' › '), leaf = segs[segs.length - 1];
+    const sub = bcSubjectOf(segs);
+    // the unit: a segment that names a unit of this subject (closest wins)
+    let unit = null, unitScore = 0;
+    BC_UNITS.forEach(u => {
+        if (sub && u.s !== sub) return;
+        segs.slice(0, -1).concat(segs.length > 1 ? [] : [leaf]).forEach(seg => { const o = nameOverlap(seg, u.name); if (o.score > unitScore && o.score >= 0.5) { unit = u; unitScore = o.score; } });
     });
-    if (best) return best.v;
-    const unit = BC_UNITS.find(u => normTitle(u.name) === normTitle(leaf));   // the tag names a whole unit
-    return unit ? { unitOnly: true, u: unit, title: unit.name } : null;
+    // a tag that names a whole unit (e.g. “Biochemistry › Glycogen”) opens that unit, unless a lesson has exactly that name
+    const exactUnit = BC_UNITS.find(u => (!sub || u.s === sub) && normTitle(u.name) === normTitle(leaf));
+    const exactLesson = BC_CATALOG.find(v => !BC_GENERIC.test(v.title) && (!sub || v.u.s === sub) && normTitle(v.title) === normTitle(leaf));
+    if (exactUnit && !exactLesson) { const out = { unitOnly: true, u: exactUnit, title: exactUnit.name }; bcMatchCache.set(label, out); return out; }
+    let best = null;
+    BC_CATALOG.forEach(v => {
+        if (BC_GENERIC.test(v.title)) return;
+        const o = nameOverlap(leaf, v.title);
+        if (!o.inter) return;
+        const inUnit = unit && v.u === unit, inSub = sub && v.u.s === sub;
+        const ok = o.score >= 0.6 || ((inUnit || inSub) && (o.aInB || o.bInA) && Math.abs(o.na - o.nb) <= 2);   // Gluconeogenesis -> Gluconeogenesis: Pathway
+        const score = o.score + (inUnit ? 0.25 : 0) + (inSub ? 0.1 : 0) - (sub && !inSub ? 0.4 : 0);
+        if (ok && score >= 0.5 && (!best || score > best.score)) best = { v, score };
+    });
+    let out = best ? best.v : null;
+    if (!out) {   // the leaf itself names a unit (e.g. “Glycogen”), or fall back to the unit / subject the tag sits under
+        const leafUnit = BC_UNITS.filter(u => !sub || u.s === sub).map(u => ({ u, o: nameOverlap(leaf, u.name) })).filter(x => x.o.score >= 0.6).sort((a, b) => b.o.score - a.o.score)[0];
+        const u = leafUnit ? leafUnit.u : unit;
+        out = u ? { unitOnly: true, u, title: u.name } : sub ? { subjectOnly: true, s: sub, title: sub.name } : null;
+    }
+    bcMatchCache.set(label, out);
+    return out;
 }
+const bcLinkOf = v => !v ? '' : v.subjectOnly ? bcSubjectUrl(v.s) : v.unitOnly ? bcUnitUrl(v.u) : bcUrl(v);
 const bcById = id => BC_CATALOG[id];
 
 // ---------- links to the videos themselves ----------
@@ -3695,18 +3751,20 @@ function videoLink(id, label, db = loadDb()) {
     const k = vidKey(id, label);
     if (safeUrl((db.videoLinks || {})[k])) return db.videoLinks[k];
     if (id === 'bnb') { const v = bnbMatch(label); if (v) return bnbUrl(v); }   // straight to the video page; its quiz is one click away
-    if (id === 'bootcamp') { const v = bcMatch(label); if (v) return v.unitOnly ? bcUnitUrl(v.u) : bcUrl(v); }   // the lesson itself
-    return safeUrl((db.videoLinksAuto || {})[k]) || (id === 'bnb' ? safeUrl(knownVideoUrls(db)[lastSeg(label).toLowerCase()]) : '');
+    if (id === 'bootcamp') { const v = bcMatch(label); if (v) return bcLinkOf(v); }   // the lesson itself (else its unit or subject)
+    return safeUrl((db.videoLinksAuto || {})[k]) || (id === 'bnb' ? safeUrl(knownVideoUrls(db)[lastSeg(label).toLowerCase()]) || bnbCatUrl(bnbCatOf(label)) : '');   // no single video: its B&B category page
 }
 // A video's name: a link when the address is known, else a site search; ✎ saves or changes its address
 function videoHtml(id, label, { db = loadDb(), edit = true, count = null } = {}) {
     const name = lastSeg(label), url = videoLink(id, label, db);
     const bv = id === 'bnb' ? bnbMatch(label) : null, cv = id === 'bootcamp' ? bcMatch(label) : null;
     const tip = bv ? `B&B: ${bv.cat} › ${bv.sub} › ${bv.title} · ${bv.q} quiz question${bv.q === 1 ? '' : 's'} (Take Video Quiz is on the video page)`
-        : cv ? `Bootcamp: ${cv.u.s.name} › ${cv.u.name}${cv.unitOnly ? '' : ' › ' + cv.title}` : label;
-    const quiz = cv && !cv.unitOnly && cv.bites ? ` <a class="muted" href="${escHtml(bcQuizUrl(cv))}" target="_blank" rel="noopener noreferrer" title="This lesson's Bites quiz">quiz</a>` : '';
+        : cv ? (cv.subjectOnly ? `Bootcamp: no single lesson matched; opens the ${cv.s.name} video list` : cv.unitOnly ? `Bootcamp: opens the ${cv.u.s.name} › ${cv.u.name} unit` : `Bootcamp: ${cv.u.s.name} › ${cv.u.name} › ${cv.title}`) : label;
+    const quiz = cv && !cv.unitOnly && !cv.subjectOnly && cv.bites ? ` <a class="muted" href="${escHtml(bcQuizUrl(cv))}" target="_blank" rel="noopener noreferrer" title="This lesson's Bites quiz">quiz</a>` : '';
     const find = `https://www.google.com/search?q=${encodeURIComponent(`site:${VIDEO_SEARCH[id] || ''} ${name}`)}`;
-    return (url ? `<a href="${escHtml(url)}" target="_blank" rel="noopener noreferrer" title="${escHtml(tip)}">${escHtml(bv ? bv.title : cv ? cv.title : name)}</a>${quiz}`
+    const text = bv ? bv.title : cv && !cv.unitOnly && !cv.subjectOnly ? cv.title : name;
+    const where = !bv && id === 'bnb' && url && url.includes('/category/') ? ` <span class="muted">(${escHtml(bnbCatOf(label) || '')})</span>` : cv && (cv.unitOnly || cv.subjectOnly) ? ` <span class="muted">(${escHtml(cv.title)})</span>` : '';
+    return (url ? `<a href="${escHtml(url)}" target="_blank" rel="noopener noreferrer" title="${escHtml(!bv && id === 'bnb' && url.includes('/category/') ? 'B&B: no single video matched; opens the ' + bnbCatOf(label) + ' category' : tip)}">${escHtml(text)}</a>${where}${quiz}`
             : `<span title="${escHtml(label)}">${escHtml(name)}</span> <a class="muted" href="${escHtml(find)}" target="_blank" rel="noopener noreferrer" title="Search ${escHtml(VIDEO_SEARCH[id] || 'the web')} for this video">find</a>`)
         + (count != null ? ` <span class="muted">(${count})</span>` : '')
         + (edit ? `<button class="link-btn" data-act="vid-link" data-res="${escHtml(id)}" data-label="${escHtml(label)}" title="${url ? 'Change' : 'Save'} this video's link">✎</button>` : '');
@@ -4792,7 +4850,7 @@ function lectureBnb(l) {
 // The Bootcamp lessons for a lecture: from its picked cards' #Bootcamp tags, then from its slides and quizzes
 function lectureBc(l) {
     const out = [], seen = new Set();
-    ((l.vidmap || {}).bootcamp || []).forEach(([label, n]) => { const v = bcMatch(label); const key = v && !v.unitOnly ? v.id : 'l:' + label; if (!seen.has(key)) { seen.add(key); out.push({ v, label, cards: n }); } });
+    ((l.vidmap || {}).bootcamp || []).forEach(([label, n]) => { const v = bcMatch(label); const key = v && !v.unitOnly && !v.subjectOnly ? v.id : 'l:' + label; if (!seen.has(key)) { seen.add(key); out.push({ v, label, cards: n }); } });
     (((l.slideVids || {}).bc) || []).forEach(([id]) => { const v = bcById(id); if (v && !seen.has(v.id)) { seen.add(v.id); out.push({ v, label: `${v.u.s.name} › ${v.u.name} › ${v.title}`, slides: true }); } });
     return out;
 }
@@ -5378,7 +5436,7 @@ async function scanLectureFiles(force = false) {
 }
 // For a missed quiz question: the lecture's B&B video whose title words come up most in the question and its explanation
 function videoForQuestion(q, l) {
-    const cands = [...lectureBnb(l).map(x => x.v && { v: x.v, kind: 'bnb' }), ...lectureBc(l).map(x => x.v && !x.v.unitOnly && { v: x.v, kind: 'bc' })].filter(Boolean);
+    const cands = [...lectureBnb(l).map(x => x.v && { v: x.v, kind: 'bnb' }), ...lectureBc(l).map(x => x.v && !x.v.unitOnly && !x.v.subjectOnly && { v: x.v, kind: 'bc' })].filter(Boolean);
     if (!cands.length) return [];
     const text = ' ' + normTitle([q.v, q.p, q.s, ...Object.values(q.r || {})].join(' ')) + ' ';
     const scored = cands.map(c => { const toks = [...new Set(titleTokens(c.v.title))]; return { ...c, s: toks.length ? toks.filter(w => text.includes(' ' + w)).length / toks.length : 0 }; })
