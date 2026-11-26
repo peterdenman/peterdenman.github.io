@@ -331,7 +331,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Nov 20 · Turn off a lecture's quizzes</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Nov 26 · Videos for each group of cards, weak-area rotation</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -444,7 +444,7 @@
     <!-- TUCKED-AWAY TOOLS -->
     <div class="tools">
         <details class="card tool" id="syncCard">
-            <summary class="tool-summary">AnKing Sync <span class="tool-sub">settings, connection, first-time setup</span></summary>
+            <summary class="tool-summary">AnKing Sync <span class="tool-sub">settings, question banks, connection, first-time setup</span></summary>
             <div class="tool-body">
                 <div class="settings-grid">
                     <label class="field full">AnkiConnect address
@@ -490,6 +490,10 @@
                     </label>
                     <label class="check full"><input type="checkbox" id="autoSyncInput"> Auto-sync when I open the page</label>
                 </div>
+                <div style="margin:0 0 12px;">
+                    <div style="font-weight:bold; font-size:0.8em; color:#4a5568;">Question banks you use <span class="qhint">the weak-area row on Today rotates through these, one a day</span></div>
+                    <div class="quiz-checks" id="qbankChecks"></div>
+                </div>
                 <div class="btn-group">
                     <button class="btn-primary" id="connectBtn">Connect to Anki</button>
                     <button class="btn-success" id="analyzeBtn">Analyze my stats</button>
@@ -504,6 +508,8 @@
                         <li>Open this page with Anki running. The first time, Anki shows a permission popup for this site; click <b>Yes</b>. After that the page connects and syncs by itself every time you open it (and again if you come back after 15+ minutes). If the browser asks to let the page access devices on your local network, allow it.</li>
                         <li>Still blocked? In Anki open <b>Tools → Add-ons → AnkiConnect → Config</b> and add your site's address (e.g. <code>https://username.github.io</code>) to <code>webCorsOriginList</code>, then restart Anki.</li>
                         <li>For one-click AMBOSS practice, install the <a href="https://amboss.com/us/anki/qbank" target="_blank" rel="noopener noreferrer">AMBOSS Anki add-on</a>. The notebook's <b>Start Qbank session</b> button opens your weak cards in Anki's Browse window, where the add-on turns them into a matching Qbank session.</li>
+                        <li>For B&amp;B, Bootcamp and ScholarRx, the page reads which videos a group of cards is tagged with (a lecture's picked cards, or an area's weak cards) and lists them with how many cards each covers. A video name is a link once the page knows its address: from your lecture's video link, your resource guide, a link inside a card, or one you save with <b>✎</b>. Otherwise <b>find</b> searches the site for it.</li>
+                        <li>With AnkiHub Premium and a B&amp;B subscription, AnkiHub's B&amp;B viewer in Anki also shows the matching video for whichever card you're on, so <b>Open cards</b> takes you to the cards and from there to the video.</li>
                         <li>After each analysis, results sync to GitHub, so your phone shows the latest snapshot even without Anki.</li>
                     </ol>
                 </details>
@@ -664,6 +670,15 @@ const $ = id => document.getElementById(id);
 const escHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pct = x => x == null ? '—' : `${Math.round(x * 100)}%`;
 const chunk = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
+// Shuffle that gives the same order for the same seed (so today's pick stays put when the page re-renders)
+function seededShuffle(arr, seed) {
+    const a = arr.slice();
+    let s = (seed >>> 0) || 1;
+    const rnd = () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+}
+const strHash = s => [...String(s)].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) | 0, 0);
 
 let ankiDecks = null;         // all deck names (only after connecting)
 let ankiTags = null;          // all tags from the collection (only after connecting)
@@ -923,6 +938,7 @@ async function connectAnki({ silent = false } = {}) {
         populateTagSelectors();
         renderUpcoming();
         unsuspendLectures();
+        loadLectureVideos();
         loadTodayStats();
         loadReviewHistory();
         loadLeeches();
@@ -1023,18 +1039,124 @@ function parseResourceTag(tag, re) {
     return { key: tag, label: labelFrom(after), id: null };
 }
 
+// The video topics (B&B, Bootcamp, ScholarRx) one card is tagged with: the deepest tag of each, ignoring "::Extra"
+function videoLabels(tags) {
+    const per = {};
+    tags.forEach(t0 => {
+        const t = isExtraTag(t0) ? t0.split('::').slice(0, -1).join('::') : t0;
+        const segs = t.split('::'), r = resourceSeg(segs);
+        if (!r || segs.length <= r.i + 1) return;
+        (per[r.res.id] = per[r.res.id] || new Set()).add(t);
+    });
+    const out = new Map();
+    Object.entries(per).forEach(([id, set]) => {
+        const list = [...set];
+        list.filter(t => !list.some(o => o !== t && o.toLowerCase().startsWith(t.toLowerCase() + '::'))).forEach(t => {
+            const segs = t.split('::'), r = resourceSeg(segs), label = labelFrom(segs.slice(r.i + 1));
+            out.set(`${id}|${label}`, [id, label, t]);
+        });
+    });
+    return [...out.values()];   // [resource id, label, tag]
+}
+// vids: { resId: Map(label -> { count, tag }) }
+function countVideos(vids, labels) {
+    labels.forEach(([id, label, tag]) => {
+        const m = vids[id] = vids[id] || new Map();
+        const e = m.get(label) || { count: 0, tag };
+        e.count++;
+        m.set(label, e);
+    });
+}
+// -> { resId: [[label, count, tag], ...] }, most cards first
+const videoTops = (vids, n) => Object.fromEntries(Object.entries(vids).map(([k, m]) =>
+    [k, [...m].sort((a, b) => b[1].count - a[1].count).slice(0, n).map(([label, e]) => [label, e.count, e.tag])]));
+
+// ---------- links to the videos themselves ----------
+const VIDEO_SITES = { bnb: /boardsbeyond\.com/i, bootcamp: /bootcamp\.com/i, scholarrx: /scholarrx\.com/i };
+const VIDEO_SEARCH = { bnb: 'boardsbeyond.com', bootcamp: 'bootcamp.com', scholarrx: 'scholarrx.com' };
+const vidKey = (id, label) => `${id}|${label}`.toLowerCase();
+// A link to a video inside a card's fields counts as that video's address when the card is tagged with just that one video
+function cardLinks(info, labels, links) {
+    const html = Object.values(info.fields || {}).map(f => f && f.value || '').join(' ');
+    if (!/https?:/i.test(html)) return;
+    const urls = [...html.matchAll(/https?:\/\/[^\s"'<>]+/gi)].map(m => m[0].replace(/&amp;/g, '&'));
+    Object.entries(VIDEO_SITES).forEach(([id, re]) => {
+        const mine = labels.filter(x => x[0] === id), hit = urls.find(u => re.test(u));
+        if (mine.length !== 1 || !hit) return;
+        const k = vidKey(id, mine[0][1]), v = links[k] = links[k] || {};
+        v[hit] = (v[hit] || 0) + 1;
+    });
+}
+function saveAutoLinks(links) {
+    const keys = Object.keys(links);
+    if (!keys.length) return;
+    const db = loadDb(), auto = db.videoLinksAuto = db.videoLinksAuto || {};
+    let changed = false;
+    keys.forEach(k => { const best = Object.entries(links[k]).sort((a, b) => b[1] - a[1])[0][0]; if (auto[k] !== best) { auto[k] = best; changed = true; } });
+    if (changed) saveDb(db);
+}
+// Video addresses you already gave the page: lecture video links and your resource guide (by video name)
+let urlIndex = { at: 0, map: null };
+function knownVideoUrls(db) {
+    if (urlIndex.map && Date.now() - urlIndex.at < 3000) return urlIndex.map;
+    const map = {};
+    const add = u => { const n = bnbFromUrl(u); if (n && !map[n.toLowerCase()]) map[n.toLowerCase()] = u; };
+    lectureList(db).forEach(l => add(safeUrl(l.url)));
+    guideEntries(db).forEach(x => (x.bnb || []).forEach(v => String(v).split(/\n+/).forEach(line => { const u = (line.match(/https?:\/\/\S+/) || [])[0]; if (u) add(u); })));
+    urlIndex = { at: Date.now(), map };
+    return map;
+}
+function videoLink(id, label, db = loadDb()) {
+    const k = vidKey(id, label);
+    return safeUrl((db.videoLinks || {})[k]) || safeUrl((db.videoLinksAuto || {})[k])
+        || (id === 'bnb' ? safeUrl(knownVideoUrls(db)[lastSeg(label).toLowerCase()]) : '');
+}
+// A video's name: a link when the address is known, else a site search; ✎ saves or changes its address
+function videoHtml(id, label, { db = loadDb(), edit = true, count = null } = {}) {
+    const name = lastSeg(label), url = videoLink(id, label, db);
+    const find = `https://www.google.com/search?q=${encodeURIComponent(`site:${VIDEO_SEARCH[id] || ''} ${name}`)}`;
+    return (url ? `<a href="${escHtml(url)}" target="_blank" rel="noopener noreferrer" title="${escHtml(label)}">${escHtml(name)}</a>`
+            : `<span title="${escHtml(label)}">${escHtml(name)}</span> <a class="muted" href="${escHtml(find)}" target="_blank" rel="noopener noreferrer" title="Search ${escHtml(VIDEO_SEARCH[id] || 'the web')} for this video">find</a>`)
+        + (count != null ? ` <span class="muted">(${count})</span>` : '')
+        + (edit ? `<button class="link-btn" data-act="vid-link" data-res="${escHtml(id)}" data-label="${escHtml(label)}" title="${url ? 'Change' : 'Save'} this video's link">✎</button>` : '');
+}
+function setVideoLink(id, label) {
+    const db = loadDb(), k = vidKey(id, label);
+    const cur = videoLink(id, label, db);
+    const v = prompt(`Link to the ${(VIDEO_RESOURCES.find(r => r.id === id) || {}).name || ''} video “${lastSeg(label)}” (leave empty to remove):`, cur);
+    if (v == null) return;
+    const u = v.trim();
+    if (u && !safeUrl(u)) { alert('The link should start with https://'); return; }
+    db.videoLinks = db.videoLinks || {};
+    if (u) db.videoLinks[k] = u; else { delete db.videoLinks[k]; if (db.videoLinksAuto) delete db.videoLinksAuto[k]; }
+    saveDb(db);
+    renderAll();
+}
+const MAX_WEAK_NIDS_KEPT = 300;   // weak notes saved per area, so the daily AMBOSS set can rotate through them
+const RES_FIELDS = ['amboss', 'weakNotes', 'nids', 'ambossNids', 'banks'];
+function carryResources(a, prevAreas) {
+    const p = prevAreas.find(x => x.path === a.path && x.q === a.q);
+    if (p) RES_FIELDS.forEach(k => { if (k in p) a[k] = p[k]; });
+}
+
 async function findResources(area, s) {
-    let noteIds = await anki('findNotes', { query: weakQuery(area, s) });
-    noteIds = noteIds.slice(0, MAX_NOTES_SCANNED_PER_AREA);
-    const amboss = new Map();
+    const allIds = await anki('findNotes', { query: weakQuery(area, s) });
+    // a random sample each time (Anki returns notes oldest first, so a plain slice always read the same 200)
+    const mixed = seededShuffle(allIds, Math.floor(Math.random() * 1e9));
+    const noteIds = mixed.slice(0, MAX_NOTES_SCANNED_PER_AREA);
+    const amboss = new Map(), vids = {}, ambossNids = [], links = {};
     for (const batch of chunk(noteIds, 100)) {
         const infos = await anki('notesInfo', { notes: batch });
         infos.forEach(info => {
+            if (!info) return;
             const seenHere = new Set();
-            (info.tags || []).forEach(tag => {
+            let hasAmboss = false;
+            const tags = info.tags || [];
+            tags.forEach(tag => {
                 for (const [re, map] of [[/^#?amboss$/i, amboss]]) {
                     const r = parseResourceTag(tag, re);
                     if (!r) continue;
+                    hasAmboss = true;
                     const k = r.key.toLowerCase();
                     if (!map.has(k)) map.set(k, { tag: r.key, label: r.label, count: 0, ids: new Set() });
                     const entry = map.get(k);
@@ -1042,11 +1164,20 @@ async function findResources(area, s) {
                     if (r.id) entry.ids.add(r.id);
                 }
             });
+            if (hasAmboss) ambossNids.push(info.noteId);
+            const labels = videoLabels(tags);
+            countVideos(vids, labels);
+            cardLinks(info, labels, links);
         });
     }
     const top = map => [...map.values()].sort((a, b) => b.count - a.count).slice(0, 5)
         .map(e => ({ tag: e.tag, label: e.label || 'Untitled', count: e.count, ids: [...e.ids] }));
-    return { amboss: top(amboss), weakNotes: noteIds.length };
+    saveAutoLinks(links);
+    return {
+        amboss: top(amboss), weakNotes: allIds.length,
+        nids: mixed.slice(0, MAX_WEAK_NIDS_KEPT), ambossNids,
+        banks: videoTops(vids, 15)   // for the video question banks: the videos these weak cards come from, most-tagged first
+    };
 }
 
 let analyzing = false;
@@ -1119,6 +1250,8 @@ async function analyze({ manual = false } = {}) {
             if (a.retention != null && a.retention >= 0.92 && a.struggle < 0.05) a.priority = 'P3';
         });
 
+        const prevAreas = ((loadDb().ankiSnapshot || {}).areas) || [];
+        areas.forEach(a => carryResources(a, prevAreas));   // keep what earlier syncs found; the top few are re-read below
         const top = areas.slice(0, TOP_AREAS_WITH_RESOURCES);
         for (let i = 0; i < top.length; i++) {
             progress(`Matching AMBOSS topics… (${i + 1}/${top.length})`, false, true);
@@ -1517,7 +1650,7 @@ async function analyzeLectures(s) {
         waiting.forEach(a => { a.priority = 'new'; });
         const all = [...ranked, ...waiting];
         const prev = (loadDb().lectureSnapshot || {}).areas || [];
-        all.forEach(a => { const p = prev.find(x => x.path === a.path && x.q === a.q); if (p && p.amboss) { a.amboss = p.amboss; a.weakNotes = p.weakNotes; } });
+        all.forEach(a => carryResources(a, prev));
         for (const a of ranked.slice(0, TOP_AREAS_WITH_RESOURCES)) {
             try { Object.assign(a, await findResources(a, { ...s, days: N })); } catch (err) { console.error(err); }
         }
@@ -1673,7 +1806,14 @@ function resourcesHtml(a, i) {
             <button class="btn-primary" style="width:100%; margin-bottom:6px;" data-act="qbank" data-i="${i}">Start Qbank session from ${a.weakNotes || ''} weak cards</button>
             <div class="hint" style="margin-bottom:6px;">Opens these cards in Anki's Browse window. Select all (Ctrl/Cmd+A), click <b>Start Qbank Session</b> (AMBOSS add-on), and pick unanswered + answered incorrectly.</div>
             ${amboss}
-        </div>`;
+        </div>${otherBanksHtml(a, i)}`;
+}
+function otherBanksHtml(a, i) {
+    const b = a.banks || {}, db = loadDb();
+    const rows = ['bnb', 'bootcamp', 'scholarrx'].filter(id => (b[id] || []).length).map(id =>
+        `<div class="res-item"><span><b>${escHtml(VIDEO_RESOURCES.find(r => r.id === id).name)}</b> · ${b[id].slice(0, 6).map(x => videoHtml(id, x[0], { db, count: x[1] })).join(', ')}</span></div>`).join('');
+    return rows ? `<div class="res-block"><div class="res-title">Videos these weak cards come from</div>${rows}
+        <div class="muted" style="font-size:0.8em;">The number is how many of the weak cards each video covers. Each video has its own question quiz in that bank.</div></div>` : '';
 }
 
 function historyBlock(a) {
@@ -1949,13 +2089,16 @@ const bnbFromUrl = u => {
     const m = /boardsbeyond\.com\/video\/[^/]+\/([^/?#]+)/i.exec(u || '');
     return m ? m[1].split('-').map(w => /^(and|of|the|in|to)$/.test(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : '';
 };
-function bnbTopicsFor(l, entries = guideEntries()) {
+const bnbTopicsFor = (l, entries) => bnbTopicList(l, entries).map(({ name, href }) =>
+    href ? `<a href="${escHtml(href)}" target="_blank" rel="noopener noreferrer">${escHtml(name)}</a>` : escHtml(name));
+// -> [{ name, href }]
+function bnbTopicList(l, entries = guideEntries()) {
     const out = [], seen = new Set();
     const add = (t, href = '') => {
         const name = String(t).replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
         if (!name || name.length > 60 || seen.has(name.toLowerCase())) return;   // long lines are notes, not video names
         seen.add(name.toLowerCase());
-        out.push(href ? `<a href="${escHtml(href)}" target="_blank" rel="noopener noreferrer">${escHtml(name)}</a>` : escHtml(name));
+        out.push({ name, href });
     };
     guideFor(l, entries).forEach(x => (x.bnb || []).forEach(v => String(v).split(/\n+/).forEach(line => {
         const url = (line.match(/https?:\/\/\S+/) || [])[0];
@@ -1964,6 +2107,7 @@ function bnbTopicsFor(l, entries = guideEntries()) {
     })));
     const u = safeUrl(l.url);
     if (bnbFromUrl(u)) add(bnbFromUrl(u), u);
+    ((l.vidmap || {}).bnb || []).forEach(([label]) => add(lastSeg(label), videoLink('bnb', label)));   // the B&B videos its picked cards are tagged with
     return out;
 }
 const bnbAlt = parts => `<div class="today-alt">Prefer B&amp;B? Do ${NEW_QUESTIONS} questions from ${parts}</div>`;
@@ -2014,12 +2158,54 @@ function importGuide(data) {
     return `Imported the resource guide ${escHtml(gs.map(g => g.name).join(', '))} (${gs.reduce((s, g) => s + g.entries.length, 0)} topics). ${n} of your lectures matched; open <b>Third-party resources</b> on a lecture to see them.`;
 }
 
+// ---------- the videos a lecture's picked cards come from (read from their B&B / Bootcamp / ScholarRx tags) ----------
+const picksSig = l => { const p = pickedNotes(l); return `${p.length}:${p[0] || ''}:${p[p.length - 1] || ''}`; };
+let lecVidBusy = false;
+async function loadLectureVideos() {
+    if (!ankiTags || lecVidBusy) return;
+    const todo = lectureList(loadDb()).filter(l => pickedNotes(l).length && (!l.vidmap || l.vidmap.sig !== picksSig(l)));
+    if (!todo.length) return;
+    lecVidBusy = true;
+    try {
+        const out = {}, links = {};
+        for (const l of todo) {
+            const vids = {};
+            for (const batch of chunk(pickedNotes(l), 250)) {
+                (await anki('notesInfo', { notes: batch })).forEach(info => {
+                    if (!info || !info.noteId) return;
+                    const labels = videoLabels(info.tags || []);
+                    countVideos(vids, labels);
+                    cardLinks(info, labels, links);
+                });
+            }
+            out[l.id] = { sig: picksSig(l), ...videoTops(vids, 8) };
+        }
+        saveAutoLinks(links);
+        const db = loadDb();
+        lectureList(db).forEach(l => { if (out[l.id]) l.vidmap = out[l.id]; });
+        saveDb(db);
+        renderUpcoming();
+    } catch (err) { console.error(err); }
+    finally { lecVidBusy = false; }
+}
+function lecVideosHtml(l, max = 4, db = loadDb()) {
+    const vm = l.vidmap || {};
+    const parts = VIDEO_RESOURCES.filter(r => (vm[r.id] || []).length).map(r =>
+        `${escHtml(r.name)}: ${vm[r.id].slice(0, max).map(x => videoHtml(r.id, x[0], { db, count: x[1] })).join(', ')}${vm[r.id].length > max ? ` <span class="muted">+${vm[r.id].length - max} more</span>` : ''}`);
+    return parts.length ? `<div class="lec-vids">Videos for its cards · ${parts.join(' · ')}</div>` : '';
+}
+// The address of the video most of a lecture's cards come from, if known (for Watch when the lecture has no link of its own)
+function topVideoUrl(l, db = loadDb()) {
+    for (const r of VIDEO_RESOURCES) { const x = ((l.vidmap || {})[r.id] || [])[0]; const u = x && videoLink(r.id, x[0], db); if (u) return u; }
+    return '';
+}
+
 function lecRow(l, cls, connected) {
     const n = LEC_PARTS.filter(([k]) => l[k]).length;
     const picks = pickedNotes(l);
     const hasCards = lecHasCards(l);
     const canUnsusp = hasPending(l);
-    const u = safeUrl(l.url);
+    const u = safeUrl(l.url) || topVideoUrl(l);
     const when = cls === 'done' ? `Done ${new Date(lecDoneDay(l) + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : relDate(l.date);
     return `
     <div class="up-row ${cls}">
@@ -2031,6 +2217,7 @@ function lecRow(l, cls, connected) {
                 <span class="muted">· ${n} of ${LEC_PARTS.length} done</span>
             </div>
             ${picks.length || l.unsusp ? `<div class="lec-vids">${picks.length ? `${picks.length.toLocaleString()} notes picked` : ''}${pendingAdds(l).length ? ` · ${pendingAdds(l).length} new card${pendingAdds(l).length === 1 ? '' : 's'} to add` : l.unsusp && l.unsusp.made ? ` · ${l.unsusp.made} new card${l.unsusp.made === 1 ? '' : 's'} added` : ''}${l.unsusp ? `${picks.length ? ' · ' : ''}<b>${l.unsusp.n.toLocaleString()} cards unsuspended ${escHtml(new Date(l.unsusp.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}</b>` : ''}${startedText(l)}${quizLine(l)}</div>` : `<div class="lec-vids muted">No cards picked yet${quizLine(l)}</div>`}
+            ${lecVideosHtml(l)}
             ${l.note ? `<div class="lec-vids muted">${escHtml(l.note)}</div>` : ''}
             ${guideHtml(l)}
         </div>
@@ -2139,6 +2326,7 @@ async function unsuspendLectures({ ids = null } = {}) {
     const made = done.reduce((s, r) => s + r.made.ids.length, 0), dups = done.reduce((s, r) => s + r.made.dup, 0);
     setTimeout(refreshLectureStats, 0);   // newly unsuspended lectures join the Priority list
     setTimeout(loadNewCardStats, 0);
+    setTimeout(loadLectureVideos, 0);   // the new cards it added count as the lecture's cards
     upMsg(`Unsuspended ${total.toLocaleString()} card${total === 1 ? '' : 's'}${made ? ` and added ${made} new card${made === 1 ? '' : 's'} to ${escHtml([...new Set(done.filter(r => r.made.ids.length).map(r => r.made.deck))].join(', '))}` : ''} for ${escHtml(done.map(r => r.name).join(', '))}.${dups ? ` ${dups} new card${dups === 1 ? ' was' : 's were'} already in that deck, so ${dups === 1 ? 'it was' : 'they were'} skipped.` : ''}`);
     renderUpcoming();
 }
@@ -2199,6 +2387,7 @@ async function importLectures() {
         + (ankiTags ? '' : ' Open this page with Anki running to unsuspend them on their due dates.'));
     renderUpcoming();
     unsuspendLectures();
+    loadLectureVideos();
 }
 // ---------- export every B&B card (one file for Claude to search by content) ----------
 const shortText = (html, max) => { const t = cleanCardText(html).replace(/\s+/g, ' ').trim(); return t.length > max ? t.slice(0, max - 1) + '…' : t; };
@@ -2979,6 +3168,174 @@ const WEAK_BELOW = 0.85;          // weak-area AMBOSS only for lectures/areas be
 const FOLLOW_UP_DAYS = [3, 14];   // AMBOSS questions this many days after a lecture (Gemini quizzes default to days 1 and 7, so each lecture is quizzed at ~1, 3, 7, 14)
 const dayNumber = key => Math.floor(Date.parse(key + 'T00:00:00Z') / 864e5);
 
+// ---------- weak-area practice: which area, which question bank, which cards ----------
+const WEAK_POOL = 8;          // rotate among this many of your weakest lectures/areas
+const WEAK_POOL_MIN = 4;      // if fewer are below WEAK_BELOW, the next weakest join so it doesn't flip between two
+const WEAK_COOLDOWN = 4;      // days before an area you practiced can come back (shorter when the pool is small)
+const AMBOSS_SLICE = 40;      // weak cards opened for the AMBOSS add-on each day
+// rest = days before the same card / QID / video is used again
+const QBANKS = [
+    { id: 'amboss', name: 'AMBOSS', rest: 14, need: AMBOSS_SLICE, desc: 'AMBOSS add-on in Anki: a Qbank session matched to a fresh set of your weak cards' },
+    { id: 'bnb', name: 'B&B', rest: 7, need: 3, desc: 'Boards & Beyond video quizzes for the videos your weak cards come from' },
+    { id: 'bootcamp', name: 'Bootcamp', rest: 7, need: 3, desc: 'Bootcamp Qbank filtered to the topics your weak cards come from' },
+    { id: 'scholarrx', name: 'ScholarRx', rest: 7, need: 3, desc: 'ScholarRx Qbank on the Rx Bricks your weak cards come from' }
+];
+const DEFAULT_QBANKS = ['amboss', 'bnb'];
+const enabledBanks = (db = loadDb()) => (Array.isArray(db.qbanks) && db.qbanks.length ? db.qbanks : DEFAULT_QBANKS).filter(id => QBANKS.some(b => b.id === id));
+
+function weakPool(areas, below) {
+    if (!below.length) return [];
+    const pool = below.slice(0, WEAK_POOL);
+    if (pool.length < WEAK_POOL_MIN) {
+        areas.filter(a => a.retention != null && !pool.includes(a)).sort((a, b) => a.retention - b.retention)
+            .slice(0, WEAK_POOL_MIN - pool.length).forEach(a => pool.push(a));
+    }
+    return pool;
+}
+// Weaker areas come up more often, but one you practiced rests a few days, and one left alone longer gets a boost
+function pickWeakArea(pool, tlog, today) {
+    if (pool.length <= 1) return pool[0] || null;
+    const shown = {}, done = {};
+    Object.entries(tlog).forEach(([d, e]) => {
+        if (d >= today || !e || !e.weakPath) return;
+        if (!shown[e.weakPath] || d > shown[e.weakPath]) shown[e.weakPath] = d;
+        if (e.weak && (!done[e.weakPath] || d > done[e.weakPath])) done[e.weakPath] = d;
+    });
+    const ago = (m, a) => m[a.path] ? daysBetween(m[a.path], today) : 99;
+    const cool = Math.min(WEAK_COOLDOWN, pool.length - 1);
+    let ok = pool.filter(a => ago(done, a) > cool && ago(shown, a) > 1);
+    if (!ok.length) ok = pool.filter(a => ago(shown, a) > 1);
+    if (!ok.length) ok = pool;
+    const need = a => (pool.length - pool.indexOf(a)) * Math.min(ago(shown, a), 14);
+    return ok.reduce((best, a) => need(a) > need(best) ? a : best);
+}
+// What each bank can use for an area: note IDs (AMBOSS), video names (the rest)
+function bankCandidates(id, a, lec) {
+    const b = a.banks || {};
+    if (id === 'amboss') return [...new Set([...(a.ambossNids || []), ...(a.nids || [])])].map(String);
+    const out = (b[id] || []).map(x => x[0]);
+    if (id === 'bnb' && lec) bnbTopicList(lec).forEach(t => { if (!out.some(o => lastSeg(o).toLowerCase() === t.name.toLowerCase())) out.push(t.name); });
+    return out;
+}
+function pickBankItems(db, bank, area, lec, today) {
+    let cands = bankCandidates(bank.id, area, lec);
+    if (bank.id === 'amboss') {   // cards with AMBOSS tags first (they map to questions), each group shuffled for the day
+        const seed = dayNumber(today) ^ strHash(area.path), tagged = new Set((area.ambossNids || []).map(String));
+        cands = [...seededShuffle(cands.filter(x => tagged.has(x)), seed), ...seededShuffle(cands.filter(x => !tagged.has(x)), seed + 1)];
+    }
+    const used = ((db.qbankUsed || {})[bank.id]) || {};
+    const rested = x => !used[x] || daysBetween(used[x], today) >= bank.rest;
+    const fresh = cands.filter(rested);
+    const stale = cands.filter(x => !rested(x)).sort((x, y) => used[x].localeCompare(used[y]));   // if everything was used lately: the longest ago first
+    return [...fresh, ...stale].slice(0, bank.need);
+}
+function weakChoice(db, area, lec, today, keep) {
+    const on = enabledBanks(db);
+    const avail = QBANKS.filter(b => on.includes(b.id) && (b.id === 'amboss' || bankCandidates(b.id, area, lec).length));
+    if (!avail.length) avail.push(QBANKS[0]);   // AMBOSS always works straight from the cards
+    let bank = keep && avail.find(b => b.id === keep.weakBank);
+    if (!bank) {   // the bank you used least recently
+        const last = {};
+        Object.entries(db.todayLog || {}).forEach(([d, e]) => { if (d < today && e && e.weakBank && (!last[e.weakBank] || d > last[e.weakBank])) last[e.weakBank] = d; });
+        bank = [...avail].sort((x, y) => (last[x.id] || '').localeCompare(last[y.id] || ''))[0];
+    }
+    const items = keep && keep.weakBank === bank.id && (keep.weakItems || []).length ? keep.weakItems : pickBankItems(db, bank, area, lec, today);
+    return { bank, items, avail };
+}
+function weakBankDetail({ bank, items }, lec) {
+    const db = loadDb(), topics = lec && bank.id === 'bnb' ? bnbTopicList(lec) : [];
+    const names = items.slice(0, 4).map(x => {
+        const t = !videoLink(bank.id, x, db) && topics.find(t => t.href && t.name.toLowerCase() === lastSeg(x).toLowerCase());
+        return t ? `<a href="${escHtml(t.href)}" target="_blank" rel="noopener noreferrer">${escHtml(t.name)}</a>` : videoHtml(bank.id, x, { db });
+    }).join(', ');
+    switch (bank.id) {
+        case 'amboss': return items.length
+            ? `A fresh set of ${items.length} weak cards (none opened for AMBOSS in the last ${bank.rest} days). Open cards, select all, Start Qbank Session, and pick unanswered + answered incorrectly.`
+            : 'Opens all of its weak cards; once Anki has synced, each day opens a different set.';
+        case 'bnb': return `Watch or skim, then do the B&amp;B video quiz${items.length === 1 ? '' : 'zes'} for ${names} (${WEAK_QUESTIONS} questions in all). Open cards shows the weak cards from ${items.length === 1 ? 'that video' : 'those videos'}.`;
+        default: return `In ${escHtml(bank.name)}, watch or do the questions for ${names}. Open cards shows the weak cards from ${items.length === 1 ? 'that video' : 'those videos'}.`;
+    }
+}
+function markBankUsed(id, items) {
+    if (!id || !items || !items.length) return;
+    const db = loadDb(), today = todayKey();
+    const u = db.qbankUsed = db.qbankUsed || {};
+    const m = u[id] = u[id] || {};
+    items.forEach(x => { m[x] = today; });
+    Object.keys(m).filter(k => daysBetween(m[k], today) > 180).forEach(k => delete m[k]);
+    saveDb(db);
+}
+// Today's weak-area pick, from the day's log
+function weakToday() {
+    const db = loadDb(), today = todayKey(), e = (db.todayLog || {})[today] || {};
+    const snap = String(e.weakPath || '').startsWith('lec:') ? db.lectureSnapshot : db.ankiSnapshot;
+    const area = snap && (snap.areas || []).find(a => a.path === e.weakPath);
+    return { db, today, e, snap, area };
+}
+function openWeakToday() {
+    const { e, snap, area } = weakToday();
+    if (!area) return;
+    const base = weakQuery(area, { ...getSettings(), ...(snap.settings || {}) });
+    const items = e.weakItems || [];
+    let query = base, mark = [];
+    if (e.weakBank === 'amboss' && items.length) { query = `nid:${items.join(',')}`; mark = items; }
+    else if (e.weakBank && e.weakBank !== 'amboss') {   // the weak cards from today's videos
+        const tags = ((area.banks || {})[e.weakBank] || []).filter(x => x[2] && items.includes(x[0])).map(x => x[2]);
+        if (tags.length) query = `${base} (${tags.map(tagQuery).join(' OR ')})`;
+    }
+    ankiDo(async () => { await anki('guiBrowse', { query }); if (mark.length) markBankUsed('amboss', mark); });
+}
+async function copyText(el, text, label, ask) {
+    try { await navigator.clipboard.writeText(text); el.textContent = 'Copied'; setTimeout(() => { el.textContent = label; }, 2000); }
+    catch { prompt(ask, text); }
+}
+function switchWeakBank(id) {
+    const db = loadDb(), today = todayKey(), e = (db.todayLog || {})[today];
+    if (!e) return;
+    db.todayLog[today] = { ...e, weakBank: id, weakItems: [] };
+    saveDb(db);
+    renderToday();
+}
+// Load cards, QIDs and videos for an area outside the top few (once per sync)
+const triedRes = new Set();
+async function fillAreaResources(key, path) {
+    const db0 = loadDb(), snap0 = db0[key];
+    const tryKey = `${key}|${path}|${snap0 && snap0.syncedAt}`;
+    if (!ankiTags || !snap0 || triedRes.has(tryKey) || loadingRes.has(path)) return;
+    triedRes.add(tryKey);
+    loadingRes.add(path);
+    try {
+        const a0 = snap0.areas.find(x => x.path === path);
+        if (!a0) return;
+        const r = await findResources(a0, { ...getSettings(), ...(snap0.settings || {}) });
+        const db = loadDb(), area = db[key] && db[key].areas.find(x => x.path === path);
+        if (!area) return;
+        Object.assign(area, r);
+        saveDb(db);
+        if ((prioView === 'lecture') === (key === 'lectureSnapshot')) currentAreas = db[key].areas;
+        renderToday();
+        renderNotebook();
+    } catch (err) { console.error(err); }
+    finally { loadingRes.delete(path); }
+}
+// The checkboxes under AnKing Sync
+function renderQbankChecks() {
+    const on = enabledBanks();
+    $('qbankChecks').innerHTML = QBANKS.map(b => `<label class="quiz-check" title="${escHtml(b.desc)}"><input type="checkbox" data-qbank="${b.id}" ${on.includes(b.id) ? 'checked' : ''}> ${escHtml(b.name)}</label>`).join('');
+}
+document.addEventListener('change', e => {
+    const t = e.target;
+    if (!t.dataset || !t.dataset.qbank) return;
+    const ids = [...document.querySelectorAll('[data-qbank]')].filter(x => x.checked).map(x => x.dataset.qbank);
+    const db = loadDb();
+    db.qbanks = ids.length ? ids : ['amboss'];
+    const today = todayKey(), te = (db.todayLog || {})[today];
+    if (te && !db.qbanks.includes(te.weakBank)) db.todayLog[today] = { ...te, weakBank: null, weakItems: [] };   // today's bank was turned off: pick again
+    saveDb(db);
+    renderQbankChecks();
+    renderToday();
+});
+
 async function loadTodayStats() {
     if (!ankiTags) return;
     try {
@@ -3146,7 +3503,7 @@ function renderToday() {
     const LEC_MAX = 8;
     lecs.slice(0, LEC_MAX).forEach(l => {
         const late = l.date < today ? `<span class="${lecDone(l) ? '' : 'stuck'}">${daysBetween(l.date, today)}d overdue</span> · ` : '';
-        const u = safeUrl(l.url), picks = pickedNotes(l);
+        const u = safeUrl(l.url) || topVideoUrl(l, db), picks = pickedNotes(l);
         const hasCards = lecHasCards(l);
         const cardsMode = hasCards;   // lectures with picked cards: the first row is their cards; you unsuspend them and tick the row yourself
         LEC_PARTS.forEach(([part, label0]) => {
@@ -3161,6 +3518,7 @@ function renderToday() {
                     + (waiting || toAdd ? ` · <b>${[waiting ? `${waiting.toLocaleString()} note${waiting === 1 ? '' : 's'} ready to unsuspend` : '', toAdd ? `${toAdd} new card${toAdd === 1 ? '' : 's'} to add` : ''].filter(Boolean).join(' + ')}</b>${autoUnsuspendOn() ? ' (automatically when this page is open with Anki)' : ''}`
                         : l.unsusp ? ` · ${l.unsusp.n ? `${l.unsusp.n.toLocaleString()} cards unsuspended` : 'already unsuspended'}` : '');
             }
+            if (part === 'watched') detail += lecVideosHtml(l, 3, db);
             if (part === 'watched' && l.note) detail += `<div class="muted">${escHtml(l.note)}</div>`;
             const cardsRow = part === 'watched' && cardsMode;
             rows.push(todayRow({
@@ -3238,42 +3596,48 @@ function renderToday() {
         }));
     }
 
-    // 4. AMBOSS on a weak area: your worst lecture (else subject) below WEAK_BELOW retention,
-    //    skipping yesterday's topic so the same one never comes up two days running
+    // 4. Question bank on a weak area. Three things rotate so the practice doesn't repeat:
+    //    the lecture/area (one you practiced waits a few days before it can come back),
+    //    the question bank (the one you used least recently), and the cards / videos (ones not used lately)
     const lecRanked = ((db.lectureSnapshot && db.lectureSnapshot.areas) || []).filter(a => !a.lowData);
     const useLec = lecRanked.length > 0 && prioView === 'lecture';
     const areas = useLec ? lecRanked : ((db.ankiSnapshot && db.ankiSnapshot.areas) || []);
     const below = areas.filter(a => a.retention != null && Math.round(a.retention * 100) < Math.round(WEAK_BELOW * 100))   // compare as shown, so “85%” never counts as below 85%
         .sort((a, b) => a.retention - b.retention || b.struggle - a.struggle);
+    const pool = weakPool(areas, below);
     const tlog = db.todayLog || {};
-    const yPath = (tlog[addDays(today, -1)] || {}).weakPath;
-    const tPath = (tlog[today] || {}).weakPath;
-    const area = below.find(a => a.path === tPath) || below.find(a => a.path !== yPath);
+    const tEntry = tlog[today] || {};
+    const area = pool.find(a => a.path === tEntry.weakPath) || pickWeakArea(pool, tlog, today);
     const what = useLec ? 'lecture' : 'area';
     if (area) {
-        if (tPath !== area.path) {   // remember today's pick, so tomorrow moves on to the next one
-            db.todayLog = { ...tlog, [today]: { ...(tlog[today] || {}), weakPath: area.path } };
+        const weakLec = useLec ? lectures.find(l => l.id === area.lecId) : null;
+        const ch = weakChoice(db, area, weakLec, today, tEntry.weakPath === area.path ? tEntry : null);
+        if (tEntry.weakPath !== area.path || tEntry.weakBank !== ch.bank.id || JSON.stringify(tEntry.weakItems || []) !== JSON.stringify(ch.items)) {
+            db.todayLog = { ...tlog, [today]: { ...tEntry, weakPath: area.path, weakBank: ch.bank.id, weakItems: ch.items } };   // fixed for the day
+            Object.keys(db.todayLog).filter(k => daysBetween(k, today) > 30).forEach(k => delete db.todayLog[k]);
             saveDb(db, syncReady);
         }
+        if (ankiTags && !('nids' in area)) fillAreaResources(useLec ? 'lectureSnapshot' : 'ankiSnapshot', area.path);
         const d = !!(db.todayLog[today] && db.todayLog[today].weak);
         const rank = below.indexOf(area) + 1;
-        const weakLec = useLec ? lectures.find(l => l.id === area.lecId) : null;
-        const weakBnb = weakLec ? bnbTopicsFor(weakLec).slice(0, 4) : [escHtml(lastSeg(area.label))];
+        const lastDone = Object.keys(tlog).filter(k => k < today && tlog[k] && tlog[k].weakPath === area.path && tlog[k].weak).sort().pop();
+        const n = WEAK_QUESTIONS;
+        const others = ch.avail.filter(b => b.id !== ch.bank.id);
         count(d);
-        note('amboss-weak', `${WEAK_QUESTIONS} questions on ${area.label}`, d);
+        note('amboss-weak', `${n} ${ch.bank.name} questions on ${area.label}`, d);
         qpush(d, todayRow({
-            kicker: 'AMBOSS · weak area',
-            title: `${WEAK_QUESTIONS} questions on ${escHtml(area.label)}`,
+            kicker: `${escHtml(ch.bank.name)} · weak area`,
+            title: `${n} ${escHtml(ch.bank.name)} questions on ${escHtml(area.label)}`,
             detail: [`Retention ${pct(area.retention)}`, `${pct(area.struggle)} of cards with 3+ lapses`,
-                below.length > 1 ? `${rank === 1 ? 'worst' : `#${rank} worst`} of ${below.length} ${what}s below ${pct(WEAK_BELOW)}${rank > 1 ? ' (the worst one was yesterday’s)' : ''}` : ''].filter(Boolean).join(' · ')
-                + (weakBnb.length ? bnbAlt(weakBnb.join(', ')) : `<div class="today-alt">Prefer B&amp;B? No B&amp;B videos found for this lecture; add them under its third-party resources or B&amp;B link.</div>`),
+                rank ? `#${rank} of ${below.length} ${what}${below.length === 1 ? '' : 's'} below ${pct(WEAK_BELOW)}` : `in the mix for variety (at or above ${pct(WEAK_BELOW)})`,
+                lastDone ? `last practiced ${daysBetween(lastDone, today)}d ago` : 'not practiced here lately'].join(' · ')
+                + `<div class="today-alt">${weakBankDetail(ch, weakLec)}</div>`
+                + `<div class="today-alt">${others.length ? `Switch today to: ${others.map(b => `<button class="link-btn" data-act="weak-bank" data-bank="${b.id}">${escHtml(b.name)}</button>`).join(' · ')} · ` : ''}<button class="link-btn" data-act="open-banks">Choose your question banks</button></div>`,
             done: d, manual: 'weak',
-            actions: `<button class="btn-small" data-act="qbank-area" data-src="${useLec ? 'lecture' : 'subject'}" data-path="${escHtml(area.path)}" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Open cards</button>`
+            actions: `<button class="btn-small" data-act="weak-open" ${connected ? '' : 'disabled title="Open Anki on this computer"'}>Open cards</button>`
         }));
     } else if (areas.length) {
-        weakNote = below.length
-            ? `No weak-area AMBOSS today: ${escHtml(below[0].label)} is the only ${what} below ${pct(WEAK_BELOW)} retention and it was yesterday’s.`
-            : `No weak-area AMBOSS today: every ${what} with enough reviews is at or above ${pct(WEAK_BELOW)} retention.`;
+        weakNote = `No weak-area questions today: every ${what} with enough reviews is at or above ${pct(WEAK_BELOW)} retention.`;
     }
 
     renderQuizTab({ rows: quizRows, due: quizCount.due, done: quizCount.done, qq, lectures, today });
@@ -3344,6 +3708,7 @@ function toggleToday(kind, on) {
         });
     }
     saveDb(db);
+    if (kind === 'weak' && on) { const e = db.todayLog[today]; markBankUsed(e.weakBank, e.weakItems); }   // done: rest these cards/QIDs/videos
     renderToday();
 }
 
@@ -3540,7 +3905,7 @@ $('leechFilter').addEventListener('change', e => {
 // HISTORY — each day's Today list, plus Anki's own review counts
 // ============================================================
 const DAY_LOG_DAYS = 180;
-const KICKERS = { reviews: 'Reviews', watch: 'Watch', cards: 'B&B cards', quiz: 'Quiz', scholarrx: 'Lecture', lecture: 'Questions · lecture', 'amboss-new': 'AMBOSS · new', 'amboss-weak': 'AMBOSS · weak area', newcards: 'New cards', lecquiz: 'Lecture quiz', task: 'Task' };
+const KICKERS = { reviews: 'Reviews', watch: 'Watch', cards: 'B&B cards', quiz: 'Quiz', scholarrx: 'Lecture', lecture: 'Questions · lecture', 'amboss-new': 'AMBOSS · new', 'amboss-weak': 'Qbank · weak area', newcards: 'New cards', lecquiz: 'Lecture quiz', task: 'Task' };
 
 async function loadReviewHistory() {
     if (!ankiTags) return;
@@ -3687,6 +4052,21 @@ document.addEventListener('click', e => {
         case 'today-amboss-new':
             openNewVideoCards();
             break;
+        case 'weak-open':
+            openWeakToday();
+            break;
+        case 'vid-link':
+            setVideoLink(el.dataset.res, el.dataset.label);
+            break;
+        case 'weak-bank':
+            switchWeakBank(el.dataset.bank);
+            break;
+        case 'open-banks':
+            e.preventDefault();
+            showView('dashboard');
+            $('syncCard').open = true;
+            $('qbankChecks').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            break;
         case 'copy-ids': {
             const r = a.amboss[+el.dataset.j];
             navigator.clipboard.writeText(r.ids.join(', ')).then(() => {
@@ -3719,6 +4099,7 @@ $('analyzeBtn').addEventListener('click', () => analyze({ manual: true }));
 // INIT
 // ============================================================
 function renderAll() {
+    renderQbankChecks();
     renderWeakAreas();
     renderNotebookSelect();
     renderNotebook();
@@ -3743,6 +4124,7 @@ function refreshOnReturn() {
     lastUpRefresh = Date.now();
     loadTodayStats();
     unsuspendLectures();   // a lecture whose day has come (e.g. the page stayed open overnight)
+    loadLectureVideos();   // lectures whose picked cards changed
 }
 window.addEventListener('focus', refreshOnReturn);
 document.addEventListener('visibilitychange', () => {
