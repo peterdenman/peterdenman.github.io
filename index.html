@@ -331,7 +331,7 @@
     <header>
         <div>
             <h1 style="margin:0; font-size: 1.8em;">Study Tracker</h1>
-            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Nov 26 · Quizzes off also turns off a lecture's AMBOSS checks</div>
+            <div style="font-size: 0.75em; color: #a0aec0; margin-top: 2px;">Version: Nov 26 · Direct B&B and Bootcamp video and quiz links</div>
             <div id="syncStatus" style="font-size: 0.85em; font-weight: bold; color: #e53e3e; margin-top: 4px;">Sync: Offline</div>
             <div id="ankiStatus" style="font-size: 0.85em; font-weight: bold; color: #a0aec0; margin-top: 2px;">Anki: not connected</div>
         </div>
@@ -508,7 +508,7 @@
                         <li>Open this page with Anki running. The first time, Anki shows a permission popup for this site; click <b>Yes</b>. After that the page connects and syncs by itself every time you open it (and again if you come back after 15+ minutes). If the browser asks to let the page access devices on your local network, allow it.</li>
                         <li>Still blocked? In Anki open <b>Tools → Add-ons → AnkiConnect → Config</b> and add your site's address (e.g. <code>https://username.github.io</code>) to <code>webCorsOriginList</code>, then restart Anki.</li>
                         <li>For one-click AMBOSS practice, install the <a href="https://amboss.com/us/anki/qbank" target="_blank" rel="noopener noreferrer">AMBOSS Anki add-on</a>. The notebook's <b>Start Qbank session</b> button opens your weak cards in Anki's Browse window, where the add-on turns them into a matching Qbank session.</li>
-                        <li>For B&amp;B, Bootcamp and ScholarRx, the page reads which videos a group of cards is tagged with (a lecture's picked cards, or an area's weak cards) and lists them with how many cards each covers. A video name is a link once the page knows its address: from your lecture's video link, your resource guide, a link inside a card, or one you save with <b>✎</b>. Otherwise <b>find</b> searches the site for it.</li>
+                        <li>For B&amp;B, Bootcamp and ScholarRx, the page reads which videos a group of cards is tagged with (a lecture's picked cards, or an area's weak cards) and lists them with how many cards each covers. B&amp;B names link straight to the video page (its <b>Take Video Quiz</b> button is right there), using the B&amp;B catalog built into this page. A lecture's B&amp;B list also includes videos its uploaded slides and quizzes cover, and a missed lecture-quiz question suggests the video to review. <b>Custom quiz</b> opens B&amp;B's quiz builder and names the sub-categories to pick. Bootcamp lessons link straight to the lesson, with a <b>quiz</b> link to its Bites, using the Bootcamp catalog built into this page (matched from your cards' #Bootcamp tags and from your slides). Anything that doesn't match can get an address with <b>✎</b>; otherwise <b>find</b> searches for it.</li>
                         <li>With AnkiHub Premium and a B&amp;B subscription, AnkiHub's B&amp;B viewer in Anki also shows the matching video for whichever card you're on, so <b>Open cards</b> takes you to the cards and from there to the video.</li>
                         <li>After each analysis, results sync to GitHub, so your phone shows the latest snapshot even without Anki.</li>
                     </ol>
@@ -1071,6 +1071,2591 @@ function countVideos(vids, labels) {
 const videoTops = (vids, n) => Object.fromEntries(Object.entries(vids).map(([k, m]) =>
     [k, [...m].sort((a, b) => b[1].count - a[1].count).slice(0, n).map(([label, e]) => [label, e.count, e.tag])]));
 
+// ---------- the B&B Step 1-Preclinical video catalog (read from your B&B account, Nov 26 2026: 499 videos) ----------
+// Each line: video ID | title | address slug if it isn't just the title | category | sub-category | quiz questions
+const BNB_CATS = ["Renal", "Pathology", "Cardiology", "Hematology", "Gastroenterology", "Psychiatry", "Endocrinology", "Neurology", "Biochemistry", "Infectious Disease", "Musculoskeletal", "Pulmonary", "Immunology", "Biostats/Epi", "Dermatology", "Cell Biology", "Reproductive", "Behavioral Science", "Genetics", "Basic Pharmacology", "Ophthalmology", "Anesthesia"];
+const BNB_SUBS = ["Acid-Base", "General Topics", "Heart Failure", "White Blood Cells", "Clinical Gastroenterology", "Pathology", "Adrenals", "Autonomic Nervous System", "Other Neurology Topics", "Substance Use Disorders", "Cancer Drugs", "Red Blood Cells", "Amino Acids", "Arrhythmias", "Hemostasis", "Pharmacology", "Fungi", "Hypertension", "Viruses", "Other Cardiovascular Topics", "Obstructive and Restrictive Diseases", "Cardiac Ischemia", "Nervous System Structures", "Vitamins", "Basic Immunology", "Basics of Microbiology", "Antibiotics", "Epidemiology", "GI Physiology", "Introduction to Neurology", "Anatomy and Physiology", "Laboratory Techniques", "Cell Biology", "Anatomy and Orthopedics", "Breast", "Electrolytes", "Embryology, Anatomy and Physiology", "The Developing Heart", "Cellular Biology", "Neurovascular Disorders", "Vagina, Cervix, Uterus", "Other Pulmonary Topics", "Embryology", "Psychology", "Reproductive", "Biostatistics", "Inflammatory Disorders", "Other Renal Topics", "Genetic Disorders", "Other Topics", "Previous Versions Still in Use", "Molecular Biology", "Molecular Biochemistry", "EKGs", "Metabolism", "Anatomy", "Genetic Concepts", "Pregnancy", "Diseases of the Nephron", "Pancreas", "Bacteria", "Cardiac Auscultation", "Parasites and Helminths", "Lipids", "Clinical Immunology", "Thyroid", "Ovary", "Male Disorders", "Autoimmune Disorders"];
+const BNB_DATA = `303|Acid Excretion||0|0|7
+104|Acid-Base Principles||0|0|11
+477|Acute and Chronic Inflammation||1|1|7
+7|Acute Heart Failure||2|2|10
+304|Acute Leukemias||3|3|10
+265|Acute Pancreatitis||4|4|5
+448|ADHD and Autism||5|5|5
+272|Adrenal Glands||6|6|11
+887|Adrenal Insufficiency||6|6|10
+889|Adrenal Tumors||6|6|8
+80|Adrenergic Drugs I||7|7|11
+81|Adrenergic Drugs II||7|7|12
+95|Adult Brain Tumors||7|8|12
+432|Alcohol and CNS Depressants||5|9|5
+322|Alkylating and Platinum Agents||3|10|10
+297|Alpha Thalassemias||3|11|9
+217|Amino Acids||8|12|4
+220|Ammonia||8|12|5
+309|Amyloidosis||3|3|11
+29|Antiarrhythmic Drugs I||2|13|10
+882|Antiarrhythmic Drugs II||2|13|10
+883|Antiarrhythmic Drugs III||2|13|10
+292|Anticoagulants||3|14|13
+918|Anticonvulsants I||7|8|10
+919|Anticonvulsants II||7|8|12
+436|Antidepressants||5|15|8
+177|Antifungal Drugs||9|16|5
+36|Antihypertensives I||2|17|10
+884|Antihypertensives II||2|17|10
+321|Antimetabolites||3|10|10
+291|Antiplatelets||3|14|11
+438|Antipsychotics||5|15|6
+323|Antitumor Antibiotics and Topoisomerase Drugs||3|10|9
+184|Antiviral Drugs||9|18|5
+442|Anxiety Disorders||5|5|9
+41|Aortic Disease||2|19|8
+474|Apoptosis||1|1|5
+421|Arthritis||10|5|9
+902|Asthma and Bronchiectasis|asthma-and-bronchiectasis|11|20|2
+470|Atherosclerosis||2|21|10
+26|Atrial Fibrillation and Flutter||2|13|12
+67|Auditory System||7|22|10
+79|Autonomic Nervous System I||7|7|7
+914|Autonomic Nervous System II||7|7|13
+485|Autonomic Receptors||7|7|10
+25|AV and Bundle Branch Blocks||2|13|10
+224|B Vitamins||8|23|5
+196|B-cells||12|24|6
+225|B12 and Folate||8|23|5
+157|Bacteria||9|25|8
+159|Bacterial Culture||9|25|4
+163|Bacterial Identification||9|25|6
+71|Basal Ganglia||7|22|9
+420|Benign Bone Tumors||10|5|13
+172|Beta Lactams||9|26|5
+936|Beta Thalassemia||3|11|9
+142|Bias||13|27|6
+240|Bile||4|28|5
+252|Biliary Disorders||4|4|5
+241|Bilirubin||4|28|6
+461|Blistering Disorders||14|1|7
+60|Blood Brain Barrier||7|29|8
+12|Blood Flow Mechanics||2|30|12
+300|Blood Groups||3|11|10
+333|Blotting||15|31|3
+416|Bone||10|32|9
+417|Bone Disorders||10|5|9
+411|Brachial Plexus||10|33|11
+922|Brain Injury||7|29|10
+65|Brainstem||7|22|10
+393|Breast Carcinoma||16|34|7
+392|Breast Disorders||16|34|5
+391|Breast Tissue||16|34|3
+932|Calcium, Phosphate and Magnesium||0|35|13
+127|Carbon Dioxide||11|36|11
+266|Carcinoid Tumors||4|4|2
+24|Cardiac Action Potentials||2|13|10
+10|Cardiac Anatomy||2|30|10
+8|Cardiac Embryology||2|37|10
+18|Cardiac Ischemia I||2|21|11
+881|Cardiac Ischemia II||2|21|11
+414|Cardiac Muscle||10|32|5
+11|Cardiac Physiology||2|30|11
+43|Cardiac Tumors||2|19|5
+337|Cell Cycle||15|38|5
+472|Cell Injury||1|1|3
+338|Cell Structure||15|38|5
+58|Cells of the Nervous System||7|29|11
+471|Cellular Adaptations||1|1|6
+70|Cerebellum||7|22|10
+63|Cerebral Cortex||7|22|7
+74|Cerebral Strokes||7|39|11
+386|Cervical Cancer||16|40|4
+140|Chest x-rays||11|41|5
+450|Child Abuse and Neglect||5|5|2
+923|Childhood Brain Tumors||7|8|11
+452|Childhood Disorders||5|5|8
+916|Cholinergic Drugs||7|7|7
+915|Cholinergic Toxidromes||7|7|8
+33|Chronic Heart Failure||2|2|10
+305|Chronic Leukemias||3|3|10
+256|Chronic Pancreatitis & Pancreatic Cancer||4|4|3
+260|Cirrhosis||4|4|5
+101|Clearance||0|36|9
+372|Cleft Lip and Palate||16|42|2
+148|Clinical Trials||13|27|5
+286|Coagulation I||3|14|12
+933|Coagulation II||3|14|11
+290|Coagulopathies||3|14|11
+358|Coarctation of the Aorta||2|37|9
+451|Cognitive Disorders||5|5|8
+929|Collecting Duct||0|36|10
+267|Colon Cancer||4|4|5
+906|Common Musculoskeletal Conditions||10|5|10
+446|Conditioning and Transference||5|43|3
+361|Confidentiality||17|1|11
+404|Congenital Adrenal Hyperplasia||6|6|9
+340|Connective Tissue||15|38|5
+892|Contraceptives||6|44|11
+130|COPD||11|20|5
+147|Correlations||13|45|2
+423|CPPD||12|46|3
+66|Cranial Nerves I||7|22|10
+912|Cranial Nerves II||7|22|10
+273|Cushing Syndrome||6|6|10
+403|CV Response to Exercise||2|30|10
+356|Cyanotic Congenital Heart Disease||2|37|10
+137|Cystic Fibrosis||11|41|8
+118|Cystic Kidney Disease||0|47|8
+339|Cytoskeleton||15|38|5
+900|Dead Space|dead-space|11|36|6
+362|Decision-Making Capacity||17|1|11
+42|Deep Vein Thrombosis & Pulmonary Embolism||11|41|9
+351|Deletion Syndromes||18|48|4
+92|Delirium||7|8|8
+920|Dementia||7|8|12
+93|Demyelinating Diseases||7|8|10
+62|Dermatomes and Reflexes||7|29|9
+931|Diabetes Insipidus||0|35|11
+151|Diagnostic Tests||13|27|5
+398|Disorders of Sexual Development||16|49|5
+445|Dissociative Disorders||5|5|4
+119|Diuretics||0|47|11
+325|DNA Drugs||3|50|0
+328|DNA Mutations||15|51|6
+329|DNA Repair||15|51|5
+327|DNA Replication||15|51|5
+204|DNA Structure||8|52|2
+183|DNA Viruses||9|18|5
+154|Dose-Response||19|1|5
+347|Down Syndrome||18|48|5
+155|Drug Elimination||19|1|6
+444|Eating Disorders||5|5|5
+447|Ego Defenses||5|43|10
+22|EKG Basics||2|53|10
+215|Electron Transport Chain||8|54|5
+335|ELISA||15|31|2
+367|Embryogenesis||16|42|3
+366|Embryonic Genes||16|42|3
+400|Endometrial Cancer||16|40|4
+387|Endometrial Disorders||16|40|3
+388|Endometriosis||16|40|3
+153|Enzyme Inhibitors||19|1|3
+152|Enzymes||19|1|5
+454|Epithelial Cells||14|1|7
+369|Errors in Morphogenesis||16|42|3
+262|Esophageal Disorders||4|4|5
+222|Ethanol Metabolism||8|54|5
+359|Ethics Principles||17|1|13
+481|Evidence-based Medicine||13|27|2
+223|Exercise and Starvation||8|54|5
+243|Exocrine Pancreas||4|28|4
+294|Extrinsic Hemolysis||3|11|9
+317|Eye Anatomy||20|1|9
+83|Eye Disorders||20|1|13
+221|Fatty Acids||8|54|5
+279|Female Reproductive Hormones||6|44|10
+334|Flow Cytometry||15|31|1
+100|Fluid Compartments||0|36|9
+473|Free Radicals||1|1|5
+212|Fructose and Galactose||8|54|6
+175|Fungal Pneumonias||9|16|5
+176|Fungal Skin Infections||9|16|5
+258|Gallstones||4|4|5
+268|Gastric Disorders||4|4|8
+246|Gastrointestinal Anatomy||4|55|3
+247|Gastrointestinal Blood Supply||4|55|5
+251|Gastrointestinal Embryology||4|55|5
+244|Gastrointestinal Hormones||4|28|5
+254|Gastrointestinal Pharmacology||4|4|3
+242|Gastrointestinal Secretions||4|28|3
+248|Gastrointestinal Tract||4|55|3
+319|Gaze Disorders||20|1|6
+342|Gene Mapping||18|56|2
+341|Genetic Principles||18|56|5
+374|Genital Embryology||16|42|6
+483|Geriatrics||17|1|2
+368|Germ Layers||16|42|3
+382|Gestational Tumors||16|57|6
+85|Glaucoma||20|1|9
+112|Glomerular Disease Principles||0|58|12
+926|Glomerular Filtration||0|36|10
+890|Glucagon & Hypoglycemia||6|59|10
+203|Glucocorticoids and NSAIDs||12|15|6
+209|Gluconeogenesis||8|54|5
+207|Glucose||8|54|4
+210|Glycogen||8|54|6
+208|Glycolysis||8|54|5
+426|Gout||12|46|5
+422|Gout Drugs||12|46|5
+167|Gram Negative Rods||9|60|5
+478|Granulomatous Inflammation||1|1|3
+162|Growth and Genetics||9|25|3
+410|Hand||10|33|10
+344|Hardy-Weinberg Law||18|56|5
+94|Headaches||7|8|10
+32|Heart Failure Basics||2|2|10
+3|Heart Murmurs||2|61|17
+30|Heart Sounds||2|61|11
+181|Helminths||9|62|5
+124|Hemoglobin||11|36|11
+293|Hemolysis Basics||3|11|11
+250|Hernias||4|55|7
+913|Herniation Syndromes||7|39|8
+185|Herpes Viruses||9|18|5
+23|High Yield EKGs||2|53|9
+408|Hip||10|33|10
+188|HIV||9|18|5
+97|HIV CNS Infections||9|18|5
+189|HIV Drugs||9|18|5
+211|HMP Shunt||8|54|6
+306|Hodgkin Lymphoma||3|3|9
+888|Hyperaldosteronism||6|6|8
+289|Hypercoagulable States||3|14|11
+229|Hyperlipidemia||8|63|7
+198|Hypersensitivity||12|64|5
+462|Hypersensitivity Disorders||14|1|9
+35|Hypertension||2|17|8
+380|Hypertension in Pregnancy||16|57|5
+270|Hyperthyroidism||6|65|9
+44|Hypertrophic Cardiomyopathy||2|19|10
+399|Hypogonadism||16|49|5
+111|Hyponatremia||0|35|12
+145|Hypothesis Testing||13|45|6
+886|Hypothyroidism and Thyroiditis||6|65|12
+901|Hypoxemia||11|36|8
+364|Hypoxia||11|36|7
+200|Immune Deficiency Syndromes||12|64|13
+201|Immunosuppressive Drugs||12|15|8
+346|Imprinting||18|56|2
+355|Inborn Errors of Metabolism||8|54|5
+45|Infective Endocarditis||2|19|10
+476|Inflammation Principles||1|1|5
+261|Inflammatory Bowel Disease||4|4|4
+360|Informed Consent||17|1|15
+86|Inhaled Anesthetics||21|1|9
+194|Innate Immunity||12|24|5
+274|Insulin||6|59|11
+276|Insulin Medications||6|59|7
+263|Intestinal Disorders||4|4|5
+76|Intracranial Aneurysms||7|39|12
+77|Intracranial Bleeding||7|39|9
+907|Intravenous Anesthetics||21|1|7
+295|Intrinsic Hemolysis||3|11|11
+216|Ketone Bodies||8|54|3
+120|Kidney Stones||0|47|14
+405|Knee||10|33|10
+316|Lens||20|1|9
+233|Lipid Drugs||8|63|5
+232|Lipid Metabolism||8|63|6
+437|Lithium||5|15|3
+259|Liver Disease||4|4|5
+255|Liver Tumors||4|4|4
+245|Liver, Gallbladder, and Pancreas||4|55|4
+87|Local Anesthetics||21|1|7
+928|Loop of Henle and Distal Tubule||0|36|12
+409|Lumbar Radiculopathy||10|33|9
+407|Lumbosacral Plexus||10|33|10
+135|Lung Cancer||11|41|8
+128|Lung Physical Exam||11|36|5
+202|Lymph Nodes and Spleen||12|24|6
+226|Lysosomal Storage Diseases||8|49|7
+264|Malabsorption||4|4|5
+179|Malaria||9|62|5
+285|Male Reproductive Hormones||6|44|12
+905|Malignant Bone Tumors|malignant-bone-tumors|10|5|8
+379|Maternal-Fetal Disorders||16|57|5
+343|Meiosis||18|56|5
+280|MEN Syndromes||6|49|5
+89|Meningitis I||7|8|10
+917|Meningitis II||7|8|10
+282|Menstrual Cycle||6|44|10
+108|Metabolic Acidosis I||0|0|17
+930|Metabolic Acidosis II||0|0|14
+106|Metabolic Alkalosis||0|0|11
+336|Microarrays and FISH||15|31|1
+296|Microcytic Anemias I||3|11|10
+935|Microcytic Anemias II||3|11|10
+324|Microtubule Inhibitors||3|10|7
+441|Mood Disorders||5|5|5
+924|Movement Disorders||7|8|10
+312|MPGN||0|58|5
+921|Multiple Sclerosis||7|8|10
+425|Muscle Disorders||10|5|8
+349|Muscular Dystrophy||18|48|3
+171|Mycobacteria||9|60|2
+310|Myeloproliferative Disorders||3|3|10
+475|Necrosis||1|1|5
+480|Neoplasia||1|1|5
+113|Nephritic Syndrome||0|58|11
+114|Nephrotic Syndrome||0|58|10
+59|Nerve Damage||7|29|9
+463|Neurocutaneous Disorders||14|1|10
+91|Neuroembryology||7|8|13
+88|Neuromuscular Blockers||21|1|12
+427|Neuromuscular Junction Disorders||7|8|9
+61|Neurotransmitters||7|29|11
+307|Non-Hodgkin Lymphoma||3|3|10
+429|Opioids||5|9|4
+178|Opportunistic Fungal Infections||9|16|5
+910|Optic Nerve||20|1|9
+418|Osteoporosis||10|5|7
+419|Osteoporosis Drugs||10|5|8
+219|Other Amino Acids||8|12|5
+299|Other Anemias||3|11|11
+174|Other Antibiotics||9|26|5
+326|Other Cancer Drugs||3|10|10
+434|Other Drugs||5|9|4
+168|Other Gram Negatives||9|60|6
+166|Other Gram Positives||9|60|5
+231|Other Vitamins||8|23|5
+389|Ovarian Cysts||16|66|3
+401|Ovarian Epithelial Tumors||16|66|4
+402|Ovarian Germ Cell Tumors||16|66|4
+390|Ovarian Stromal Tumors||16|66|3
+281|Parathyroid Glands||6|49|7
+896|Parathyroid Pathology||6|49|10
+72|Parkinson Disease||7|8|10
+27|Paroxysmal supraventricular tachycardia||2|13|5
+479|Pathologic Calcification||1|1|2
+332|PCR||15|31|1
+482|Pediatrics||17|1|5
+345|Pedigrees||18|56|5
+313|Penicillins||9|26|5
+394|Penile Disorders||16|67|4
+40|Pericardial Disease||2|19|10
+431|Personality Disorders||5|5|10
+156|Pharmacokinetics||19|1|4
+375|Pharyngeal Arches||16|42|3
+373|Pharyngeal Pouches and Clefts||16|42|4
+218|Phenylalanine and Tyrosine||8|12|5
+457|Pigment Disorders||14|1|6
+283|Pituitary Anatomy and Physiology||6|49|12
+895|Pituitary Pathology||6|49|5
+384|Placenta||16|57|4
+381|Placental Complications||16|57|6
+308|Plasma Cell Disorders||3|3|10
+288|Platelet Disorders||3|14|10
+287|Platelets||3|14|10
+134|Pleural Disease||11|41|10
+133|Pneumonia I||11|41|13
+903|Pneumonia II||11|41|10
+301|Porphyrias||3|11|9
+110|Potassium Disorders||0|35|10
+150|Predictive Values||13|27|6
+378|Pregnancy||16|57|5
+893|Primary Amenorrhea||6|44|8
+397|Prostate||16|67|6
+173|Protein Synthesis Inhibitors||9|26|5
+180|Protozoa||9|62|5
+102|Proximal Tubule||0|36|8
+428|Psychosis||5|5|2
+440|Psychotic Disorders||5|5|6
+363|Public Health||17|1|10
+122|Pulmonary Anatomy I||11|36|7
+897|Pulmonary Anatomy II||11|36|10
+125|Pulmonary Circulation||11|36|6
+469|Pulmonary Embryology||11|36|10
+129|Pulmonary Function Tests||11|20|4
+899|Pulmonary Hypertension||11|36|8
+123|Pulmonary Physiology I||11|36|7
+898|Pulmonary Physiology II||11|36|9
+205|Purine Metabolism||8|52|6
+14|PV Loops||2|30|10
+206|Pyrimidine Metabolism||8|52|5
+213|Pyruvate Dehydrogenase||8|54|5
+239|Quality and Safety||17|1|12
+13|Regulation of Blood Pressure||2|30|15
+99|Renal Anatomy||0|36|11
+121|Renal and Bladder Malignancies||0|47|10
+98|Renal Embryology||0|36|10
+116|Renal Failure||0|58|10
+107|Renal Tubular Acidosis||0|0|12
+103|Renin-Angiotensin-Aldosterone System||0|36|15
+278|Reproductive Hormones||6|44|10
+105|Respiratory Acid-Base Disorders||0|0|11
+354|Restrictive Cardiomyopathy||2|2|10
+131|Restrictive Lung Disease||11|20|5
+315|Retina||20|1|5
+908|Retinal Disorders I||20|1|6
+909|Retinal Disorders II||20|1|12
+236|Rheumatoid Arthritis||12|68|5
+143|Risk Quantification||13|27|7
+190|RNA Viruses||9|18|6
+911|Rule of 4s||7|22|10
+249|Salivary Glands||4|55|4
+139|Sarcoidosis||11|41|6
+235|Scleroderma||12|68|3
+395|Scrotal Disorders||16|67|5
+894|Secondary Amenorrhea||6|44|10
+311|Secondary Hypertension||2|17|10
+927|Secretion and Absorption||0|36|12
+90|Seizures||7|8|10
+149|Sensitivity and Specificity||13|27|5
+424|Seronegative Spondyloarthritis||12|68|5
+158|Shapes and Stains||9|25|6
+38|Shock||2|19|12
+406|Shoulder and Elbow||10|33|11
+357|Shunts||2|37|10
+298|Sickle Cell Disease||3|11|10
+468|Signaling Pathways||6|49|10
+234|Sjogren's Syndrome||12|68|4
+413|Skeletal Muscle||10|32|11
+453|Skin||14|1|7
+464|Skin Cancer||14|1|10
+455|Skin Disorders I||14|1|8
+456|Skin Disorders II||14|1|7
+460|Skin Infections||14|1|6
+136|Sleep Apnea||11|41|7
+925|Sleep Disorders||7|8|11
+443|Sleep Physiology||7|8|10
+412|Smooth Muscle||10|32|11
+435|Somatic and Factitious Disorders||5|5|5
+160|Special Growth Requirements||9|25|4
+376|Spermatogenesis and Oogenesis||16|57|3
+64|Spinal Cord||7|22|8
+96|Spinal Cord Syndromes||7|22|10
+169|Spirochetes||9|60|5
+21|Stable Angina||2|21|10
+164|Staphylococci||9|60|5
+17|Starling Curve||2|30|14
+141|Statistics||13|45|7
+19|STEMI||2|21|10
+433|Stimulants||5|9|4
+165|Streptococci||9|60|5
+144|Study Designs||13|27|6
+314|Sulfonamides||9|26|5
+238|Systemic Lupus Erythematosus||12|68|5
+353|Systolic and Diastolic Heart Failure||2|2|10
+195|T-cells||12|24|7
+214|TCA Cycle||8|54|3
+370|Teratogens I||16|42|6
+371|Teratogens II||16|42|5
+396|Testicular Cancer||16|67|5
+146|Tests of Significance||13|45|6
+69|Thalamus, Hypothalamus, Limbic System||7|22|10
+197|The Complement System||12|24|6
+484|The Healthy Patient||17|1|3
+934|Thrombotic Microangiopathy||3|14|10
+269|Thyroid Anatomy & Physiology||6|65|8
+271|Thyroid Cancer||6|65|11
+885|Thyroid Hormone Synthesis & Labs||6|65|8
+383|TORCH Infections||16|57|5
+330|Transcription||15|51|5
+331|Translation||15|51|5
+199|Transplants||12|64|4
+132|Treatment of COPD and Asthma||11|20|5
+277|Treatment of Diabetes Mellitus||6|59|13
+78|Treatment of TIA/Stroke|treatment-of-tia-stroke|7|39|10
+350|Trinucleotide Repeat Disorders||18|48|5
+348|Trisomy Disorders||18|48|2
+138|Tuberculosis||11|41|8
+904|Tuberculosis Diagnosis & Treatment||11|41|7
+115|Tubulointerstitial Disease||0|58|9
+352|Turner and Klinefelter Syndromes||18|48|8
+377|Twins||16|57|3
+275|Type I Diabetes||6|59|9
+891|Type II Diabetes||6|59|10
+20|Unstable Angina/NSTEMI|unstable-angina-nstemi|2|21|10
+117|Urinary Tract Infections||9|60|5
+385|Vaginal Cancer||16|40|2
+37|Valve Disease||2|19|10
+459|Vascular Lesions||14|1|8
+46|Vasculitis||12|68|8
+16|Venous Pressure Tracings||2|30|9
+126|Ventilation and Perfusion||11|36|8
+73|Ventricles and Sinuses||7|22|11
+75|Vertebrobasilar Stroke Syndromes||7|39|10
+68|Vestibular System||7|22|10
+186|Viral Hepatitis||9|18|6
+161|Virulence||9|25|8
+182|Virus Structure||9|18|7
+320|Visual Field Defects||20|1|7
+15|Wiggers Diagram||2|30|11
+253|Wilson's Disease and Hemochromatosis||4|4|5
+467|Wound Healing and Scar||1|1|7
+28|WPW||2|13|5
+415|Wrist||10|33|10
+170|Zoonotic Infections||9|60|5`;
+const BNB_CATALOG = BNB_DATA.split('\n').map(line => {
+    const [id, title, slug, c, sc, q] = line.split('|');
+    return { id: +id, title, slug: slug || title.trim().toLowerCase().replace(/\s+/g, '-'), cat: BNB_CATS[+c], sub: BNB_SUBS[+sc], q: +q };
+});
+const bnbUrl = v => 'https://www.boardsbeyond.com/video/step-1-p/' + encodeURIComponent(v.slug).replace(/%2C/g, ',').replace(/%27/g, "'");
+const BNB_CUSTOM_QUIZ = 'https://www.boardsbeyond.com/create-custom-quiz';
+const ROMAN = { i: '1', ii: '2', iii: '3', iv: '4' };
+const normTitle = s => String(s).toLowerCase().replace(/['’]/g, '').replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').replace(/\b(iv|iii|ii|i)\b/g, m => ROMAN[m]).replace(/\s+/g, ' ').trim();
+const TITLE_STOP = new Set(['and', 'the', 'of', 'in', 'to', 'a', 'an', 'other', 'basics', 'principles', 'pathway', 'clinical', 'implications', 'overview', 'part', 'introduction', 'intro', 'review', 'summary', 'disorders', 'disorder', 'drugs', 'diseases', 'disease', 'general', 'topics', '1', '2', '3', '4']);
+const titleTokens = s => normTitle(s).split(' ').filter(w => w && !TITLE_STOP.has(w)).map(w => w.length > 3 && /s$/.test(w) && !/(ss|us|is)$/.test(w) ? w.slice(0, -1) : w);
+let bnbIndex = null;
+// The catalog video for a B&B video name (from an AnKing tag, your resource guide, or a lecture): exact name first, then closest words
+function bnbMatch(name) {
+    if (!name) return null;
+    if (!bnbIndex) { bnbIndex = new Map(); BNB_CATALOG.forEach(v => bnbIndex.set(normTitle(v.title), v)); }
+    const n = normTitle(lastSeg(String(name)));
+    if (bnbIndex.has(n)) return bnbIndex.get(n);
+    const want = new Set(titleTokens(lastSeg(String(name))));
+    if (!want.size) return null;
+    let best = null;
+    BNB_CATALOG.forEach(v => {
+        const have = titleTokens(v.title), inter = have.filter(w => want.has(w)).length;
+        if (!inter) return;
+        const score = inter / new Set([...have, ...want]).size;
+        if (score >= 0.67 && (!best || score > best.score)) best = { v, score };
+    });
+    return best ? best.v : null;
+}
+// B&B videos whose titles come up in a lecture's slides and quizzes (each word of the title has to appear; the whole title counts most)
+function bnbVideosInText(text, max = 8) { return videosInText(BNB_CATALOG, text, max); }
+function videosInText(catalog, text, max = 8) {
+    const T = ' ' + normTitle(text) + ' ';
+    if (T.length < 40) return [];
+    const words = T.split(' ').length;
+    const count = w => { let n = 0, i = -1; while ((i = T.indexOf(' ' + w, i + 1)) >= 0) n++; return n; };
+    const out = [];
+    catalog.forEach(v => {
+        if (BC_GENERIC.test(v.title)) return;
+        const toks = [...new Set(titleTokens(v.title))];
+        if (!toks.length) return;
+        const counts = toks.map(count);
+        if (counts.some(c => !c)) return;
+        if (toks.length === 1) {   // one-word titles (Bone, Skin, Insulin, Enzymes) have to come up a lot, more in long documents
+            if (counts[0] >= Math.max(5, words / 400)) out.push([v.id, counts[0]]);
+            return;
+        }
+        const phrase = (T.split(' ' + normTitle(v.title) + ' ').length - 1);
+        const score = phrase * 3 + Math.min(...counts);
+        if (score >= 4) out.push([v.id, score]);
+    });
+    return out.sort((a, b) => b[1] - a[1]).slice(0, max);
+}
+const bnbById = id => BNB_CATALOG.find(v => v.id === id);
+
+// ---------- the Bootcamp Step 1 lesson catalog (read from your Bootcamp account, Nov 26 2026: 1,740 lessons in 230 units) ----------
+// Lessons: unit | name | position if it isn't 2 × its number in the unit (those also have a Bites quiz right after the video)
+const BC_SUBJECTS = `biochemistry|Biochemistry
+biostatistics|Biostatistics
+cardiology|Cardiology
+dermatology|Dermatology
+endocrinology|Endocrinology
+gastroenterology|Gastroenterology
+genetics|Genetics
+hematology-and-oncology|Hematology & Oncology
+immunology|Immunology
+microbiology|Microbiology
+musculoskeletal|Musculoskeletal
+nephrology|Nephrology
+neurology|Neurology
+pathology|Pathology (Principles)
+pharmacology|Pharmacology (Principles)
+psychiatry|Psychiatry
+public-health-sciences|Public Health Sciences
+pulmonology|Pulmonology
+reproduction|Reproduction`.split('\n').map(l => { const [route, name] = l.split('|'); return { route, name }; });
+const bcSlug = t => t.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const BC_UNITS = `0|Cell Biology
+0|Lysosomal Storage Diseases
+0|Connective Tissue
+0|Energy Production
+0|Carbohydrates
+0|One-Carbon Metabolism
+0|Oxidative Stress
+0|Glycogen
+0|Lipid Metabolism
+0|Protein Metabolism
+0|Porphyrias
+0|Vitamins
+1|Research Study Designs
+1|Bias and Study Errors
+1|Risk Quantification
+1|Diagnostic Tests
+1|Statistical Distributions
+1|Statistical Testing
+2|Embryology
+2|Anatomy
+2|Vascular System
+2|Cardiac Parameters of Physiologic Function
+2|Cardiac Function and Venous Return Curves
+2|Pressure-Volume Loops
+2|Vasodilation and Vasoconstriction
+2|Pressure and Flow Physiology
+2|Cardiac Cycle
+2|Renin-Angiotensin-Aldosterone System
+2|Exercise Physiology
+2|Cardiac Conductive Physiology
+2|Antiarrhythmics
+2|Atrial Arrhythmias
+2|Ventricular Arrhythmias
+2|Conduction Blocks
+2|Heart Failure
+2|Cardiomyopathy
+2|Aortic Disease
+2|Valvular Disease
+2|Acyanotic Congenital Heart Defects
+2|Cyanotic Congenital Heart Defects
+2|Stable Angina and Atherosclerosis
+2|Myocardial Infarction
+2|Peripheral Venous and Arterial Disease
+2|Hypertension
+2|Pericardial Disease
+2|Shock
+3|General Principles
+3|Infectious Diseases of the Skin
+3|Inflammatory Diseases of the Skin
+3|Malignant Skin Disorders
+3|Additional Dermatologic Disorders
+4|Fundamental Principles of Endocrinology
+4|Hypothalamus
+4|Anterior and Posterior Pituitary
+4|Thyroid
+4|Parathyroids
+4|Adrenal Glands
+4|Pancreas
+5|Embryology
+5|Oral Cavity
+5|Esophagus
+5|Stomach
+5|Liver
+5|Biliary System
+5|Pancreas
+5|Small Intestine
+5|Large Intestine
+5|Hernias
+6|DNA Structure
+6|DNA Replication, Transcription, and Translation
+6|DNA Mutations, Damage, and Repair
+6|Mitosis, Meiosis, and the Cell Cycle
+6|Laboratory Techniques
+6|Basics of Clinical Genetics
+6|High Yield Genetic Disorders
+7|Embryology
+7|Blood Cells
+7|Microcytic Anemia
+7|Normocytic Anemia
+7|Macrocytic Anemia
+7|Platelets
+7|Coagulation and Fibrinolysis
+7|Principles of Oncology and Therapeutics
+7|Leukemias and Lymphomas
+7|Plasma Cell Dyscrasias & Myeloproliferative Disease
+8|Lymphoid Tissue
+8|Innate vs Adaptive Immunity
+8|Inflammatory Response
+8|Cytokines
+8|T-cells
+8|B-cells
+8|Antibodies
+8|Complement
+8|Vaccinations
+8|Immunodeficiency Syndromes
+8|Hypersensitivities
+8|Blood Transfusion Reactions
+8|Transplant Rejection
+9|Fundamentals of Bacteriology
+9|Bacterial Genetics
+9|Bacterial Toxins
+9|Staphylococcus
+9|Streptococcus
+9|Enterococcus and Bacillus
+9|Clostridium
+9|Mycobacteria
+9|Non-Spore-Forming Gram-Positive Bacilli
+9|Lactose-Fermenting Gram-Negative Bacilli
+9|Non-Lactose-Fermenting Gram-Negative Bacilli
+9|Gram-Negative Curved Rods
+9|Gram-Negative Diplococci
+9|Gram-Negative Coccobacilli
+9|Spirochetes
+9|Atypical Bacteria
+9|Dimorphic Mycosis
+9|Opportunistic Mycosis
+9|Tinea
+9|Gastrointestinal Protozoa
+9|Systemic Protozoa
+9|Nematodes
+9|Cestodes
+9|Trematodes
+9|Ectoparasites
+9|Approach to Virology
+9|Basics of Virology
+9|Positive-sense RNA Viruses
+9|Negative-sense RNA Viruses
+9|Double-stranded RNA Viruses
+9|DNA Viruses
+9|Cardiorespiratory Infections
+9|Infectious Neuropathology
+9|Infectious Dermatologic Disease
+9|Opportunistic Infections
+9|Antibiotics
+9|Antifungals
+9|Antiparasitics
+9|Antivirals
+10|Skeletal Muscle
+10|Non-Rheumatologic Diseases
+10|Rheumatologic Diseases
+10|Seronegative Spondyloarthritis
+10|Primary Bone Tumors
+10|Vasculitides
+10|Spine
+10|Brachial Plexus Nerves & Lesions
+10|Shoulder & Elbow
+10|Wrist & Hand
+10|Lower Extremity Nerves
+10|Hip & Knee
+10|Foot & Ankle
+10|Childhood Musculoskeletal Pathology
+10|Pharmacology
+11|Anatomy & Embryology
+11|Fluid & Filtration Physiology
+11|Nephron Transporters
+11|Renin-Angiotensin-Aldosterone System
+11|Electrolytes
+11|Acid-Base Physiology
+11|Pathology Diagnostics
+11|Nephrotic Syndromes
+11|Nephritic Syndromes
+11|Nephrolithiasis
+11|Urinary Incontinence
+11|Kidney Injury
+11|Inflammatory Conditions & Malignancy
+11|Cystic Kidney Disease
+11|Renal Pharmacology
+12|Embryology
+12|Cellular Function
+12|Ascending Spinal Cord Tracts
+12|Descending Spinal Cord Tracts
+12|Brainstem Anatomy
+12|Cerebral Cortex
+12|Radiculopathy
+12|Spinal Cord Syndromes
+12|Invasive Spinal Cord Disease
+12|Demyelinating Disease
+12|Conduction Physiology
+12|Neuromuscular Junction (NMJ)
+12|Cranial Nerves 1-6
+12|Cranial Nerves 7-12
+12|Vision
+12|Auditory Sensation
+12|Vertigo
+12|Pediatric Brain Tumors
+12|Adult Primary Brain Tumors
+12|Ischemic Cerebrovascular Accidents
+12|Aneurysms and Intracranial Hemorrhage
+12|Cerebellum and Ventricles
+12|Diencephalon
+12|Basal Ganglia
+12|Neurotransmitter Activity in Psychiatric Disease
+12|Dementia
+12|Headache
+12|Seizures
+12|Traumatic Brain Injuries
+13|Inflammatory Response
+13|Cellular Injury & Neoplasia
+14|Pharmacodynamics
+14|Pharmacokinetics
+14|Autonomic System
+14|Side Effects and Toxins
+15|Psychology
+15|Developmental Disorders
+15|Memory, Dissociation, and Orientation
+15|Anxiety, Trauma, and Stress Disorders
+15|Personality Disorders
+15|Psychotic and Mood Disorders
+15|Sleep and Psychosomatic Conditions
+15|Substance Misuse
+15|Pharmacology
+16|Ethics
+16|Communication & Interpersonal Skills|communication
+16|Delivering Care
+16|Safety
+16|Practice Questions
+17|Introduction to the Respiratory System
+17|Air Physiology|air
+17|Blood Physiology|blood
+17|Lung Pathology Fundamentals
+17|Obstructive Lung Disease
+17|Restrictive Lung Disease
+17|Lung Cancer
+17|Lung Pathology Special Topics
+18|Fetal Development
+18|Pregnancy and Menstruation
+18|Pathologies of Pregnancy
+18|Female Pathology
+18|Male Pathology
+18|Pharmacology`.split('\n').map(l => { const [si, name, route] = l.split('|'); return { s: BC_SUBJECTS[+si], name, route: route || bcSlug(name) }; });
+const BC_CATALOG = (() => {
+    const per = {};
+    return `0|Cell Trafficking
+0|I-Cell Disease
+0|Signal Recognition
+0|Peroxisome
+0|Ubiquitin-Proteasome
+0|Cytoskeleton
+0|Primary Ciliary Dyskinesia
+0|Sodium-Potassium Pump
+0|Board-style Question Breakdown
+1|Intro to Lysosomal Storage Diseases
+1|Tay-Sachs Disease
+1|Fabry Disease
+1|Metachromatic Leukodystrophy
+1|Krabbe Disease
+1|Gaucher Disease
+1|Niemann-Pick Disease
+1|Mucopolysaccharidoses
+1|Summary of Lysosomal Storage Diseases
+1|Board-style Question Breakdown
+2|Collagen Types
+2|Collagen Structure, Mutations, and Wound Healing
+2|Collagen Synthesis
+2|Osteogenesis Imperfecta
+2|Ehlers Danlos Syndrome
+2|Menkes Disease
+2|Elastin and Fibrillin
+2|Marfan Syndrome
+2|Board-style Question Breakdown
+3|Introduction to Energy Production
+3|Glycolysis: Key Substrates
+3|Glycolysis: Key Enzymes and Aerobic vs. Anaerobic Glycolysis
+3|Regulation of Phosphofructokinase
+3|Pyruvate Dehydrogenase Complex
+3|Fates of Pyruvate
+3|Tricarboxylic Acid Cycle: Key Substrates
+3|Tricarboxylic Acid Cycle: Key Enzymes
+3|Electron Transport Chain
+3|Clinical Implications of the Electron Transport Chain
+3|ATP Export and Phosphocreatine
+3|Board-style Question Breakdown
+4|Gluconeogenesis: Pathway
+4|Gluconeogenesis: Starting Substrates
+4|Malate-Aspartate Shuttle
+4|Fructose Metabolism: Pathway
+4|Fructose Metabolism: Clinical Implications
+4|Sorbitol and the Polyol Pathway
+4|Galactose Metabolism: Pathway
+4|Galactose Metabolism: Clinical Implications
+4|Board-style Question Breakdown
+5|Absorption of Folate
+5|Sources of One-Carbon Groups
+5|Uses of One-Carbon Groups
+5|Activated Methyl Group Cycle: Pathway
+5|Activated Methyl Group Cycle: Clinical Implications
+5|Homocysteine Metabolism
+5|Homocystinuria: Pathophysiology
+5|Homocystinuria: Presentation, Diagnostics, and Management
+5|Board-style Question Breakdown
+6|Pentose Phosphate Pathway
+6|Pentose Phosphate Pathway: Uses of NADPH and Clinical Implications
+6|Respiratory (Oxidative) Burst: Pathway
+6|Respiratory (Oxidative) Burst: Clinical Implications
+6|Ethanol Metabolism: Pathway
+6|Ethanol Metabolism: Applications Across Biochemistry
+6|Board-style Question Breakdown
+7|Glycogenesis
+7|Glycogenolysis
+7|Regulation of Glycogen Metabolism
+7|Overview of Glycogen Storage Diseases (GSDs)
+7|Von Gierke Disease
+7|Pompe Disease
+7|Cori Disease
+7|Andersen Disease
+7|McArdle Disease
+7|Hers Disease
+7|Summary of Glycogen Storage Diseases
+7|Board-style Question Breakdown
+8|Introduction to Lipids
+8|Lipid Digestion and Absorption: Triglycerides
+8|Lipid Digestion and Absorption: Cholesterol and Clinical Implications
+8|Introduction to Lipid Transport Proteins and Enzymes: Lipoproteins
+8|Introduction to Lipid Transport Proteins and Enzymes: Enzymes and Apolipoproteins
+8|Lipid Transport: Triglyceride and Cholesterol Import to Liver
+8|Lipid Transport: Lipoprotein Export from Liver
+8|Lipid Transport: Peripheral Cholesterol Activity and Summary of Lipid Transport
+8|Hyperlipidemia Pharmacology
+8|Familial Dyslipidemias
+8|Adipocytes and Lipolysis
+8|Fatty Acid Degradation: Carnitine Shuttle
+8|Fatty Acid Degradation: β-Oxidation
+8|Disorders of Fatty Acid Metabolism
+8|Fatty Acid Synthesis
+8|Ketones: Ketone Synthesis
+8|Ketones: Ketoacidosis Review and Ketogenolysis
+8|Fed vs. Fasting State
+8|Board-style Question Breakdown
+9|Introduction to Proteins
+9|Protein Digestion and Absorption: Stomach Digestion and Endopeptidases
+9|Protein Digestion and Absorption: Exopeptidases and Absorption
+9|Phenylalanine, Tyrosine, and Catecholamines
+9|Clinical Implications of Phenylalanine Metabolism: Phenylketonuria
+9|Clinical Implications of Phenylalanine Metabolism: Alkaptonuria and Albinism
+9|Tryptophan, Niacin, and Serotonin: Niacin Pathway and Hartnup Disease
+9|Tryptophan, Niacin, and Serotonin: Serotonin Pathway and AADC Deficiency
+9|Metabolism of Charged Amino Acids
+9|Cystinuria and Organic Acidemias: Cystinuria
+9|Cystinuria and Organic Acidemias: Organic Acidemias
+9|Branched Chain Amino Acids
+9|Summary of High Yield Disorders of Amino Acid Metabolism
+9|Ammonia Transport: Cahill (Alanine) Cycle
+9|Ammonia Transport: Cori (Lactic Acid) Cycle, Glutamine Cycle, and Clinical Implications
+9|Urea Cycle: Pathway
+9|Urea Cycle: Clinical Implications
+9|Disorders of the Urea Cycle
+9|Board-style Question Breakdown
+10|Heme Synthesis
+10|Heme Synthesis Regulation
+10|Sideroblastic Anemia
+10|Acute Intermittent Porphyria
+10|Porphyria Cutanea Tarda
+10|Board-style Question Breakdown
+11|Introduction to Vitamins
+11|Vitamin A
+11|Vitamin D: Synthetic Pathway
+11|Vitamin D: Clinical Implications
+11|Vitamin K: Vitamin K Cycle
+11|Vitamin K: Clinical Implications
+11|Vitamin E: Antioxidant Pathway and Functions
+11|Vitamin E: Clinical Implications
+11|Vitamin C
+11|Vitamin B1 (Thiamine)
+11|Vitamin B3 (Niacin)
+11|Vitamin B6 (Pyridoxine)
+11|Vitamin B9 (Folate)
+11|Vitamin B12 (Cobalamin)
+11|Other B Vitamins
+11|Trace Elements
+11|Board-style Question Breakdown
+12|Intro to Research Design
+12|Descriptive Studies
+12|Longitudinal Studies
+12|Heritability Studies
+12|Experimental Studies
+12|Evaluating Research Studies
+12|Board-style Question Breakdown
+13|Types of Study Errors
+13|Recruitment Bias
+13|Performing Bias
+13|Interpretation Bias
+13|Board-style Question Breakdown
+14|Morbidity Frequency Measures
+14|Interpreting Prevalence and Incidence
+14|Morbidity Frequency Measures Practice Question
+14|Mortality Frequency Measures|7
+14|Relative Risk|9
+14|Odds Ratio|11
+14|Odds Ratio and Relative Risk Practice Question 1|13
+14|Odds Ratio and Relative Risk Practice Question 2|14
+14|Additional Calculations with Relative Risk|15
+14|Additional Calculations with Relative Risk Practice Question|17
+15|Sensitivity and Specificity
+15|Positive and Negative Predictive Values
+15|Diagnostic Test Thresholds
+15|Sensitivity, Specificity, PPV, and NPV Practice Question
+15|Likelihood Ratio|9
+15|Board-style Question Breakdown|11
+16|Measures of Central Tendency
+16|Measures of Dispersion
+16|Normal and Non-normal Distributions
+16|Statistical Distributions - Practice Problem 1
+16|Statistical Distributions - Practice Problem 2|9
+17|Hypothesis Testing
+17|Testing Errors
+17|Nominal Independent Variables
+17|Interval Independent Variables
+17|Hypothesis Testing and Errors - Practice Question
+17|Confidence Intervals|11
+17|Confidence Intervals - Practice Question|13
+18|Embryologic Derivatives
+18|Truncus Arteriosus
+18|Atrial Septation
+18|Aortic Arch Derivatives and Pharyngeal Arches
+18|Board-style Question Breakdown
+19|General Anatomical Overview
+19|Cardiac Silhouette: Chest Radiography
+19|Axial Imaging: CT and MRI
+19|Penetrating Cardiac Injury
+19|Cardiac Conduction Anatomy
+19|Radiofrequency Ablation Targets
+19|Coronary Artery Anatomy
+19|Coronary Sinus
+19|Cardiac Catheterization
+19|Board-style Question Breakdown
+20|Aorta
+20|Subclavian Steal Syndrome
+20|Venous Drainage Obstruction
+20|Coronary Bypass Grafting
+20|Femoral Access
+20|Inferior Vena Cava
+20|Board-style Question Breakdown
+21|Stroke Volume
+21|Stroke Volume Variables
+21|Heart Rate
+21|Frank-Starling Mechanism
+21|Cardiac Output
+21|Mean Arterial Pressure
+21|Coronary Blood Flow & Autoregulation
+21|Board-style Question Breakdown
+22|Cardiac Function Curves
+22|Venous Return Curves
+22|Combined Cardiac Function & Venous Return Curves
+22|Board-style Question Breakdown
+23|Basic Principles
+23|Determinants
+23|Valvular Disease
+23|Advanced Pathophysiology
+23|Board-style Question Breakdown
+24|Endothelial Regulated Vasodilation
+24|Excitation-Contraction Coupling
+24|G-Protein Coupled Receptor Vasoconstriction Pathway
+24|Pharmacologic Targets
+24|Board-style Question Breakdown
+25|Vessel Compliance
+25|Blood Flow
+25|Sensory Receptors of Vasculature
+25|Board-style Question Breakdown
+26|Auscultation
+26|Heart Sounds
+26|Cardiac Cycle
+26|Jugular Venous Waveform
+26|Classic Disorders
+26|Board-Style Question Breakdown
+27|RAAS Regulation
+27|Angiotensin II
+27|Natriuretic Peptides
+27|Direct Pharmacologic Targets
+27|Board-style Question Breakdown
+28|Physiologic Changes of Exercise
+28|Rate of Oxygen Consumption in Exercise
+28|Cardiac Output in Athletes
+28|Board-style Question Breakdown
+29|Cardiac Conduction System
+29|Pacemaker Action Potential
+29|Non-Pacemaker Action Potential
+29|Variables of Cardiac Potentials
+29|Board-Style Question Breakdown
+30|Antiarrhythmics Overview
+30|Class I Antiarrhythmics
+30|Class II Antiarrhythmics (Beta-blockers)
+30|Class III Antiarrhythmics (Potassium Channel Blockers)
+30|Class IV Antiarrhythmics (Calcium Channel Blockers)
+30|Class V Antiarrhythmics
+30|Other Drug Properties & Adverse Effects
+30|Summary Table
+30|Board-style Question Breakdown|17
+31|Atrial Fibrillation
+31|Atrial Flutter
+31|Sick Sinus Syndrome
+31|Board-Style Question Breakdown
+32|Supraventricular Tachycardia
+32|Wolff-Parkinson-White Syndrome
+32|Torsades De Pointes
+32|Monomorphic Ventricular Tachycardia, Ventricular Fibrillation
+32|Board-style Question Breakdown
+33|Atrioventricular Blocks
+33|Bundle Branch Blocks
+33|Cardiac Conduction Blood Supply
+33|Board-style Question Breakdown
+34|Pathology Heart Failure Overview
+34|Systolic Heart Failure
+34|Diastolic Heart Failure
+34|High & Low Output Heart Failure
+34|Pharmacologic Targets
+34|Board-style Question Breakdown
+35|Cardiomyopathy - Overview
+35|Dilated Cardiomyopathy
+35|Restrictive Cardiomyopathy
+35|Hypertrophic Obstructive Cardiomyopathy
+35|Viral Myocarditis
+35|Chagas Disease
+35|Takotsubo Cardiomyopathy
+35|Amyloid Cardiomyopathy
+35|Aging of Cardiomyocytes
+35|Other Causes of Cardiomyopathy
+35|Board-style Question Breakdown
+36|Anatomical Considerations
+36|Aortic Dissection
+36|Aortic Aneurysm
+36|Cardiac Considerations of Marfan Syndrome
+36|Aortic Coarctation
+36|Board-Style Question Breakdown
+37|Valvular Disease - Overview
+37|Aortic Stenosis
+37|Aortic Regurgitation
+37|Mitral Stenosis
+37|Mitral Regurgitation
+37|Mitral Valve Prolapse
+37|Tricuspid Regurgitation
+37|Board-style Question Breakdown
+38|Acyanotic Congenital Heart Defects - Overview
+38|Ventricular Septal Defect
+38|Atrial Septal Defect
+38|Patent Foramen Ovale
+38|Patent Ductus Arteriosus
+38|Eisenmenger Syndrome
+38|Board-style Question Breakdown
+39|Cyanotic Congenital Heart Defects - Overview
+39|Tetralogy of Fallot
+39|Transposition of Great Vessels
+39|Persistent Truncus Arteriosus
+39|Tricuspid Atresia
+39|Total Anomalous Pulmonary Venous Return
+39|Board-style Question Breakdown
+40|Arterial Disease
+40|Atherosclerosis
+40|Plaque Stability
+40|Coronary Artery Disease
+40|Stable Angina
+40|Vasospastic Angina
+40|Anti-anginal Therapy
+40|Board-style Question Breakdown
+41|Acute Coronary Syndromes
+41|Myocardial Infarction
+41|Post-Myocardial Infarction Timeline
+41|ECG Localization in STEMI
+41|Cardiac Biomarkers
+41|Management
+41|Board-style Question Breakdown
+42|Peripheral Venous Disease
+42|Peripheral Artery Disease
+42|Lower Extremity Ulcers
+42|Board-style Question Breakdown
+43|Hypertension - Overview
+43|Essential Hypertension
+43|Hypertension Variants
+43|Hypertensive End-Organ Disease
+43|Secondary Hypertension
+43|Antihypertensives
+43|Board-style Question Breakdown
+44|Acute Pericarditis
+44|Constrictive Pericarditis
+44|Pericardial Effusion
+44|Cardiac Tamponade
+44|Board-style Question Breakdown
+45|Shock - Overview
+45|Hypovolemic Shock
+45|Cardiogenic Shock
+45|Obstructive Shock
+45|Septic Shock
+45|Anaphylactic Shock
+45|Neurogenic Shock
+45|Board-style Question Breakdown
+46|Skin Structure and Function
+46|Histopathology
+46|Skin Lesions
+47|Bacterial Infectious Diseases
+47|Herpes Simplex and Varicella Infections
+47|Viral Infectious Conditions
+47|Candida
+47|Fungal Infectious Conditions
+48|Autoimmune Blistering Conditions
+48|Reactive Disease
+48|Atopic and Allergic Diseases
+48|Pustular Disease
+48|Red Plaque Disease
+49|Skin Cancer
+49|Melanoma
+50|Burns
+50|Vascular Tumors
+50|Benign Dark Skin Lesions
+51|General Principles
+51|Endocrine Glands
+51|Feedback Loops
+52|Hypothalamus
+52|RAAS and ADH Rapid Review
+52|SIADH
+52|Diabetes Insipidus
+52|Hyponatremia
+52|Board-style Question Breakdown 1
+52|Board-style Question Breakdown 2|13
+53|Pituitary: Embryology
+53|Anterior Pituitary: Function
+53|Posterior Pituitary: Function
+53|Gigantism and Acromegaly
+53|Growth Hormone Deficiency
+53|Hyperprolactinemia
+53|Hypopituitarism
+54|Thyroid and Parathyroid Development
+54|Thyroid Anatomy and Function
+54|T3, T4 Synthesis and Pharmacology
+54|Hyperthyroidism: Graves Disease
+54|Hyperthyroidism: Other Causes
+54|Hyper/Hypothyroidism: Hashimoto's and Postpartum Thyroiditis
+54|Hyper/Hypothyroidisim: De Quervain and Riedel Thyroiditis
+54|Hypothyroidism: Other Causes
+54|Thyroid Malignancies
+55|Parathyroid Location and Function
+55|Vitamin D Deficiency
+55|Hypoparathyroidism
+55|Hyperparathyroidism
+55|Familial Hypocalciuric Hypercalcemia
+56|Adrenal Gland Physiology
+56|Adrenal Insufficiency Overview
+56|Primary Adrenal Insufficiency
+56|Secondary Adrenal Insufficiency
+56|Tertiary Adrenal Insufficiency
+56|Hypercortisolism (Cushing Syndrome)
+56|Hypercortisolism (Cushing Syndrome) Review
+56|Hyperaldosteronism
+56|Adrenal Neoplasms
+56|Adrenal Cortex Pathways Overview
+56|21-hydroxylase Deficiency
+56|17-α-hydroxylase Deficiency
+56|11-β-hydroxylase Deficiency
+56|5-α-reductase Deficiency
+56|Approaching Differences of Sexual Differentiation Questions
+57|Pancreas Physiology
+57|Insulin Physiology
+57|Diabetes Mellitus
+57|Diabetes Type 1 and Type 2
+57|Diabetic Complications
+57|Diabetic Ketoacidosis
+57|Hyperosmolar Hyperglycemic State
+57|Diabetes Type 1: Management
+57|Diabetes Type 2: Management Part I
+57|Diabetes Type 2: Management Part II
+58|General Gastrointestinal Embryology
+58|Midgut Development
+58|Foregut Development
+58|Ventral and Abdominal Wall Defects
+58|Tracheoesophageal Defects
+58|Hypertrophic Pyloric Stenosis
+58|Intestinal and Biliary Atresia
+58|Pancreatic Anomalies
+58|Board-style Question Breakdown
+59|Pharyngeal Arch Derivatives of Mastication
+59|Tongue and Gustation
+59|Labial and Gingival Pathology
+59|Oral Mucosal Pathology
+59|Orofacial Cleft Defects
+59|Salivary Glands
+59|Sialolithiasis, Sialdenitis, Actinomycosis
+59|Salivary Gland Tumors
+59|Oropharyngeal Pathology
+59|Board-style Question Breakdown
+60|Esophageal General Principles
+60|Esophageal Motility
+60|Achalasia
+60|Additional Disorders of Esophageal Motility
+60|Gastroesophageal Reflux Disease
+60|Barrett Esophagus
+60|Esophagitis
+60|Plummer-Vinson Syndrome and Zenker Diverticulum
+60|Additional Causes of Dysphagia
+60|Esophageal Barotrauma and Bleeding
+60|Esophageal Malignancy
+60|Board-Style Question Breakdown
+61|Gastric General Principles
+61|Celiac Trunk
+61|Gastrointestinal Ligaments
+61|Gastric Cells
+61|Gastric Acid and Gastrin
+61|Pepsinogen, Histamine, and Somatostatin
+61|Secretin
+61|CCK, GIP, GLP-1, and PGE2
+61|Parietal Cell Physiology
+61|Vitamin B12 Absorption
+61|Pernicious Anemia
+61|Gastritis Overview
+61|Acute Erosive Gastritis, Stress Ulcers, and Chronic Gastritis
+61|Helicobacter Pylori Infection
+61|Ménétrier Disease
+61|Peptic Ulcer Disease
+61|Complications of Peptic Ulcer Disease
+61|Gastrinoma (Zollinger-Ellison Syndrome)
+61|Gastric Malignancy Overview
+61|Gastric Adenocarcinoma, GIST, and MALT Lymphoma
+61|Proton Pump Inhibitors and H2 Antagonists
+61|Antacids
+61|Additional Gastric Pharmacology
+61|Board-style Question Breakdown
+62|Liver Anatomy and Metabolism
+62|Hepatic Microarchitecture
+62|Hepatic Zones
+62|Alcohol-induced Hepatitis Pathophysiology and Presentation
+62|Alcohol-induced Hepatitis Diagnostics and Histopathology
+62|Metabolic Dysfunction-Associated Steatotic Liver Disease
+62|Autoimmune Hepatitis
+62|Wilson Disease
+62|Hereditary Hemochromatosis
+62|⍺-1 Antitrypsin Deficiency and Ischemic Hepatitis
+62|Reye Syndrome and Acetaminophen Toxicity
+62|Inhaled Anesthetic Toxicity and Acute Viral Hepatitis
+62|Cirrhosis Fundamental Pathophysiology
+62|Cirrhosis Advanced Pathophysiology
+62|Cirrhosis Clinical Manifestations and Diagnostics
+62|Portocaval Anastomoses
+62|Pathophysiology of Portal Hypertension
+62|Complications and Diagnostics of Portal Hypertension
+62|Hyperammonemia, TIPS Procedure, and Congestive Hepatopathy Histopathology
+62|Ascites
+62|Spontaneous Bacterial Peritonitis, Peritoneal Carcinomatosis, and SAAG
+62|Hepatocellular Carcinoma
+62|Additional Liver Masses
+62|Board-style Question Breakdown
+63|General Principles of the Biliary System
+63|Bilirubin Metabolism
+63|General Principles of Hyperbilirubinemia
+63|Hereditary Hyperbilirubinemias
+63|Neonatal Hyperbilirubinemia
+63|Bile Acids
+63|Cholelithiasis
+63|Biliary Stones
+63|Biliary Colic
+63|Acute Cholecystitis
+63|Choledocholithiasis
+63|Acute (Ascending) Cholangitis
+63|Primary Sclerosing Cholangitis
+63|Primary Biliary Cholangitis
+63|Biliary Malignancy
+63|Gallstone Ileus
+63|Board-style Question Breakdown
+64|General Principles of the Pancreas
+64|Exocrine Pancreas
+64|Pancreatic Ductal Physiology
+64|Acute Pancreatitis|7
+64|Complications of Pancreatitis|9
+64|Chronic Pancreatitis|11
+64|Pancreatic Adenocarcinoma|13
+64|Pancreatic Neuroendocrine Tumors|15
+64|Board-style Breakdown Question|17
+65|General Principles: Duodenum
+65|General Principles: Jejunum and Ileum
+65|Small Intestine Histology
+65|Nutrient Absorption
+65|Small Bowel Obstruction
+65|Large Bowel Obstruction and Ileus
+65|Superior Mesenteric Artery Syndrome
+65|Acute Upper Gastrointestinal Bleeding
+65|Celiac Disease Pathophysiology
+65|Celiac Disease Presentation and Diagnostics
+65|Lactose Intolerance
+65|Whipple Disease
+65|Small Intestinal Bacterial Overgrowth and Roux-en-Y Gastric Bypass
+65|Additional Malabsorption Syndromes
+65|Mesenteric Ischemia
+65|Meckel Diverticulum
+65|Intussusception
+65|Carcinoid Tumor
+65|Board-style Question Breakdown
+66|General Overview of the Large Intestine
+66|Pectinate Line
+66|Hemorrhoids and Anorectal Disorders
+66|Crohn Disease
+66|Ulcerative Colitis
+66|Irritable Bowel Syndrome
+66|Appendicitis
+66|Diverticulosis and Diverticulitis
+66|Hirschsprung Disease
+66|Volvulus
+66|Angiodysplasia
+66|Colon Ischemia
+66|Colonic Polyps
+66|Colorectal Carcinogenesis Molecular Pathway
+66|Colorectal Cancer
+66|Polyposis Syndromes
+66|Anticonstipation Medications
+66|Antidiarrheal Medications
+66|Antiemetic Medications
+66|Board-style Question Breakdown
+67|General Principles of Hernias
+67|Inguinal Hernias
+67|Femoral Hernia
+67|Diaphragmatic Hernias
+67|Spigelian Hernias
+67|Board-style Question Breakdown
+68|DNA Primary Structure
+68|Purine Synthesis and Salvage
+68|Clinical Applications of the Purine Pathway
+68|Pyrimidine Synthesis
+68|Clinical Applications of the Pyrimidine Pathway
+68|DNA Tertiary Structure
+69|DNA Replication
+69|Organization of a Gene
+69|DNA Transcription
+69|tRNA Structure
+69|DNA Translation
+69|Lac Operon
+70|DNA Mutations and Damage
+70|Single Stranded Repair
+70|Double Stranded Repair
+71|Mitosis
+71|Meiosis
+71|Meiosis Errors
+71|Cell Cycle
+72|Polymerase Chain Reaction
+72|CRISPR/Cas9
+72|Southern, Western, and Northern Blots
+72|Microarray, GWAS, Karyotype, FISH
+72|ELISA
+73|Hardy-Weinberg
+73|Punnett Squares
+73|Pedigrees and Modes of Inheritance
+73|Genetics Concepts|9
+74|Disorders of Imprinting
+74|Key Mutations: Cystic Fibrosis & Sickle Cell Anemia
+74|Muscular Dystrophies
+74|Trinucleotide Repeat Expansion Diseases
+74|Autosomal Trisomies
+74|Microdeletions
+75|Embryology - Overview
+75|Hemolytic Disease of the Newborn
+75|Board-style Question Breakdown
+76|Thrombocyte
+76|Erythrocyte
+76|Mast Cell
+76|Basophil
+76|Neutrophil
+76|Eosinophil
+76|Monocyte and Macrophage
+76|Board-style Question Breakdown
+77|Overview of Anemia
+77|Iron Homeostasis
+77|Iron Deficiency Anemia
+77|Anemia of Chronic Disease
+77|Lead Toxicity
+77|Sideroblastic Anemia
+77|Hemoglobin
+77|⍺-Thalassemia
+77|β-Thalassemia
+77|Board-style Question Breakdown
+78|Principles of Normocytic Anemias
+78|Hemolysis
+78|Sickle Cell Anemia
+78|Paroxysmal Nocturnal Hemoglobinuria
+78|Hereditary Spherocytosis
+78|G6PD Deficiency
+78|Pyruvate Kinase Deficiency
+78|Autoimmune Hemolytic Anemia
+78|Aplastic Anemia
+78|Additional Normocytic Anemias
+78|Board-style Question Breakdown
+79|Folate (Vitamin B9) Deficiency
+79|Cobalamin (Vitamin B12) Deficiency
+79|Orotic Aciduria
+79|Non-megaloblastic Anemia
+79|Board-style Question Breakdown
+80|Platelet Overview
+80|Primary Hemostasis
+80|Platelet Disorders
+80|Thrombotic Microangiopathies
+80|Antiplatelet Medications
+80|Board-style Question Breakdown
+81|Coagulation Cascade
+81|Bleeding Time, Prothrombin Time, INR, and Partial Thromboplastin Time
+81|Mixing Studies, Ristocetin, and D-dimer
+81|Fibrinolysis and Inhibitors of Hemostasis
+81|Thrombophilias
+81|Von Willebrand Disease
+81|Hemophilia
+81|Disseminated Intravascular Coagulation
+81|Vitamin K Dependent Coagulation Factors
+81|Anticoagulation
+81|Summary of Disorders of Platelets and Coagulation
+81|Board-style Question Breakdown
+82|Cellular Adaptations
+82|Metaplasia
+82|Dysplasia and Neoplasia
+82|Cellular Injury
+82|Necrosis
+82|Calcification
+82|Apoptotic Pathways
+82|Cell Growth Regulation
+82|Oncogenes and Tumor Suppressor Genes
+82|Cell Cycle Dependent Drug Targets
+82|Cell Cycle Independent Drug Targets
+82|Board-style Question Breakdown
+83|Acute Myeloid Leukemia
+83|Chronic Myeloid Leukemia
+83|Acute Lymphoid Leukemia
+83|Chronic Lymphocytic Leukemia
+83|Hodgkin Lymphoma
+83|Burkitt Lymphoma
+83|Follicular Lymphoma
+83|Hairy Cell Leukemia
+83|Additional B-cell Non-Hodgkin Lymphomas
+83|Additional T-cell Non-Hodgkin Lymphomas
+83|Board-style Question Breakdown
+84|Multiple Myeloma
+84|Additional Plasma Cell Dyscrasias
+84|Polycythemia Vera & Essential Thrombocythemia
+84|Myelofibrosis & Myelodysplastic Syndromes
+84|Tumor Lysis Syndrome
+84|Board-style Question Breakdown
+85|Primary Lymphoid Tissue
+85|Spleen
+85|Lymph Nodes
+85|Board-style Question Breakdown
+86|Innate Immunity
+86|Adaptive Immunity and Antigen Presentation
+86|Board-style Question Breakdown
+87|Acute Inflammatory Response
+87|Neutrophil Migration
+87|Disorders of the Leukocyte Migration
+87|Chronic Inflammatory Response
+87|Board-style Question Breakdown
+88|Proinflammatory Cytokines
+88|Additional Cytokines
+88|Board-style Question Breakdown
+89|T-cell Development
+89|Major Histocompatibility Complex
+89|T-cell Activation
+89|Board-style Question Breakdown
+90|B-cells - Overview
+90|B-cell Activation
+90|Board-style Question Breakdown
+91|Antibody Structure
+91|Antibody Properties
+91|Antibody Isotypes
+91|Board-style Question Breakdown
+92|Complement - Overview
+92|Complement Pathways
+92|Complement Disorders
+92|Board-style Question Breakdown
+93|Active vs Passive Immunity
+93|Live Attenuated Vaccines
+93|Whole Inactivated Vaccines
+93|Subunit Protein Vaccines
+93|Subunit Polysaccharide Vaccines
+93|Board-style Question Breakdown
+94|SCID
+94|B-cell and T-cell Variants
+94|Selective IgA Deficiency
+94|Hyper-IgM, Hyper-IgE, and Wiskott-Aldrich Syndrome
+94|Additional Variants
+94|Summary of Immunodeficiency Syndromes
+94|Board-style Question Breakdown
+95|Type I Hypersensitivity Reactions
+95|Type II Hypersensitivity Reactions
+95|Type II Receptor Binding Hypersensitivity Reactions and Coombs Test
+95|Type III Hypersensitivity Reactions
+95|Type IV Hypersensitivity Reactions
+95|Hypersensitivity Reactions Summary
+95|Board-style Question Breakdown
+96|RBC Incompatibility
+96|Acute Hemolytic Transfusion Reaction
+96|Delayed Hemolytic Transfusion Reaction
+96|Febrile Non-hemolytic Transfusion Reaction
+96|Transfusion-Related Acute Lung Injury (TRALI)
+96|Anaphylactic Transfusion Reaction
+96|Transfusion Reaction Summary
+96|Board-style Question Breakdown
+97|Transplantation Principles
+97|Hyperacute Rejection
+97|Acute Rejection
+97|Chronic Rejection
+97|Graft vs Host Disease
+97|Transplant Rejection Summary
+97|Immunosuppressants
+97|Biologic Immunotherapy
+97|Board-style Question Breakdown
+98|Structural Bacterial Envelope
+98|Bacterial Adherence and Motility
+98|Bacterial Morphology
+98|Gram Stain Procedure
+98|Poor Staining Organisms and Variant Staining Procedures
+98|MacConkey Agar and Eosin Methylene Blue Agar
+98|Blood Agar
+98|Additional Culture Associations
+98|Board-style Question Breakdown
+99|DNA Structures and Genetic Material Exchange
+99|Transformation
+99|Conjugation
+99|Transduction
+99|Transposition
+99|Board-style Question Breakdown
+100|Endotoxin Properties
+100|Endotoxin Mechanisms and Associations
+100|Gram Negative Sepsis
+100|Exotoxin
+100|Board-style Question Breakdown
+101|Staphylococcus Aureus Principles
+101|Staphylococcus Aureus Toxins, Disease, Antibiotics
+101|Antibiotic Resistant Strains of Staph Aureus
+101|Staphylococcus Epidermidis
+101|Staphylococcus Saprophyticus
+101|Board-style Question Breakdown
+102|Streptococcus Pneumoniae
+102|Viridans Streptococci
+102|Streptococcus Pyogenes
+102|Streptococcus Agalactiae
+102|Additional Streptococci
+102|Board-style Question Breakdown
+103|Enterococcus
+103|Bacillus Anthracis
+103|Bacillus Cereus
+103|Board-style Question Breakdown
+104|Clostridioides Difficile
+104|Clostridium Perfringens
+104|Clostridium Tetani
+104|Clostridium Botulinum
+104|Board-style Question Breakdown
+105|Mycobacterium Tuberculosis
+105|Pulmonary Tuberculosis Pathophysiology
+105|Pulmonary Tuberculosis Disease Variants
+105|Pulmonary Tuberculosis Diagnostics and Management
+105|Tuberculosis Screening
+105|Mycobacterium Leprae
+105|Additional Mycobacteria
+105|Board-style Question Breakdown
+106|Corynebacterium Diphtheriae
+106|Diphtheria
+106|Listeria Monocytogenes
+106|Nocardia
+106|Actinomyces Israelii
+106|Board-style Question Breakdown
+107|Escherichia Coli
+107|Variant Strains of Escherichia Coli
+107|Klebsiella
+107|Additional Pathogens
+107|Board-style Question Breakdown
+108|Shigella
+108|Non-typhoidal Salmonella
+108|Salmonella Typhi
+108|Yersinia Enterocolitica
+108|Yersinia Pestis
+108|Proteus
+108|Pseudomonas Aeruginosa
+108|Legionella Pneumophila
+108|Board-style Question Breakdown
+109|Campylobacter Jejuni
+109|Helicobacter Pylori
+109|Vibrio
+109|Board-style Question Breakdown
+110|Neisseria Gonorrhoeae
+110|Neisseria Meningitidis
+110|Moraxella Catarrhalis
+110|Board-style Question Breakdown
+111|Haemophilus
+111|Bordetella Pertussis
+111|Additional Pathogens
+111|Board-style Question Breakdown
+112|Treponema Pallidum
+112|Neurosyphilis
+112|Congenital Syphilis
+112|Treponemal Diagnostics and Management
+112|Borrelia Burgdorferi
+112|Borrelia Recurrentis
+112|Leptospira
+112|Board-style Question Breakdown
+113|Chlamydia Trachomatis Pathogenesis
+113|Chlamydia Trachomatis Serotypes and Disease Variants
+113|Chlamydia Pneumoniae and Psittaci
+113|Gardnerella Vaginalis
+113|Rickettsia
+113|Ehrlichia and Anaplasma
+113|Mycoplasma and Ureaplasma
+113|Coxiella Burnetii
+113|Board-style Question Breakdown
+114|Fungi Overview
+114|Histoplasma
+114|Blastomyces
+114|Coccidioides
+114|Paracoccidioides
+114|Sporothrix
+114|Board-style Question Breakdown
+115|Aspergillus Disease
+115|Aspergillus Diagnostics and Management
+115|Candida Pathogenesis
+115|Candida Disease Variants
+115|Candida Diagnostics and Management
+115|Cryptococcus
+115|Mucor and Rhizopus
+115|Pneumocystis
+115|Board-style Question Breakdown
+116|Tinea Overview
+116|Tinea Variants
+116|Tinea Diagnostics and Management
+116|Malassezia
+116|Board-style Question Breakdown
+117|Parasitology Overview
+117|Giardia|3
+117|Entamoeba|5
+117|Cryptosporidium|7
+117|Board-style Question Breakdown|9
+118|Toxoplasma
+118|Naegleria
+118|Trypanosoma Brucei
+118|Trypanosoma Cruzi
+118|Plasmodium
+118|Babesia
+118|Leishmania
+118|Trichomonas
+118|Board-style Question Breakdown
+119|Enterobius
+119|Ascaris
+119|Strongyloides
+119|Hookworm
+119|Trichuris
+119|Trichinella
+119|Toxocara
+119|Onchocerca
+119|Loa Loa
+119|Wuchereria and Brugia
+119|Board-style Question Breakdown
+120|Taenia
+120|Diphyllobothriid
+120|Echinococcus
+120|Board-style Question Breakdown
+121|Schistosoma
+121|Clonorchis
+121|Board-style Question Breakdown
+122|Sarcoptes
+122|Pediculus & Pthirus
+122|Cimex
+122|Board-style Question Breakdown
+123|Approach to Virology
+123|Comprehensive Virus Diagrams
+124|Viral Organization
+124|Mechanisms of Viral Infectivity
+124|Viral Genetics
+124|Host Defense
+125|Picornaviridae Overview
+125|Rhinovirus
+125|Coxsackievirus
+125|Poliovirus
+125|Hepatitis A Virus
+125|Hepatitis E Virus
+125|Norovirus
+125|Flaviridae
+125|West Nile Virus
+125|Yellow Fever Virus
+125|Zika Virus
+125|Dengue Virus
+125|Hepatitis C Virus: Pathogenesis and Clinical Manifestations
+125|Hepatitis C Virus: Diagnostics and Management
+125|Coronavirus: Pathogenesis and Clinical Manifestations
+125|Coronavirus: Diagnostics and Management
+125|Rubella Virus|33
+125|Chikungunya Virus|35
+125|Equine Encephalitis Virus|37
+125|Human Immunodeficiency Virus: Pathogenesis|39
+125|Human Immunodeficiency Virus: Primary Disease|41
+125|Human Immunodeficiency Virus: Secondary Disease|43
+125|Congenital Human Immunodeficiency Virus Infection|45
+125|Human Immunodeficiency Virus: Diagnostics and Management|47
+125|Human T-cell Lymphotropic Virus Type 1|49
+126|Arenavirus
+126|Bunyavirus
+126|Paramyxoviridae
+126|Parainfluenza Virus
+126|Respiratory Syncytial Virus
+126|Mumps Virus
+126|Measles: Pathogenesis and Clinical Manifestations
+126|Measles: Diagnostics and Management
+126|Influenza: Pathogenesis
+126|Influenza: Diagnostics and Management
+126|Ebolavirus
+126|Rabies Virus
+126|Hepatitis D Virus
+127|Reovirus
+128|Parvovirus B19
+128|Polyomavirus
+128|Human Papillomavirus: Pathogenesis
+128|Human Papillomavirus: Clinical Manifestations
+128|Human Papillomavirus: Diagnostics and Management
+128|Adenovirus
+128|Herpesvirus Family Overview
+128|Herpes Simplex Virus: Clinical Manifestations
+128|Herpes Simplex Virus: Diagnostics and Management
+128|Varicella-Zoster Virus: Pathogenesis and Clinical Manifestations
+128|Varicella-Zoster Virus: Diagnostics and Management
+128|Epstein-Barr Virus: Clinical Manifestations
+128|Epstein-Barr Virus: Diagnostics and Management
+128|Cytomegalovirus: Pathogenesis and Clinical Manifestations
+128|Cytomegalovirus: Diagnostics and Management
+128|Human Herpes Viruses 6 and 7 (Roseola)
+128|Human Herpes Virus 8 (Kaposi Sarcoma)
+128|Poxvirus
+128|Hepatitis B Virus: Pathogenesis and Clinical Manifestations
+128|Hepatitis B Virus: Diagnostics and Management
+129|Principles of Pneumonia
+129|Pneumonia Diagnostics
+129|Typical Pneumonia Pathogens
+129|Atypical Pneumonia Pathogens
+129|Pediatric and Additional Pneumonia Pathogens
+129|Principles of Infective Endocarditis
+129|Infective Endocarditis Diagnostics
+129|Typical Endocarditis Pathogens
+129|Complications and Non-Infectious Endocarditis
+129|Acute Rheumatic Fever Pathophysiology
+129|Acute Rheumatic Fever Diagnostics and Management
+129|Board-style Question Breakdown
+130|Introduction to Meningoencephalitis
+130|Bacterial Meningoencephalitis
+130|Viral (Aseptic) Meningoencephalitis
+130|Atypical Meningoencephalitis
+130|Neonatal Meningoencephalitis
+130|Management of Meningoencephalitis
+130|Basics of Infectious Cerebral Imaging
+130|Infectious Cerebral Lesions
+130|Infectious Spinal Cord and Neuromuscular Junction
+130|Board-style Question Breakdown
+131|Localized Dermatologic Infectious Pathology
+131|Infectious Follicular Pathology
+131|Infectious Childhood Rashes (Impetigo, Molluscum, Scarlet Fever)
+131|Infectious Childhood Rashes (Chickenpox, Measles, Rubella)
+131|Infectious Childhood Rashes (Erythema Infectiosum, Roseola, HFMD)
+131|Systemic Infectious Pathology (Toxic Shock Syndrome, SSSS, Necrotizing Fasciitis)
+131|Systemic Infectious Dermatologic Pathology (Bacillary Angiomatosis, Kaposi Sarcoma, Zoster)
+131|High Yield Palms and Soles
+131|Board-style Question Breakdown
+132|Localized Kaposi Sarcoma, Oropharyngeal Candidiasis, Oral Hairy Leukoplakia
+132|HPV Carcinoma, Reactivation Tuberculosis, Burkitt Lymphoma
+132|Pneumocystis Pneumonia, PML, Disseminated Kaposi Sarcoma
+132|HIV-associated Dementia and Neuropathy, Histoplasmosis, Coccidioidomycosis
+132|Toxoplasmosis, Primary CNS Lymphoma, Cryptococcal Meningitis
+132|Bacillary Angiomatosis, Infectious Esophagitis, Cryptosporidiosis, Aspergillosis
+132|Cytomegalovirus, Disseminated Mycobacterial Non-Tuberculous Disease
+132|Board-style Question Breakdown
+133|General Principles of Antibiotics
+133|Bacterial Coverage Overview
+133|Classic Penicillins
+133|Penicillinase-Resistant Penicillins
+133|Aminopenicillins
+133|Antipseudomonal Penicillins
+133|Introduction to Cephalosporins
+133|1st and 2nd Generation Cephalosporins
+133|3rd, 4th, and 5th Generation Cephalosporins
+133|Carbapenems and Monobactams
+133|Glycopeptides (including Vancomycin)
+133|Aminoglycosides
+133|Tetracyclines and Derivatives
+133|Macrolides
+133|Lincosamides
+133|Streptogramins, Oxazolidinones, and Amphenicols
+133|Fluoroquinolones
+133|Nitroimidazoles
+133|Diaminopyrimidines and Sulfonamides
+133|Nitrofurans
+133|Fosfomycin, Daptomycin, and Polymyxins
+133|Isoniazid
+133|Rifamycins
+133|Pyrazinamide, Ethambutol, Dapsone, and Clofazimine
+133|Empiric Antibiotics in Respiratory and ENT Diseases
+133|Empiric Antibiotics in Meningitis, Cystitis, and Pyelonephritis
+133|Empiric Antibiotics in GI, Skin, Bone, and Hematogenous Infections
+133|Board-style Question Breakdown
+134|General Principles of Azoles
+134|Azoles
+134|Allylamines, Echinocandins, and Polyenes
+134|Additional Antifungals
+134|Common Fungal Disease Management
+134|Board-style Question Breakdown
+135|Pyrimethamine, Sulfadiazine, Nitroimidazoles, and Intraluminal Agents
+135|Antiparasitics of Leishmaniasis and Trypanosomiasis
+135|Malarial Pharmacology and Chloroquine
+135|Chloroquine-Resistant and Exo-Erythrocytic Antimalarials
+135|Anthelmintics
+135|Anthelmintics Algorithm
+135|Ectoparasiticides
+135|Board-style Question Breakdown
+136|Respiratory Antiviral Therapy
+136|HSV and VZV Antiviral Therapy
+136|Additional Herpetic Antiviral Therapy
+136|HIV Antiretroviral Pharmacology
+136|Antiretroviral Attachment and Fusion Inhibitors
+136|Antiretroviral Nucleoside Reverse Transcriptase Inhibitors
+136|Additional Antiretroviral Therapies
+136|HIV Antiretroviral Management
+136|Hepatitis B Antiviral Therapy
+136|Hepatitis C Antiviral Therapy
+136|Board-style Question Breakdown
+137|Skeletal Muscle - Overview
+137|Skeletal Muscle Depolarization
+137|Muscle Contraction and Relaxation
+137|Malignant Hyperthermia
+137|Metabolic Exercise Physiology
+137|Sarcomere
+137|Muscle Proprioception
+137|Board-style Question Breakdown
+138|Osteoarthritis
+138|Gout
+138|CPPD/Pseudogout
+138|Septic Arthritis
+138|Achondroplasia
+138|Osteoporosis
+138|Osteopetrosis
+138|Osteomalacia/Rickets
+138|Osteitis Deformans (Paget disease of the bone)
+138|Osteitis Fibrosa Cystica
+138|Diagnostics of Bone Disorders
+138|Costochondritis
+138|Board-style Question Breakdown
+139|Rheumatoid Arthritis
+139|Systemic Lupus Erythematosus
+139|Sjögren Syndrome
+139|Antiphospholipid Syndrome
+139|Polymyalgia Rheumatica
+139|Fibromyalgia
+139|Polymyositis & Dermatomyositis
+139|Myositis Ossificans
+139|Systemic Juvenile Idiopathic Arthritis
+139|Raynaud Phenomenon
+139|Scleroderma & Mixed Connective Tissue Disease
+139|Sarcoidosis
+139|Board-style Question Breakdown
+140|Seronegative Spondyloarthritis Overview
+140|Psoriatic Arthritis
+140|Ankylosing Spondyloarthritis
+140|IBD-Associated Spondyloarthritis
+140|Reactive Arthritis
+140|Board-style Question Breakdown
+141|Osteochondroma & Enchondroma
+141|Osteoma & Osteoid Osteoma
+141|Osteoblastoma
+141|Giant Cell Tumor (Osteoclastoma)
+141|Osteosarcoma
+141|Chondrosarcoma
+141|Ewing Sarcoma
+141|Primary Bone Tumors Summary
+141|Board-style Question Breakdown
+142|Giant Cell Arteritis (GCA)
+142|Takayasu Arteritis
+142|Thromboangiitis Obliterans
+142|Kawasaki Disease
+142|Polyarteritis Nodosa
+142|Behçet Disease
+142|Cutaneous Small-Vessel Vasculitis
+142|Eosinophilic Granulomatosis with Polyangiitis (EGPA)
+142|Granulomatosis with Polyangiitis (GPA)
+142|IgA Vasculitis (Henoch-Schonlein Purpura)
+142|Microscopic Polyangiitis
+142|Mixed Cryoglobulinemia
+142|Board-style Question Breakdown
+143|Spine Anatomy
+143|Spine Physical Exam
+143|Spinal Radiculopathy
+143|Spinal Stenosis
+143|Vertebral Fracture
+143|Vertebral Osteomyelitis
+143|Spinal Epidural Abscess
+143|Scoliosis
+143|Board-style Question Breakdown
+144|Brachial Plexus Overview
+144|Musculocutaneous Nerve
+144|Axillary Nerve
+144|Radial Nerve
+144|Median Nerve
+144|Ulnar Nerve
+144|Erb Palsy
+144|Klumpke Palsy
+144|Thoracic Outlet Syndrome
+144|Winged Scapula
+144|Board-style Question Breakdown
+145|Shoulder Anatomy
+145|Rotator Cuff Tear
+145|Clavicle Fractures
+145|Humerus Fractures
+145|Elbow Anatomy
+145|Epicondylitis
+145|Board-style Question Breakdown
+146|Wrist & Hand Anatomy
+146|Carpal Tunnel Syndrome
+146|Guyon Canal Syndrome
+146|Fractures & Dislocations
+146|Distortions of the Hand
+146|De Quervain Tenosynovitis
+146|Dupuytren Contracture
+146|Ganglion Cyst
+146|Finger Injuries
+146|Board-style Question Breakdown
+147|Iliohypogastric, Genitofemoral & Lateral Femoral Cutaneous Nerves
+147|Obturator & Pudendal Nerve
+147|Femoral & Sciatic Nerve
+147|Common, Deep & Superficial Peroneal (Fibular) Nerves
+147|Tibial Nerve
+147|Superior & Inferior Gluteal Nerves
+147|Board-style Question Breakdown
+148|Hip Anatomy
+148|Hip Physical Exam
+148|Psoas Abscess
+148|Iliotibial Band Syndrome
+148|Hip Dislocations
+148|Femoral Neck Fracture
+148|Avascular Necrosis
+148|Knee Anatomy
+148|Knee Examination
+148|Knee Ligament Injuries
+148|Prepatellar Bursitis
+148|Limb Compartment Syndrome
+148|Board-style Question Breakdown
+149|Foot & Ankle Anatomy
+149|Ankle Sprain
+149|Foot Deformities
+149|Plantar Fasciitis
+149|Stress Fractures
+149|Board-style Question Breakdown
+150|Radial Head Subluxation
+150|Pediatric Fractures
+150|Developmental Dysplasia of the Hip (DDH)
+150|Slipped Capital Femoral Epiphysis (SCFE)
+150|Legg-Calvé-Perthes Disease
+150|Patellofemoral Syndrome
+150|Osgood-Schlatter Disease
+150|Board-style Question Breakdown
+151|Arachidonic Acid Pathways
+151|Acetaminophen
+151|NSAIDs
+151|Aspirin & Celecoxib
+151|Gout Medications
+151|Bisphosphonates, Denosumab, & Teriparatide
+151|TNF-a Inhibitors & Monoclonal Antibodies
+151|Imiquimod & Leflunomide
+151|Board-style Question Breakdown
+152|Embryology
+152|Developmental Anomalies
+152|Anatomy
+152|Board-style Review Question
+153|Fluid Physiology
+153|Filtration Physiology Overview
+153|Clearance, Renal Plasma & Blood Flow
+153|Glucose Clearance
+153|Autoregulation
+153|Board-style Review Question
+154|Proximal Convoluted Tubule
+154|Loop of Henle
+154|Distal Convoluted Tubule
+154|Collecting Duct
+154|Board-style Review Question
+155|RAAS Overview
+155|Angiotensin II Effects
+155|Natriuretic Peptides
+155|Board-style Review Question
+156|Sodium
+156|Potassium
+156|Calcium
+156|Magnesium
+156|Phosphate
+156|Board-style Review Question
+157|Acid-Base Physiology - Overview
+157|Practice Problems
+157|Metabolic Acidosis
+157|Metabolic Alkalosis
+157|Respiratory Acidosis
+157|Respiratory Alkalosis
+157|Type 1 RTA
+157|Type 2 RTA
+157|Type 4 RTA
+157|Board-style Review Question|20
+158|Nomenclature
+158|Urinalysis Basics
+158|Urinary Casts
+158|Board-style Review Question
+159|Glomerular Disease Overview
+159|Minimal Change Disease
+159|Focal Segmental Glomerulosclerosis
+159|Membranous Nephropathy
+159|Amyloid Nephropathy
+159|Diabetic Glomerulonephropathy
+159|Board-style Question Breakdown
+160|Poststreptococcal Glomerulonephritis
+160|Rapidly Progressive Glomerulonephritis
+160|Diffuse Proliferative Glomerulonephritis
+160|Membranoproliferative Glomerulonephritis
+160|IgA Nephropathy
+160|Alport Syndrome
+160|Board-style Question Breakdown
+161|Nephrolithiasis Overview
+161|Ammonium Magnesium Phosphate Stones
+161|Calcium Stones
+161|Cystine Stones
+161|Uric Acid Stones
+161|Nephrolithiasis Summary
+161|Board-style Review Question
+162|Micturition Overview
+162|Overflow Incontinence
+162|Stress Incontinence
+162|Urge Incontinence
+162|Board-style Question Breakdown
+163|Kidney Injury - Overview
+163|Prerenal AKI
+163|Intrarenal AKI
+163|Postrenal AKI
+163|AKI Summary
+163|Acute Interstitial Nephritis
+163|Acute Tubular Necrosis
+163|Diffuse Cortical Necrosis
+163|Renal Papillary Necrosis
+163|Chronic Kidney Disease
+163|Board-style Review Question
+164|Acute Cystitis
+164|Acute Pyelonephritis
+164|Chronic Pyelonephritis
+164|Renal Cell Carcinoma
+164|Renal Oncocytoma
+164|Wilm's Tumor
+164|Urothelial Carcinoma
+164|Squamous Cell Carcinoma of the Bladder
+164|Board-style Review Question
+165|Autosomal Dominant Polycystic Kidney Disease
+165|Autosomal Recessive Polycystic Kidney Disease
+165|Autosomal Dominant Tubulointerstitial Kidney Disease
+165|Board-style Review Question
+166|Carbonic Anhydrase Inhibitors
+166|Osmotic Diuretics
+166|Loop Diuretics
+166|Thiazide Diuretics
+166|Potassium-Sparing Diuretics
+166|ACEi, ARBs, Direct Renin Inhibitors
+166|Board-style Review Question
+167|Notochord
+167|Meninges
+167|Origins of Nervous Tissue
+167|Embryologic Cranial Defects and Spinal Defects
+167|Board-style Question Breakdown
+168|Cell Types
+168|Neuronal Mechanics
+168|Wallerian Degeneration
+168|Sensory Receptors
+168|Board-style Question Breakdown
+169|Spinothalamic Tracts
+169|Dorsal Column - Medial Lemniscus
+169|Spinocerebellar Tract
+169|Visual Representation
+169|Board-style Question Breakdown
+170|Motor Neurons
+170|Motor Neuron Lesions
+170|Descending Tracts
+170|Board-style Question Breakdown
+171|Midbrain, Pons, and Medulla
+171|Rule of 4's
+171|Board-style Question Breakdown
+172|Frontal Lobe
+172|Temporal Lobe
+172|Parietal Lobe
+172|Occipital Lobe
+172|Internal Capsule
+172|Board-style Question Breakdown
+173|Spinal Cord Anatomical Considerations
+173|Reflex and Spinal Level
+173|Spinal Disc Herniation
+173|Spinal Stenosis
+173|Board-style Question Breakdown
+174|Review of Sensory and Motor Tracts
+174|Anterior Cord Syndrome|3
+174|Posterior Cord Syndrome|5
+174|Central Cord Syndrome|7
+174|Cauda Equina vs Conus Medullaris Syndrome|9
+174|Board-style Question Breakdown|11
+175|Tetanus
+175|Rabies
+175|Poliomyelitis
+175|Varicella Zoster
+175|Neurosyphilis
+175|Werdnig-Hoffman Disease
+175|Board-style Question Breakdown
+176|Guillain-Barre Syndrome
+176|Multiple Sclerosis
+176|Progressive Multifocal Leukoencephalopathy
+176|Additional Diseases of Demyelination
+176|Board-style Question Breakdown
+177|Electrolyte Extracellular Concentrations
+177|Resting and Equilibrium Potentials
+177|Action Potential
+177|Ion Channel Inhibitors and Activators
+177|Neuronal Conduction
+177|Board-style Question Breakdown
+178|Physiology of NMJ
+178|Medications Targeting the NMJ
+178|Myasthenia Gravis
+178|Lambert-Eaton Syndrome
+178|Botulinum Toxin
+178|Review Table
+178|Board-style Question Breakdown|13
+179|Cranial Nerve I
+179|Cranial Nerve II
+179|Cranial Nerve III
+179|Cranial Nerve IV
+179|Cranial Nerve V
+179|Cranial Nerve VI
+179|Cavernous Sinus Thrombosis
+179|Board-style Question Breakdown
+180|Cranial Nerve VII
+180|Cranial Nerve VIII
+180|Cranial Nerve IX
+180|Cranial Nerve X
+180|Cranial Nerve XI
+180|Cranial Nerve XII
+180|Board-style Question Breakdown
+181|Visual Pathway Overview
+181|Optic Nerve Lesion
+181|Optic Chiasm Lesion
+181|Peri-chiasmal Lesions
+181|Lateral Geniculate Lesion
+181|Optic Radiation Lesion
+181|Visual Cortex Lesion
+181|Board-style Question Breakdown
+182|Fundamental Concepts
+182|Weber and Rinne Tests
+182|Conductive Hearing Loss
+182|Sensorineural Hearing Loss
+182|Board-style Question Breakdown
+183|Vestibular System Anatomy
+183|Peripheral vs Central Vertigo
+183|Benign Paroxysmal Positional Vertigo
+183|Vestibular Neuritis and Labyrinthitis
+183|Meniere Disease
+183|Central and Peripheral Vertigo
+183|Board-style Question Breakdown
+184|General Principles
+184|Medulloblastoma
+184|Pilocytic Astrocytoma
+184|Craniopharyngioma
+184|Ependymoma
+184|Neonatal Cranial Soft Tissue Injury
+184|Review Question
+185|General Principles
+185|Glioblastoma Multiforme
+185|Vestibular Schwannoma
+185|Oligodendroglioma
+185|Meningioma
+185|Primary Central Nervous System Lymphoma
+185|Board-style Question Breakdown
+186|Types of Stroke
+186|Histologic Timeline of Stroke
+186|Stroke Presentation by Territory
+186|Lacunar Infarction
+186|Medullary and Pontine Syndromes
+186|Management and Secondary Prevention
+186|Board-style Question Breakdown
+187|Types of Strokes
+187|Circle of Willis|3
+187|Types of Aneurysms and Locations|5
+187|Epidural and Subdural Hematoma, Subarachnoid Hemorrhage|7
+187|Intraparenchymal Hemorrhage|9
+187|Intraventricular Hemorrhage|11
+187|Board-style Question Breakdown|13
+188|Anatomical Considerations
+188|Hydrocephalus
+188|Sensory vs Cerebellar Ataxia
+188|Cerebellar Pathology
+188|Board-style Question Breakdown
+189|Overview (Hypothalamus, Thalamus, Pineal Gland, Limbic System)
+189|Hypothalamic Nuclei
+189|Hypothalamic Disorders
+189|Disorders of Temperature Regulation
+189|Disorders of the Thalamus
+189|Other Disorders of the Diencephalon
+189|Board-style Question Breakdown
+190|Anatomical Considerations
+190|Basal Ganglia Circuits
+190|Disorders of the Basal Ganglia
+190|Board-style Question Breakdown
+191|Dopaminergic Pathways
+191|Acetylcholine, Dopamine, Norepinephrine, Serotonin, and GABA
+191|Review Question
+192|Alzheimer Dementia
+192|Parkinson Disease|3
+192|Vascular Dementia|4
+192|Frontotemporal Dementia|5
+192|Lewy Body Dementia|6
+192|Creutzfeldt-Jakob Disease|7
+192|Additional Causes of Dementia|8
+192|Board-style Question Breakdown|9
+193|Tension Headache
+193|Migraine
+193|Cluster Headache
+193|Idiopathic Intracranial Hypertension
+193|Trigeminal Neuralgia
+193|Review Table
+193|Board-style Question Breakdown|13
+194|Seizures - Overview
+194|Focal Seizure|3
+194|Generalized Seizure|5
+194|Febrile Seizure|7
+194|Status Epilepticus|9
+194|Antiepileptic Medications|11
+194|Board-style Question Breakdown|13
+195|Diffuse Axonal Injury
+195|Intracranial Hypertension
+195|Brain Herniation
+195|Decerebrate vs Decorticate Posturing
+195|Board-style Question Breakdown
+196|Acute Inflammatory Response
+196|Neutrophil Migration
+196|Disorders of the Leukocyte Migration
+196|Chronic Inflammatory Response
+196|Board-style Question Breakdown
+197|Cellular Adaptations
+197|Metaplasia
+197|Dysplasia and Neoplasia
+197|Cellular Injury
+197|Necrosis
+197|Calcification
+197|Apoptotic Pathways
+197|Cell Growth Regulation
+197|Oncogenes and Tumor Suppressor Genes
+197|Cell Cycle Dependent Drug Targets
+197|Cell Cycle Independent Drug Targets
+197|Board-style Question Breakdown
+198|Protein Structure and Function
+198|Enzymes
+198|Michaelis Menten Enzyme Kinetics Derivation
+198|Michaelis Menten Enzyme Kinetics Interpretation
+198|Drug-Enzyme Interactions
+198|Enzyme Kinetics Practice Question
+198|Membrane Proteins|13
+198|Receptor Physiology|15
+198|Drug-Receptor Interactions|17
+198|Board-style Question Breakdown|19
+199|Drug Delivery
+199|Drug Elimination
+199|Elimination Kinetics
+199|Cytochrome P450 Interactions
+199|Effect of Urine pH on Drug Elimination
+199|Dosage Calculations
+199|Board-style Question Breakdown 1
+199|Board-style Question Breakdown 2|15
+200|Autonomic System Overview
+200|Autonomic System Signaling
+200|Autonomic Secondary Messengers
+200|Autonomic System Summary
+200|Other Involuntary Signaling Systems
+200|Cholinomimetics - Direct Agonists
+200|Cholinomimetics - Anticholinesterases
+200|Anticholinesterase Poisoning
+200|Muscarinic Antagonists
+200|Endogenous Adrenergic Agonists
+200|Direct Sympathomimetics
+200|Indirect Sympathomimetics
+200|Physiological Effects of Sympathomimetics
+200|Sympatholytics
+200|Alpha Adrenergic Antagonists
+200|Beta Adrenergic Antagonists
+200|Phosphodiesterase Inhibitors
+200|Exposure to Multiple Autonomic Drugs
+200|Board-style Question Breakdown 1
+200|Board-style Question Breakdown 2|39
+201|Age Considerations for Pharmacokinetics
+201|Pharmacological Toxicity and Treatment
+201|Environmental Toxins and their Treatments
+201|Seafood Toxins and their Treatments
+201|Board-style Question Breakdown
+202|Classical Conditioning
+202|Operant Conditioning
+202|Transtheoretical Model of Change
+202|Immature Ego Defenses
+202|Mature Ego Defenses
+202|Grief
+203|ADHD
+203|Autism Spectrum Disorder
+203|Anger Disorders
+203|Intellectual Disorders
+203|Isolating Developmental Disorders
+203|Child Abuse
+204|Amnesia
+204|Dissociative Disorders
+204|Delirium
+205|Anxiety and Panic Disorders
+205|Phobias
+205|Urge Disorders
+205|Trauma Disorders
+205|Eating Disorders
+206|Cluster A Personality Disorders
+206|Cluster B Personality Disorders
+206|Cluster C Personality Disorders
+207|Psychosis
+207|Major Depressive Disorder
+207|Mania
+207|Bipolar Disorder
+207|Schizophrenia
+207|Mood Disorder Comparisons
+207|Suicide|13
+208|Sleep Physiology
+208|Sleep Stages
+208|Sleep Disorders
+208|Erectile Dysfunction
+208|Disorders of Somatization and Hypochondriasis
+208|Disorders of Deception
+209|Alcohol
+209|Alcohol Withdrawal
+209|Opioids
+209|Opioid Classification
+209|Benzodiazepines
+209|Barbiturates
+209|Inhalants
+209|Amphetamines
+209|Cocaine
+209|Caffeine
+209|Nicotine
+209|LSD
+209|Cannabis
+209|MDMA
+209|Phenylcyclidine
+209|Gambling
+210|SSRIs
+210|SNRIs
+210|Tricyclic Antidepressants
+210|MAOIs
+210|Bupropion
+210|Buspirone
+210|Mirtazapine
+210|Trazodone
+210|Vilazodone
+210|Vortioxetine
+210|Varenicline
+210|Lithium
+210|Typical Antipsychotics
+210|Atypical Antipsychotics
+210|Extrapyramidal Effects
+210|Psychiatric Emergencies
+210|Therapy
+211|Ethical Principles
+211|Capacity & Consent
+211|Directives & Decision Making
+212|Core Communication Principles
+212|Information & Decision-Making
+212|Serious News & Difficult Interactions
+212|Motivational Interviewing
+212|Cross-Cultural Communication
+212|Board-style Question Breakdown
+213|Disease Prevention
+213|Healthcare Systems
+213|Healthcare Payments
+214|Quality Assurance
+214|Medical Errors
+215|Board-style Question Breakdown 1
+215|Board-style Question Breakdown 2|3
+215|Board-style Question Breakdown 3|4
+215|Board-style Question Breakdown 4|5
+215|Board-style Question Breakdown 5|6
+215|Board-style Question Breakdown 6|7
+215|Board-style Question Breakdown 7|8
+215|Board-style Question Breakdown 8|9
+216|Pulmonology System Function, Anatomy, and Histology
+216|Embryologic Defects
+216|Muscles of Respiration
+217|Lung Physiology Basics
+217|Breathing and Pressure
+217|Equal Pressure Point
+217|Lung Volumes and Capacities
+217|Lung and Chest Wall Curve
+217|Ventilation and Dead Space
+217|Surfactant
+217|Compliance
+217|Airflow and Airway Resistance
+217|Flow-Volume Loops
+217|Pulmonary Function Testing
+218|Blood and Respiration Basics
+218|Pulmonary Vascular Resistance
+218|Ventilation and Perfusion
+218|Pathological V/Q Mismatch
+218|Hemoglobin
+218|Carbon Dioxide
+218|Oxygen Content
+218|Abnormal Oxygen Levels
+218|Perfusion vs Diffusion
+218|Blood-Gas Scenarios
+218|A-a Gradient
+219|Lung Physical Exam
+219|Introduction to Respiratory Infections
+220|Obstructive Lung Disease Basics
+220|Asthma
+220|Asthma Treatments
+220|COPD
+220|Cystic Fibrosis
+221|Restrictive Lung Disease Basics
+221|Pulmonary Fibrosis
+221|Pneumoconiosis
+221|Hypersensitivity Pneumonitis
+222|Lung Cancer Basics
+222|Small Cell Carcinoma
+222|Non-Small Cell Carcinoma
+222|Mesothelioma
+223|DVT and Pulmonary Embolism
+223|Pulmonary Hypertension
+223|Pneumothorax
+223|Pulmonary Edema
+223|Pleural Effusion
+223|ARDS and NRDS
+223|Sleep Apnea
+224|Early Development
+224|Germ Layers
+224|Teratogenic Medications
+224|Pharyngeal Apparatus
+224|Sexual Differentiation
+224|Disorders of Genital Embryology
+224|Chromosomal Disorders
+224|Disorders of Sexual Development Part 1
+224|Disorders of Sexual Development Part 2
+224|Male Anatomy
+224|Female Anatomy
+225|Gametogenesis
+225|Hormones of Pregnancy
+225|Menstrual Cycle
+225|Menstrual Cycle Disorders
+225|Pregnancy Physiology
+225|Placenta and Umbilical Cord
+225|Fetal Circulation
+225|Childhood Development
+226|Ectopic Pregnancy
+226|Molar Pregnancy
+226|Hypertension in Pregnancy
+226|Transient Complications of Pregnancy
+226|Polyhydramnios and Oligohydramnios
+226|Twin-twin Transfusion Syndrome
+226|Placental Pathology
+226|Postpartum Hemorrhage
+227|Internal Vaginal Pathology
+227|Vaginal Skin Pathology
+227|Vaginal Cancer
+227|Polycystic Ovarian Syndrome
+227|Adenomyosis, Endometrial Hyperplasia, and Asherman Syndrome
+227|Endometriosis and Postpartum Endometritis
+227|Uterine Cancer
+227|Cervical Pathology
+227|Ovarian Cysts
+227|Ovarian Cancer Overview
+227|Ovarian Cancer Subtypes
+227|Breast Cancer Overview
+227|Benign Breast Conditions
+227|Benign Breast Tumors
+227|Invasive Breast Carcinomas
+228|Cryptorchidism and Testicular Torsion
+228|Testicular Fluid Collections
+228|Testicular Cancer Overview
+228|Germ Cell Tumors
+228|Non-Germ Cell Tumors
+228|Penile Pathology
+228|Inflammatory Pathology
+228|Benign Prostatic Hyperplasia
+228|Prostate Adenocarcinoma
+229|GnRH Modulators
+229|Selective Estrogen Receptor Modulators
+229|Androgen Modulators
+229|Antiandrogens
+229|Hormone Replacement Therapy
+229|Contraception
+229|Tamsulosin, Minoxidil, Tocolytics`.split('\n').map((l, id) => {
+        const [ui, name, idx] = l.split('|');
+        const n = per[ui] = (per[ui] || 0) + 1;
+        return { id, u: BC_UNITS[+ui], title: name, index: idx ? +idx : 2 * n, bites: !idx };
+    });
+})();
+const BC_GENERIC = /^(board-style question breakdown|review question|review table|enzyme kinetics practice question)/i;
+const bcUnitUrl = u => `https://app.bootcamp.com/med-school/${u.s.route}/videos/${u.route}`;
+const bcUrl = v => `${bcUnitUrl(v.u)}?index=${v.index}`;
+const bcQuizUrl = v => v.bites ? `${bcUnitUrl(v.u)}?index=${v.index + 1}` : '';
+let bcIndex = null;
+// The Bootcamp lesson (or, failing that, unit) for an AnKing #Bootcamp tag label like “Biochemistry › Carbohydrates › Gluconeogenesis Pathway”
+function bcMatch(label) {
+    if (!label) return null;
+    if (!bcIndex) { bcIndex = new Map(); BC_CATALOG.forEach(v => { if (BC_GENERIC.test(v.title)) return; const k = normTitle(v.title); bcIndex.set(k, [...(bcIndex.get(k) || []), v]); }); }
+    const segs = String(label).split(' › '), leaf = segs[segs.length - 1], parent = normTitle(segs[segs.length - 2] || ''), subj = normTitle(segs[0] || '');
+    const pick = list => list.find(v => normTitle(v.u.name) === parent) || list.find(v => normTitle(v.u.s.name).startsWith(subj.split(' ')[0] || '~')) || list[0];
+    const exact = bcIndex.get(normTitle(leaf));
+    if (exact) return pick(exact);
+    const want = new Set(titleTokens(leaf));
+    let best = null;
+    if (want.size) BC_CATALOG.forEach(v => {
+        if (BC_GENERIC.test(v.title)) return;
+        const have = titleTokens(v.title), inter = have.filter(w => want.has(w)).length;
+        if (!inter) return;
+        const sameUnit = normTitle(v.u.name) === parent, all = [...want].every(w => have.includes(w));
+        const score = inter / new Set([...have, ...want]).size + (sameUnit ? 0.15 : 0);
+        if ((score >= 0.67 || (sameUnit && all)) && (!best || score > best.score)) best = { v, score };   // in the tag's own unit, a lesson containing all its words counts
+    });
+    if (best) return best.v;
+    const unit = BC_UNITS.find(u => normTitle(u.name) === normTitle(leaf));   // the tag names a whole unit
+    return unit ? { unitOnly: true, u: unit, title: unit.name } : null;
+}
+const bcById = id => BC_CATALOG[id];
+
 // ---------- links to the videos themselves ----------
 const VIDEO_SITES = { bnb: /boardsbeyond\.com/i, bootcamp: /bootcamp\.com/i, scholarrx: /scholarrx\.com/i };
 const VIDEO_SEARCH = { bnb: 'boardsbeyond.com', bootcamp: 'bootcamp.com', scholarrx: 'scholarrx.com' };
@@ -1108,14 +3693,20 @@ function knownVideoUrls(db) {
 }
 function videoLink(id, label, db = loadDb()) {
     const k = vidKey(id, label);
-    return safeUrl((db.videoLinks || {})[k]) || safeUrl((db.videoLinksAuto || {})[k])
-        || (id === 'bnb' ? safeUrl(knownVideoUrls(db)[lastSeg(label).toLowerCase()]) : '');
+    if (safeUrl((db.videoLinks || {})[k])) return db.videoLinks[k];
+    if (id === 'bnb') { const v = bnbMatch(label); if (v) return bnbUrl(v); }   // straight to the video page; its quiz is one click away
+    if (id === 'bootcamp') { const v = bcMatch(label); if (v) return v.unitOnly ? bcUnitUrl(v.u) : bcUrl(v); }   // the lesson itself
+    return safeUrl((db.videoLinksAuto || {})[k]) || (id === 'bnb' ? safeUrl(knownVideoUrls(db)[lastSeg(label).toLowerCase()]) : '');
 }
 // A video's name: a link when the address is known, else a site search; ✎ saves or changes its address
 function videoHtml(id, label, { db = loadDb(), edit = true, count = null } = {}) {
     const name = lastSeg(label), url = videoLink(id, label, db);
+    const bv = id === 'bnb' ? bnbMatch(label) : null, cv = id === 'bootcamp' ? bcMatch(label) : null;
+    const tip = bv ? `B&B: ${bv.cat} › ${bv.sub} › ${bv.title} · ${bv.q} quiz question${bv.q === 1 ? '' : 's'} (Take Video Quiz is on the video page)`
+        : cv ? `Bootcamp: ${cv.u.s.name} › ${cv.u.name}${cv.unitOnly ? '' : ' › ' + cv.title}` : label;
+    const quiz = cv && !cv.unitOnly && cv.bites ? ` <a class="muted" href="${escHtml(bcQuizUrl(cv))}" target="_blank" rel="noopener noreferrer" title="This lesson's Bites quiz">quiz</a>` : '';
     const find = `https://www.google.com/search?q=${encodeURIComponent(`site:${VIDEO_SEARCH[id] || ''} ${name}`)}`;
-    return (url ? `<a href="${escHtml(url)}" target="_blank" rel="noopener noreferrer" title="${escHtml(label)}">${escHtml(name)}</a>`
+    return (url ? `<a href="${escHtml(url)}" target="_blank" rel="noopener noreferrer" title="${escHtml(tip)}">${escHtml(bv ? bv.title : cv ? cv.title : name)}</a>${quiz}`
             : `<span title="${escHtml(label)}">${escHtml(name)}</span> <a class="muted" href="${escHtml(find)}" target="_blank" rel="noopener noreferrer" title="Search ${escHtml(VIDEO_SEARCH[id] || 'the web')} for this video">find</a>`)
         + (count != null ? ` <span class="muted">(${count})</span>` : '')
         + (edit ? `<button class="link-btn" data-act="vid-link" data-res="${escHtml(id)}" data-label="${escHtml(label)}" title="${url ? 'Change' : 'Save'} this video's link">✎</button>` : '');
@@ -2098,7 +4689,8 @@ function bnbTopicList(l, entries = guideEntries()) {
         const name = String(t).replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
         if (!name || name.length > 60 || seen.has(name.toLowerCase())) return;   // long lines are notes, not video names
         seen.add(name.toLowerCase());
-        out.push({ name, href });
+        const v = !href && bnbMatch(name);
+        out.push({ name, href: href || (v ? bnbUrl(v) : '') });
     };
     guideFor(l, entries).forEach(x => (x.bnb || []).forEach(v => String(v).split(/\n+/).forEach(line => {
         const url = (line.match(/https?:\/\/\S+/) || [])[0];
@@ -2108,6 +4700,7 @@ function bnbTopicList(l, entries = guideEntries()) {
     const u = safeUrl(l.url);
     if (bnbFromUrl(u)) add(bnbFromUrl(u), u);
     ((l.vidmap || {}).bnb || []).forEach(([label]) => add(lastSeg(label), videoLink('bnb', label)));   // the B&B videos its picked cards are tagged with
+    (((l.slideVids || {}).list) || []).forEach(([id]) => { const v = bnbById(id); if (v) add(v.title, bnbUrl(v)); });   // and the ones its slides and quizzes cover
     return out;
 }
 const bnbAlt = parts => `<div class="today-alt">Prefer B&amp;B? Do ${NEW_QUESTIONS} questions from ${parts}</div>`;
@@ -2188,14 +4781,43 @@ async function loadLectureVideos() {
     } catch (err) { console.error(err); }
     finally { lecVidBusy = false; }
 }
+// The B&B videos for a lecture: from its picked cards' tags (with card counts), then from its slides and quizzes
+function lectureBnb(l) {
+    const out = [], seen = new Set();
+    ((l.vidmap || {}).bnb || []).forEach(([label, n]) => { const v = bnbMatch(label); const key = v ? v.id : 'l:' + label; if (!seen.has(key)) { seen.add(key); out.push({ v, label, cards: n }); } });
+    (((l.slideVids || {}).list) || []).forEach(([id]) => { const v = bnbById(id); if (v && !seen.has(v.id)) { seen.add(v.id); out.push({ v, label: v.title, slides: true }); } });
+    if (!out.length) { const v = bnbMatch(l.name); if (v) out.push({ v, label: v.title, name: true }); }
+    return out;
+}
+// The Bootcamp lessons for a lecture: from its picked cards' #Bootcamp tags, then from its slides and quizzes
+function lectureBc(l) {
+    const out = [], seen = new Set();
+    ((l.vidmap || {}).bootcamp || []).forEach(([label, n]) => { const v = bcMatch(label); const key = v && !v.unitOnly ? v.id : 'l:' + label; if (!seen.has(key)) { seen.add(key); out.push({ v, label, cards: n }); } });
+    (((l.slideVids || {}).bc) || []).forEach(([id]) => { const v = bcById(id); if (v && !seen.has(v.id)) { seen.add(v.id); out.push({ v, label: `${v.u.s.name} › ${v.u.name} › ${v.title}`, slides: true }); } });
+    return out;
+}
+function bnbItemHtml(x, db) {
+    return videoHtml('bnb', x.label, { db }) + (x.cards ? ` <span class="muted">(${x.cards} card${x.cards === 1 ? '' : 's'})</span>` : x.slides ? ' <span class="muted">(slides)</span>' : '');
+}
+// Where those videos sit in B&B's Custom Quiz builder (it can't be pre-filled by a link)
+function customQuizHint(vs) {
+    const groups = [...new Set(vs.filter(Boolean).map(v => `${v.cat} › ${v.sub}`))].slice(0, 3);
+    return groups.length ? `<a href="${BNB_CUSTOM_QUIZ}" target="_blank" rel="noopener noreferrer" title="B&amp;B Qbank: build a quiz from these sub-categories">Custom quiz</a> <span class="muted">(${escHtml(groups.join('; '))})</span>` : '';
+}
 function lecVideosHtml(l, max = 4, db = loadDb()) {
-    const vm = l.vidmap || {};
-    const parts = VIDEO_RESOURCES.filter(r => (vm[r.id] || []).length).map(r =>
-        `${escHtml(r.name)}: ${vm[r.id].slice(0, max).map(x => videoHtml(r.id, x[0], { db, count: x[1] })).join(', ')}${vm[r.id].length > max ? ` <span class="muted">+${vm[r.id].length - max} more</span>` : ''}`);
-    return parts.length ? `<div class="lec-vids">Videos for its cards · ${parts.join(' · ')}</div>` : '';
+    const vm = l.vidmap || {}, bnb = lectureBnb(l);
+    const parts = [];
+    if (bnb.length) parts.push(`B&amp;B: ${bnb.slice(0, max).map(x => bnbItemHtml(x, db)).join(', ')}${bnb.length > max ? ` <span class="muted">+${bnb.length - max} more</span>` : ''} · ${customQuizHint(bnb.slice(0, max).map(x => x.v))}`);
+    const bc = lectureBc(l);
+    if (bc.length) parts.push(`Bootcamp: ${bc.slice(0, max).map(x => videoHtml('bootcamp', x.label, { db }) + (x.cards ? ` <span class="muted">(${x.cards} card${x.cards === 1 ? '' : 's'})</span>` : x.slides ? ' <span class="muted">(slides)</span>' : '')).join(', ')}${bc.length > max ? ` <span class="muted">+${bc.length - max} more</span>` : ''}`);
+    VIDEO_RESOURCES.filter(r => r.id !== 'bnb' && r.id !== 'bootcamp' && (vm[r.id] || []).length).forEach(r =>
+        parts.push(`${escHtml(r.name)}: ${vm[r.id].slice(0, max).map(x => videoHtml(r.id, x[0], { db, count: x[1] })).join(', ')}${vm[r.id].length > max ? ` <span class="muted">+${vm[r.id].length - max} more</span>` : ''}`));
+    return parts.length ? `<div class="lec-vids">Videos · ${parts.join(' · ')}</div>` : '';
 }
 // The address of the video most of a lecture's cards come from, if known (for Watch when the lecture has no link of its own)
 function topVideoUrl(l, db = loadDb()) {
+    const b = lectureBnb(l)[0];
+    if (b) { const u = videoLink('bnb', b.label, db); if (u) return u; }
     for (const r of VIDEO_RESOURCES) { const x = ((l.vidmap || {})[r.id] || [])[0]; const u = x && videoLink(r.id, x[0], db); if (u) return u; }
     return '';
 }
@@ -2722,6 +5344,48 @@ async function askGemini(parts) {
     try { parsed = JSON.parse(json); } catch { throw new Error('Gemini’s answer wasn’t a readable quiz. The page tries again later.'); }
     return cleanQuestions(parsed);
 }
+// ---------- which B&B videos a lecture's uploaded slides and quizzes cover ----------
+async function fileText(f) {
+    const name = f.name || '';
+    if (/\.pdf$/i.test(name) || f.type === 'application/pdf') return (await pdfToPages(f.blob)).join('\n');
+    if (/\.pptx$/i.test(name)) return pptxToText(f.blob);
+    if (/\.docx$/i.test(name)) return docxToText(f.blob);
+    if (/\.(txt|md)$/i.test(name) || /^text\//.test(f.type)) return f.blob.text();
+    return '';
+}
+const filesSig = l => 'v2|' + QUIZ_SLOTS.map(([slot]) => (((l.quiz || {}).files || {})[slot] || {}).name || '').join('|');
+let slideScanBusy = false;
+async function scanLectureFiles(force = false) {
+    if (slideScanBusy) return;
+    const todo = lectureList(loadDb()).filter(l => hasLocalSlides(l) && (force || !l.slideVids || l.slideVids.sig !== filesSig(l)));
+    if (!todo.length) return;
+    slideScanBusy = true;
+    try {
+        const found = {};
+        for (const l of todo) {
+            try {
+                const files = await quizFiles(l);
+                let text = l.name + '\n';
+                for (const [slot] of QUIZ_SLOTS) if (files[slot]) text += '\n' + await fileText(files[slot]);
+                found[l.id] = { sig: filesSig(l), at: todayKey(), list: bnbVideosInText(text), bc: videosInText(BC_CATALOG, text) };
+            } catch (err) { console.error('Slide scan skipped for', l.name, err); }
+        }
+        const db = loadDb();
+        lectureList(db).forEach(l => { if (found[l.id]) l.slideVids = found[l.id]; });
+        saveDb(db);
+        renderUpcoming();
+    } finally { slideScanBusy = false; }
+}
+// For a missed quiz question: the lecture's B&B video whose title words come up most in the question and its explanation
+function videoForQuestion(q, l) {
+    const cands = [...lectureBnb(l).map(x => x.v && { v: x.v, kind: 'bnb' }), ...lectureBc(l).map(x => x.v && !x.v.unitOnly && { v: x.v, kind: 'bc' })].filter(Boolean);
+    if (!cands.length) return [];
+    const text = ' ' + normTitle([q.v, q.p, q.s, ...Object.values(q.r || {})].join(' ')) + ' ';
+    const scored = cands.map(c => { const toks = [...new Set(titleTokens(c.v.title))]; return { ...c, s: toks.length ? toks.filter(w => text.includes(' ' + w)).length / toks.length : 0 }; })
+        .filter(c => c.s >= 0.5).sort((a, b) => b.s - a.s);
+    return ['bnb', 'bc'].map(k => scored.find(c => c.kind === k)).filter(Boolean);   // the best of each
+}
+
 async function quizFiles(l) {
     const out = {};
     for (const [slot] of QUIZ_SLOTS) { const f = await idbGet(`${l.id}|${slot}`); if (f) out[slot] = f; }
@@ -2819,6 +5483,7 @@ async function saveQuizFile(id, slot, file) {
     });
     renderUpcoming();
     if (l && l.quiz.auto) ensureQuizzes();
+    scanLectureFiles();   // match the new file to B&B videos
 }
 function quizPanel(l, withRounds = true) {
     const f = (l.quiz && l.quiz.files) || {};
@@ -2994,7 +5659,10 @@ function renderQuiz() {
             <div class="${picked === q.a ? 'qz-right' : 'qz-wrong'}">${picked === q.a ? 'Correct.' : `Incorrect. The answer is ${q.a}.`} ${escHtml(q.o['ABCDE'.indexOf(q.a)])}</div>
             ${q.p ? `<p><b>Mechanistic pathway:</b> ${escHtml(q.p)}</p>` : ''}
             ${Object.keys(q.r || {}).length ? `<ul>${Object.entries(q.r).filter(([L, t]) => t).sort().map(([L, t]) => `<li>${L === '_' ? '' : `<b>${escHtml(L)}.</b> `}${escHtml(t)}</li>`).join('')}</ul>` : ''}
-            ${q.s ? `<p class="muted"><b>Slide source:</b> ${escHtml(q.s)}</p>` : ''}</div>` : '';
+            ${q.s ? `<p class="muted"><b>Slide source:</b> ${escHtml(q.s)}</p>` : ''}
+            ${picked !== q.a ? (list => list.length ? `<p><b>Review:</b> ${list.map(c => c.kind === 'bnb'
+                ? `B&amp;B <a href="${escHtml(bnbUrl(c.v))}" target="_blank" rel="noopener noreferrer">${escHtml(c.v.title)}</a> <span class="muted">(${c.v.q} quiz questions on its page)</span>`
+                : `Bootcamp <a href="${escHtml(bcUrl(c.v))}" target="_blank" rel="noopener noreferrer">${escHtml(c.v.title)}</a>${c.v.bites ? ` · <a href="${escHtml(bcQuizUrl(c.v))}" target="_blank" rel="noopener noreferrer">its Bites quiz</a>` : ''}`).join(' · ')}</p>` : '')(videoForQuestion(q, l)) : ''}</div>` : '';
         html = `<div class="qz-count">Question ${i + 1} of ${n}</div>
             <div class="qz-stem">${escHtml(q.v)}</div>${opts}${why}`;
         foot = `<button class="btn-small" data-act="qz-prev" ${i === 0 ? 'disabled' : ''}>Back</button>
@@ -3216,6 +5884,7 @@ function bankCandidates(id, a, lec) {
     if (id === 'amboss') return [...new Set([...(a.ambossNids || []), ...(a.nids || [])])].map(String);
     const out = (b[id] || []).map(x => x[0]);
     if (id === 'bnb' && lec) bnbTopicList(lec).forEach(t => { if (!out.some(o => lastSeg(o).toLowerCase() === t.name.toLowerCase())) out.push(t.name); });
+    if (id === 'bootcamp' && lec) lectureBc(lec).forEach(x => { if (!out.includes(x.label)) out.push(x.label); });
     return out;
 }
 function pickBankItems(db, bank, area, lec, today) {
@@ -3253,7 +5922,8 @@ function weakBankDetail({ bank, items }, lec) {
         case 'amboss': return items.length
             ? `A fresh set of ${items.length} weak cards (none opened for AMBOSS in the last ${bank.rest} days). Open cards, select all, Start Qbank Session, and pick unanswered + answered incorrectly.`
             : 'Opens all of its weak cards; once Anki has synced, each day opens a different set.';
-        case 'bnb': return `Watch or skim, then do the B&amp;B video quiz${items.length === 1 ? '' : 'zes'} for ${names} (${WEAK_QUESTIONS} questions in all). Open cards shows the weak cards from ${items.length === 1 ? 'that video' : 'those videos'}.`;
+        case 'bnb': { const cq = customQuizHint(items.map(bnbMatch)); return `Open each video and click Take Video Quiz: ${names} (about ${WEAK_QUESTIONS} questions in all)${cq ? `, or ${cq}` : ''}. Open cards shows the weak cards from ${items.length === 1 ? 'that video' : 'those videos'}.`; }
+        case 'bootcamp': return `Do the Bites quiz (or rewatch) for ${names}. Open cards shows the weak cards from ${items.length === 1 ? 'that lesson' : 'those lessons'}.`;
         default: return `In ${escHtml(bank.name)}, watch or do the questions for ${names}. Open cards shows the weak cards from ${items.length === 1 ? 'that video' : 'those videos'}.`;
     }
 }
@@ -4148,7 +6818,8 @@ document.addEventListener('visibilitychange', () => {
     autoSync();
     await loadLocalQuizFiles();
     renderUpcoming();
-    ensureQuizzes();          // write any quizzes still missing for lectures whose slides are on this device
+    ensureQuizzes();
+    scanLectureFiles();       // which B&B videos each lecture's slides and quizzes cover (only for new or changed files)          // write any quizzes still missing for lectures whose slides are on this device
 })();
 </script>
 </body>
